@@ -20,7 +20,7 @@ def test():
 
     print("______________________\n"*5)
 
-    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg")
+    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg", overwrite=True)
 
 
 if __name__ == '__main__':

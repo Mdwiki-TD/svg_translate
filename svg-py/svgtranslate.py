@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 
 
-def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None):
+def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None):
     """
     Extract translations from one SVG file and inject them into another.
 
@@ -65,7 +65,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
     print("______________________\n"*5)
 
-    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file)
+    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite)
 
     if _result is None:
         logger.error(f"Failed to inject translations into {inject_file}")

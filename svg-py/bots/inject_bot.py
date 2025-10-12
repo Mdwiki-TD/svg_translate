@@ -139,7 +139,7 @@ def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=Fals
                                 text_elem.text = translated_texts[0]
 
                             stats['updated_translations'] += 1
-                            logger.debug(f"Updated {lang} translation for '{default_texts}'")
+                            logger.debug(f"overwrite Updated {lang} translation for '{default_texts}'")
                             break
                 else:
                     stats['skipped_translations'] += 1
