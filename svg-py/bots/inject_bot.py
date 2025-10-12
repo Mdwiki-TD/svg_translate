@@ -189,7 +189,7 @@ def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=Fals
     return stats
 
 
-def inject(svg_file_path, mapping_files, output_dir=None, overwrite=False, dry_run=False, case_insensitive=True):
+def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, dry_run=False, case_insensitive=True):
     """
     Inject translations into an SVG file based on mapping files.
 
@@ -233,12 +233,6 @@ def inject(svg_file_path, mapping_files, output_dir=None, overwrite=False, dry_r
     existing_ids = set(root.xpath('//@id'))
 
     stats = work_on_switches(switches, existing_ids, all_mappings, case_insensitive=case_insensitive, dry_run=dry_run, overwrite=overwrite)
-
-    # Save data to JSON file
-    output_dir = Path(__file__).parent.parent / "translated"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    output_file = output_dir / svg_file_path.name
 
     # Write the modified SVG
     tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)

@@ -24,43 +24,48 @@ def setup_logging(verbose=False):
     return logging.getLogger(__name__)
 
 
-def main():
+def svg_extract_and_inject(extract_file, inject_file, output_file=None):
     """
     Main function that demonstrates the usage of extract and inject functions
     with various SVG files and their corresponding JSON data files.
     """
-    # Set up logging
-    setup_logging(False)
-
     Dir = Path(__file__).parent  # Get the directory path of the current script
-    _data = extract(Dir / "tests/files1/arabic.svg")  # Extract data from the first SVG file
-    print("______________________\n"*5)  # Print separator line for visual clarity
+    extract_file = Path(str(extract_file))
 
-    _result = inject(Dir / "tests/files1/no_translations.svg", [Dir / "data/arabic.svg.json"])
+    if not output_file:
+        # Save data to JSON file
+        output_dir = Path(__file__).parent.parent / "translated"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        output_file = output_dir / extract_file.name
+
+    _data = extract(extract_file)
 
     print("______________________\n"*5)
 
-    _data2 = extract(Dir.parent / "big_example/file2.svg")
-    print("______________________\n"*5)
+    _result = inject(inject_file, [Dir / f"data/{extract_file.name}.json"], output_file=output_file)
 
-    _result2 = inject(Dir.parent / "big_example/file1.svg", [Dir / "data/file2.svg.json"])
-
-    _data = extract(Dir / "tests/files2/from.svg")
-    print("______________________\n"*5)
-
-    _result = inject(Dir / "tests/files2/to.svg", [Dir / "data/from.svg.json"])
+    return _result
 
 
 def test():
     # Set up logging
     setup_logging(False)
-    Dir = Path(__file__).parent
 
-    _data = extract(Dir / "tests/files2/from2.svg")
+    Dir = Path(__file__).parent  # Get the directory path of the current script
+
+    _result = svg_extract_and_inject(Dir / "tests/files1/arabic.svg", Dir / "tests/files1/no_translations.svg")
 
     print("______________________\n"*5)
 
-    _result = inject(Dir / "tests/files2/to2_raw.svg", [Dir / "data/from2.svg.json"])
+    _2 = svg_extract_and_inject(Dir.parent / "big_example/file2.svg", Dir.parent / "big_example/file1.svg")
+    print("______________________\n"*5)
+
+    _3 = svg_extract_and_inject(Dir / "tests/files2/from.svg", Dir / "tests/files2/to.svg")
+
+    print("______________________\n"*5)
+
+    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg")
 
 
 if __name__ == '__main__':

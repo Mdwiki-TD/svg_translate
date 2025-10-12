@@ -17,7 +17,7 @@ This tool extracts multilingual text pairs from SVG files and applies translatio
 This tool requires Python 3.10+ and the following dependencies:
 
 ```bash
-pip install lxml
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -157,10 +157,6 @@ The tool normalizes text by:
 When adding new translation nodes, the tool generates unique IDs by:
 - Taking the existing ID and appending the language code (e.g., `text2213` becomes `text2213-ar`)
 - If the generated ID already exists, appending a numeric suffix until unique (e.g., `text2213-ar-1`)
-
-### Backup Strategy
-
-Before modifying an SVG file, the tool creates a backup with the `.bak` extension (e.g., `file.svg.bak`).
 
 ## Error Handling
 
