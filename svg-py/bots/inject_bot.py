@@ -57,7 +57,7 @@ def load_all_mappings(mapping_files):
     return all_mappings
 
 
-def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=False, dry_run=False, overwrite=False):
+def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=False, overwrite=False):
     stats = {
         'processed_switches': 0,
         'inserted_translations': 0,
@@ -145,41 +145,40 @@ def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=Fals
                     logger.debug(f"Skipped existing {lang} translation for '{default_texts}'")
             else:
                 # Create a new translation node
-                if not dry_run:
-                    # Clone the default node
-                    new_node = etree.Element(default_node.tag, attrib=default_node.attrib)
+                # Clone the default node
+                new_node = etree.Element(default_node.tag, attrib=default_node.attrib)
 
-                    # Update attributes
-                    new_node.set('systemLanguage', lang)
+                # Update attributes
+                new_node.set('systemLanguage', lang)
 
-                    # Generate unique ID
-                    original_id = default_node.get('id')
-                    if original_id:
-                        new_id = generate_unique_id(original_id, lang, existing_ids)
-                        new_node.set('id', new_id)
-                        existing_ids.add(new_id)
+                # Generate unique ID
+                original_id = default_node.get('id')
+                if original_id:
+                    new_id = generate_unique_id(original_id, lang, existing_ids)
+                    new_node.set('id', new_id)
+                    existing_ids.add(new_id)
 
-                    # Add the translation text for each tspan
-                    tspans = default_node.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-                    if tspans and len(tspans) == len(translated_texts):
-                        # Clone the tspan structure
-                        for i, tspan in enumerate(tspans):
-                            new_tspan = etree.Element(tspan.tag, attrib=tspan.attrib)
-                            new_tspan.text = translated_texts[i]
+                # Add the translation text for each tspan
+                tspans = default_node.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+                if tspans and len(tspans) == len(translated_texts):
+                    # Clone the tspan structure
+                    for i, tspan in enumerate(tspans):
+                        new_tspan = etree.Element(tspan.tag, attrib=tspan.attrib)
+                        new_tspan.text = translated_texts[i]
 
-                            # Generate unique ID for tspan
-                            original_tspan_id = tspan.get('id')
-                            if original_tspan_id:
-                                new_tspan_id = generate_unique_id(original_tspan_id, lang, existing_ids)
-                                new_tspan.set('id', new_tspan_id)
-                                existing_ids.add(new_tspan_id)
+                        # Generate unique ID for tspan
+                        original_tspan_id = tspan.get('id')
+                        if original_tspan_id:
+                            new_tspan_id = generate_unique_id(original_tspan_id, lang, existing_ids)
+                            new_tspan.set('id', new_tspan_id)
+                            existing_ids.add(new_tspan_id)
 
-                            new_node.append(new_tspan)
-                    elif not tspans and len(translated_texts) == 1:
-                        new_node.text = translated_texts[0]
+                        new_node.append(new_tspan)
+                elif not tspans and len(translated_texts) == 1:
+                    new_node.text = translated_texts[0]
 
-                    # Insert the new node
-                    switch.insert(0, new_node)
+                # Insert the new node
+                switch.insert(0, new_node)
 
                 stats['inserted_translations'] += 1
                 logger.debug(f"Inserted {lang} translation for '{default_texts}'")
@@ -189,7 +188,7 @@ def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=Fals
     return stats
 
 
-def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, dry_run=False, case_insensitive=True):
+def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, case_insensitive=True):
     """
     Inject translations into an SVG file based on mapping files.
 
@@ -198,7 +197,6 @@ def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, dry_
         mapping_files: List of paths to JSON mapping files
         output_dir: Directory to save modified SVG files (defaults to same directory as input)
         overwrite: Whether to overwrite existing translations
-        dry_run: If True, only report changes without writing files
         case_insensitive: Whether to normalize case when matching strings
 
     Returns:
@@ -232,7 +230,7 @@ def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, dry_
     # Collect all existing IDs to ensure uniqueness
     existing_ids = set(root.xpath('//@id'))
 
-    stats = work_on_switches(switches, existing_ids, all_mappings, case_insensitive=case_insensitive, dry_run=dry_run, overwrite=overwrite)
+    stats = work_on_switches(switches, existing_ids, all_mappings, case_insensitive=case_insensitive, overwrite=overwrite)
 
     # Write the modified SVG
     tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
