@@ -28,7 +28,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     Main function that demonstrates the usage of extract and inject functions
     with various SVG files and their corresponding JSON data files.
     """
-    Dir = Path(__file__).parent  # Get the directory path of the current script
+
     extract_file = Path(str(extract_file))
     inject_file = Path(str(inject_file))
 
@@ -45,17 +45,22 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
         data_output_file = json_output_dir / f'{extract_file.name}.json'
 
     translations = extract(extract_file, case_insensitive=True)
+    if not translations:
+        logger.error(f"Failed to extract translations from {extract_file}")
+        return None
 
-    if translations:
-        # Save translations to JSON
-        with open(data_output_file, 'w', encoding='utf-8') as f:
-            json.dump(translations, f, indent=2, ensure_ascii=False)
+    # Save translations to JSON
+    with open(data_output_file, 'w', encoding='utf-8') as f:
+        json.dump(translations, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"Saved translations to {data_output_file}")
+    logger.info(f"Saved translations to {data_output_file}")
 
     print("______________________\n"*5)
 
     _result = inject(inject_file, [data_output_file], output_file=output_file)
+
+    if _result is None:
+        logger.error(f"Failed to inject translations into {inject_file}")
 
     return _result
 
