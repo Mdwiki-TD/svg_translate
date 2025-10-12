@@ -21,10 +21,11 @@
     <use transform="translate(425,50)" id="use2252" x="0" y="0" width="1000" height="1000" xlink:href="#small"/>
     <use transform="matrix(-1,0,0,1,1000,0)" id="use5188" x="0" y="0" width="1000" height="1000" xlink:href="#use2248"/>
     <text x="250.88867" y="847.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2205" xml:space="preserve">
-      <tspan x="250.88867" y="847.29651" id="tspan2207">Rear speakers carry same signal,</tspan>
-    </text>
+              <tspan x="250.88867" y="800.29651" id="tspan2208">Rear speakers carry</tspan>
+              <tspan x="250.88867" y="847.29651" id="tspan2207">same signal,</tspan>
+          </text>
     <text x="259.34814" y="927.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2213" xml:space="preserve">
-      <tspan x="259.34814" y="927.29651" id="tspan2215">but are connected in anti-phase</tspan>
-    </text>
+              <tspan x="259.34814" y="927.29651" id="tspan2215">but are connected in anti-phase</tspan>
+          </text>
   </g>
 </svg>
