@@ -71,25 +71,3 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
         logger.error(f"Failed to inject translations into {inject_file}")
 
     return _result
-
-
-def test():
-
-    Dir = Path(__file__).parent  # Get the directory path of the current script
-
-    _result = svg_extract_and_inject(Dir / "tests/files1/arabic.svg", Dir / "tests/files1/no_translations.svg")
-
-    print("______________________\n"*5)
-
-    _2 = svg_extract_and_inject(Dir.parent / "big_example/file2.svg", Dir.parent / "big_example/file1.svg")
-    print("______________________\n"*5)
-
-    # _3 = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg")
-
-    print("______________________\n"*5)
-
-    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg")
-
-
-if __name__ == '__main__':
-    test()
