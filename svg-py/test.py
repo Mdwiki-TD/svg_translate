@@ -5,7 +5,7 @@ from pathlib import Path
 from svgtranslate import svg_extract_and_inject
 
 
-def test():
+def test1():
 
     Dir = Path(__file__).parent  # Get the directory path of the current script
 
@@ -24,5 +24,13 @@ def test():
     _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg", overwrite=True)
 
 
+def test2():
+
+    Dir = Path(__file__).parent  # Get the directory path of the current script
+
+    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg", overwrite=True)
+    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg", overwrite=True)
+
+
 if __name__ == '__main__':
-    test()
+    test2()
