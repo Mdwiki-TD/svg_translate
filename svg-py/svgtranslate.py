@@ -45,6 +45,12 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
         logger.error(f"Failed to extract translations from {extract_file}")
         return None
 
+    if not data_output_file:
+        json_output_dir = Path(__file__).parent / "data"
+        json_output_dir.mkdir(parents=True, exist_ok=True)
+
+        data_output_file = json_output_dir / f'{extract_file.name}.json'
+
     # Save translations to JSON
     with open(data_output_file, 'w', encoding='utf-8') as f:
         json.dump(translations, f, indent=2, ensure_ascii=False)
@@ -56,12 +62,6 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
         output_dir.mkdir(parents=True, exist_ok=True)
 
         output_file = output_dir / inject_file.name
-
-    if not data_output_file:
-        json_output_dir = Path(__file__).parent / "data"
-        json_output_dir.mkdir(parents=True, exist_ok=True)
-
-        data_output_file = json_output_dir / f'{extract_file.name}.json'
 
     print("______________________\n"*5)
 

@@ -134,8 +134,9 @@ def make_translation_ready(svg_file_path: Path, write_back: bool = False) -> etr
         element_children = [c for c in tspan if isinstance(c.tag, str)]
         if len(element_children) > 0:
             # Nested tspans or children not supported
-            raise SvgStructureException('structure-error-nested-tspans-not-supported', tspan)
-        translatable_nodes.append(tspan)
+            print(SvgStructureException('structure-error-nested-tspans-not-supported', tspan))
+        else:
+            translatable_nodes.append(tspan)
 
     # Process text elements: wrap raw text nodes into <tspan>
     texts = root.findall(".//{%s}text" % SVG_NS)
@@ -230,7 +231,7 @@ def make_translation_ready(svg_file_path: Path, write_back: bool = False) -> etr
 
         # verify that children of text are only tspans or text nodes
         for child in text:
-            if not (child.tag in ({f"{{{SVG_NS}}}tspan", "tspan"})):
+            if child.tag not in ({f"{{{SVG_NS}}}tspan", "tspan"}):
                 raise SvgStructureException('structure-error-non-tspan-inside-text', child)
 
     # Process all switches: split comma-separated systemLanguage values
