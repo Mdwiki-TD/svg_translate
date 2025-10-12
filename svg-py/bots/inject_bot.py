@@ -11,6 +11,7 @@ from pathlib import Path
 from lxml import etree
 
 from .utils import normalize_text, extract_text_from_node
+from .translation_ready import make_translation_ready
 
 logger = logging.getLogger(__name__)
 
@@ -219,13 +220,17 @@ def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, case
     logger.info(f"Injecting translations into {svg_file_path}")
 
     # Parse SVG as XML
-    parser = etree.XMLParser(remove_blank_text=True)
-    tree = etree.parse(str(svg_file_path), parser)
-    root = tree.getroot()
+    # parser = etree.XMLParser(remove_blank_text=True)
+    # tree = etree.parse(str(svg_file_path), parser)
+    # root = tree.getroot()
 
+    tree, root = make_translation_ready(svg_file_path)
     # Find all switch elements
     switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
     logger.info(f"Found {len(switches)} switch elements")
+
+    if not switches:
+        logger.error("No switch elements found in SVG")
 
     # Collect all existing IDs to ensure uniqueness
     existing_ids = set(root.xpath('//@id'))
