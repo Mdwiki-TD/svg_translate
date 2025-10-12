@@ -19,12 +19,22 @@
     <rect width="150" height="150" x="50" y="800" style="fill:url(#linearGradient5186);fill-opacity:1;stroke:#000000;stroke-width:6" id="use2248"/>
     <use transform="translate(425,50)" id="use2252" x="0" y="0" width="1000" height="1000" xlink:href="#small"/>
     <use transform="matrix(-1,0,0,1,1000,0)" id="use5188" x="0" y="0" width="1000" height="1000" xlink:href="#use2248"/>
-    <text x="250.88867" y="847.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2205" xml:space="preserve">
+    <switch style="font-size:30px;font-family:Bitstream Vera Sans">
+      <text x="250.88867" y="847.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2205-ar" xml:space="preserve" systemLanguage="ar">
+        <tspan x="250.88867" y="800.29651" id="tspan2208-ar">السماعات الخلفية تنقل</tspan>
+      </text>
+      <text x="250.88867" y="847.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2205" xml:space="preserve">
               <tspan x="250.88867" y="800.29651" id="tspan2208">Rear speakers carry</tspan>
               <tspan x="250.88867" y="847.29651" id="tspan2207">same signal,</tspan>
           </text>
-    <text x="259.34814" y="927.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2213" xml:space="preserve">
+    </switch>
+    <switch style="font-size:30px;font-family:Bitstream Vera Sans">
+      <text x="259.34814" y="927.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2213-ar" xml:space="preserve" systemLanguage="ar">
+        <tspan x="259.34814" y="927.29651" id="tspan2215-ar">لكنها ! بمرحلتين متعاكستين.</tspan>
+      </text>
+      <text x="259.34814" y="927.29651" style="font-size:30px;font-family:Bitstream Vera Sans" id="text2213" xml:space="preserve">
               <tspan x="259.34814" y="927.29651" id="tspan2215">but are connected in anti-phase</tspan>
           </text>
+    </switch>
   </g>
 </svg>
