@@ -6,22 +6,21 @@ This tool extracts multilingual text pairs from SVG files and applies translatio
 to other SVG files by inserting missing <text systemLanguage="XX"> blocks.
 """
 
+import json
+import sys
 import logging
 from pathlib import Path
 
 from bots.extract_bot import extract
 from bots.inject_bot import inject
 
+logger = logging.getLogger(__name__)
 
-def setup_logging(verbose=False):
-    """Set up logging configuration."""
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    return logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG if "DEBUG" in sys.argv else logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None):
@@ -46,7 +45,13 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
         data_output_file = json_output_dir / f'{extract_file.name}.json'
 
-    _data = extract(extract_file, data_output_file=data_output_file, case_insensitive=True)
+    translations = extract(extract_file, case_insensitive=True)
+
+    # Save translations to JSON
+    with open(data_output_file, 'w', encoding='utf-8') as f:
+        json.dump(translations, f, indent=2, ensure_ascii=False)
+
+    logger.info(f"Saved translations to {data_output_file}")
 
     print("______________________\n"*5)
 
@@ -56,8 +61,6 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
 
 def test():
-    # Set up logging
-    setup_logging(False)
 
     Dir = Path(__file__).parent  # Get the directory path of the current script
 
@@ -68,7 +71,7 @@ def test():
     _2 = svg_extract_and_inject(Dir.parent / "big_example/file2.svg", Dir.parent / "big_example/file1.svg")
     print("______________________\n"*5)
 
-    _3 = svg_extract_and_inject(Dir / "tests/files2/from.svg", Dir / "tests/files2/to.svg")
+    _3 = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg")
 
     print("______________________\n"*5)
 

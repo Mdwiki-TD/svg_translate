@@ -26,54 +26,11 @@ pip install -r requirements.txt
 
 To extract translations from an SVG file:
 
-```bash
-python svgtranslate.py extract <svg_file> [--output <json_file>] [--verbose] [--case-insensitive]
+```python
+
+result = svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None)
+
 ```
-
-Example:
-```bash
-python svgtranslate.py extract arabic.svg --verbose
-```
-
-This will create a file named `arabic.svg.json` containing the extracted translations.
-
-### Injecting Translations
-
-To inject translations into SVG files:
-
-```bash
-python svgtranslate.py inject <svg_files...> --mapping <json_file> [--output-dir <dir>] [--overwrite] [--dry-run] [--verbose] [--case-insensitive]
-```
-
-Example:
-```bash
-python svgtranslate.py inject no_translations.svg --mapping arabic.svg.json --verbose
-```
-
-You can specify multiple mapping files:
-```bash
-python svgtranslate.py inject no_translations.svg --mapping arabic.svg.json --mapping french.svg.json
-```
-
-### Command Line Options
-
-#### Global Options
-
-- `--verbose`, `-v`: Enable verbose logging
-- `--case-insensitive`: Normalize case when matching strings
-
-#### Extract Command
-
-- `svg_file`: Path to the SVG file to extract translations from
-- `--output`, `-o`: Output JSON file path (defaults to `<svg_file>.svg.json`)
-
-#### Inject Command
-
-- `svg_files`: One or more SVG files to inject translations into
-- `--mapping`, `-m`: JSON mapping file (can be specified multiple times)
-- `--output-dir`, `-d`: Output directory for modified SVG files (defaults to same directory as input)
-- `--overwrite`: Overwrite existing translations
-- `--dry-run`: Report changes without writing files
 
 ## Data Model
 

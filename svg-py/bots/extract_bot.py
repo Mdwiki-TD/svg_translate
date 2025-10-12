@@ -15,13 +15,12 @@ from .utils import normalize_text, extract_text_from_node
 logger = logging.getLogger(__name__)
 
 
-def extract(svg_file_path, data_output_file, case_insensitive=True):
+def extract(svg_file_path, case_insensitive=True):
     """
     Extract translations from an SVG file and save them as JSON.
 
     Args:
         svg_file_path: Path to the SVG file to extract translations from
-        data_output_file: Path to save the JSON output (defaults to <svg_file_path>.json)
         case_insensitive: Whether to normalize case when matching strings
 
     Returns:
@@ -96,12 +95,7 @@ def extract(svg_file_path, data_output_file, case_insensitive=True):
             processed_switches += 1
             logger.debug(f"Processed switch with default texts: {default_texts}")
 
-    # Save translations to JSON
-    with open(data_output_file, 'w', encoding='utf-8') as f:
-        json.dump(translations, f, indent=2, ensure_ascii=False)
-
     logger.info(f"Extracted translations for {processed_switches} switches")
-    logger.info(f"Saved translations to {data_output_file}")
 
     # Count languages
     all_languages = set()
