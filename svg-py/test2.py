@@ -20,7 +20,7 @@ def test():
 
     for file in inject_files:
         _data = svg_extract_and_injects(translations, file, output_dir=output_dir)
-        break
+        # break
 
 
 if __name__ == '__main__':
