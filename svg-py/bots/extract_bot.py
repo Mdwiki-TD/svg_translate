@@ -15,13 +15,13 @@ from .utils import normalize_text, extract_text_from_node
 logger = logging.getLogger(__name__)
 
 
-def extract(svg_file_path, output_file=None, case_insensitive=True):
+def extract(svg_file_path, data_output_file, case_insensitive=True):
     """
     Extract translations from an SVG file and save them as JSON.
 
     Args:
         svg_file_path: Path to the SVG file to extract translations from
-        output_file: Path to save the JSON output (defaults to <svg_file_path>.json)
+        data_output_file: Path to save the JSON output (defaults to <svg_file_path>.json)
         case_insensitive: Whether to normalize case when matching strings
 
     Returns:
@@ -32,11 +32,6 @@ def extract(svg_file_path, output_file=None, case_insensitive=True):
     if not svg_file_path.exists():
         logger.error(f"SVG file not found: {svg_file_path}")
         return None
-
-    output_dir = Path(__file__).parent.parent / "data"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    output_file = output_dir / f'{svg_file_path.name}.json'
 
     logger.info(f"Extracting translations from {svg_file_path}")
 
@@ -102,11 +97,11 @@ def extract(svg_file_path, output_file=None, case_insensitive=True):
             logger.debug(f"Processed switch with default texts: {default_texts}")
 
     # Save translations to JSON
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(data_output_file, 'w', encoding='utf-8') as f:
         json.dump(translations, f, indent=2, ensure_ascii=False)
 
     logger.info(f"Extracted translations for {processed_switches} switches")
-    logger.info(f"Saved translations to {output_file}")
+    logger.info(f"Saved translations to {data_output_file}")
 
     # Count languages
     all_languages = set()

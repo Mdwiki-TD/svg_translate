@@ -24,7 +24,7 @@ def setup_logging(verbose=False):
     return logging.getLogger(__name__)
 
 
-def svg_extract_and_inject(extract_file, inject_file, output_file=None):
+def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None):
     """
     Main function that demonstrates the usage of extract and inject functions
     with various SVG files and their corresponding JSON data files.
@@ -34,12 +34,19 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None):
 
     if not output_file:
         # Save data to JSON file
-        output_dir = Path(__file__).parent.parent / "translated"
+        output_dir = Path(__file__).parent / "translated"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_file = output_dir / extract_file.name
+        output_file = output_dir / inject_file.name
 
-    _data = extract(extract_file)
+    if not data_output_file:
+        # Save data to JSON file
+        json_output_dir = Path(__file__).parent / "data"
+        json_output_dir.mkdir(parents=True, exist_ok=True)
+
+        data_output_file = json_output_dir / f'{extract_file.name}.json'
+
+    _data = extract(extract_file, data_output_file=data_output_file, case_insensitive=True)
 
     print("______________________\n"*5)
 
