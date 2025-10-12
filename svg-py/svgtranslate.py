@@ -25,8 +25,16 @@ logging.basicConfig(
 
 def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None):
     """
-    Main function that demonstrates the usage of extract and inject functions
-    with various SVG files and their corresponding JSON data files.
+    Extract translations from one SVG file and inject them into another.
+
+    Args:
+        extract_file: Path to SVG file to extract translations from
+        inject_file: Path to SVG file to inject translations into
+        output_file: Optional output path for modified SVG (defaults to translated/<inject_file>)
+        data_output_file: Optional output path for JSON data (defaults to data/<extract_file>.json)
+
+    Returns:
+        Dictionary with injection statistics, or None if extraction or injection fails
     """
 
     extract_file = Path(str(extract_file))
