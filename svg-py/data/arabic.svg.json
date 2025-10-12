@@ -1,0 +1,22 @@
+{
+  "rear speakers carry same signal,": {
+    "_texts": [
+      "rear speakers carry same signal,"
+    ],
+    "_translations": {
+      "ar": [
+        "السماعات الخلفية تنقل الإشارة نفسها،"
+      ]
+    }
+  },
+  "but are connected in anti-phase": {
+    "_texts": [
+      "but are connected in anti-phase"
+    ],
+    "_translations": {
+      "ar": [
+        "لكنها موصولة بمرحلتين متعاكستين."
+      ]
+    }
+  }
+}
