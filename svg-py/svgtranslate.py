@@ -30,16 +30,15 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     """
     Dir = Path(__file__).parent  # Get the directory path of the current script
     extract_file = Path(str(extract_file))
+    inject_file = Path(str(inject_file))
 
     if not output_file:
-        # Save data to JSON file
         output_dir = Path(__file__).parent / "translated"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         output_file = output_dir / inject_file.name
 
     if not data_output_file:
-        # Save data to JSON file
         json_output_dir = Path(__file__).parent / "data"
         json_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -56,7 +55,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
     print("______________________\n"*5)
 
-    _result = inject(inject_file, [Dir / f"data/{extract_file.name}.json"], output_file=output_file)
+    _result = inject(inject_file, [data_output_file], output_file=output_file)
 
     return _result
 
