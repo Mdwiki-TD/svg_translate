@@ -47,11 +47,12 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
     translations = extract(extract_file, case_insensitive=True)
 
-    # Save translations to JSON
-    with open(data_output_file, 'w', encoding='utf-8') as f:
-        json.dump(translations, f, indent=2, ensure_ascii=False)
+    if translations:
+        # Save translations to JSON
+        with open(data_output_file, 'w', encoding='utf-8') as f:
+            json.dump(translations, f, indent=2, ensure_ascii=False)
 
-    logger.info(f"Saved translations to {data_output_file}")
+        logger.info(f"Saved translations to {data_output_file}")
 
     print("______________________\n"*5)
 
@@ -71,7 +72,7 @@ def test():
     _2 = svg_extract_and_inject(Dir.parent / "big_example/file2.svg", Dir.parent / "big_example/file1.svg")
     print("______________________\n"*5)
 
-    _3 = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg")
+    # _3 = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg")
 
     print("______________________\n"*5)
 
