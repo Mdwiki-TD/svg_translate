@@ -237,6 +237,10 @@ def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, case
 
     stats = work_on_switches(switches, existing_ids, all_mappings, case_insensitive=case_insensitive, overwrite=overwrite)
 
+    # Fix old <svg:switch> tags if present
+    for elem in root.findall(".//svg:switch", namespaces={"svg": "http://www.w3.org/2000/svg"}):
+        elem.tag = "switch"
+
     # Write the modified SVG
     tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
     logger.info(f"Saved modified SVG to {output_file}")
