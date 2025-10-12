@@ -33,10 +33,10 @@ def main():
     setup_logging(False)
 
     Dir = Path(__file__).parent  # Get the directory path of the current script
-    _data = extract(Dir / "files1/arabic.svg")  # Extract data from the first SVG file
+    _data = extract(Dir / "tests/files1/arabic.svg")  # Extract data from the first SVG file
     print("______________________\n"*5)  # Print separator line for visual clarity
 
-    _result = inject(Dir / "files1/no_translations.svg", [Dir / "data/arabic.svg.json"])
+    _result = inject(Dir / "tests/files1/no_translations.svg", [Dir / "data/arabic.svg.json"])
 
     print("______________________\n"*5)
 
@@ -45,10 +45,10 @@ def main():
 
     _result2 = inject(Dir.parent / "big_example/file1.svg", [Dir / "data/file2.svg.json"])
 
-    _data = extract(Dir / "files2/from.svg")
+    _data = extract(Dir / "tests/files2/from.svg")
     print("______________________\n"*5)
 
-    _result = inject(Dir / "files2/to.svg", [Dir / "data/from.svg.json"])
+    _result = inject(Dir / "tests/files2/to.svg", [Dir / "data/from.svg.json"])
 
 
 def test():
@@ -56,11 +56,11 @@ def test():
     setup_logging(False)
     Dir = Path(__file__).parent
 
-    _data = extract(Dir / "files2/from2.svg")
+    _data = extract(Dir / "tests/files2/from2.svg")
 
     print("______________________\n"*5)
 
-    _result = inject(Dir / "files2/to2_raw.svg", [Dir / "data/from2.svg.json"])
+    _result = inject(Dir / "tests/files2/to2_raw.svg", [Dir / "data/from2.svg.json"])
 
 
 if __name__ == '__main__':
