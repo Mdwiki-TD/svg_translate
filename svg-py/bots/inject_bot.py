@@ -189,7 +189,7 @@ def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=Fals
     return stats
 
 
-def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, case_insensitive=True):
+def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False, case_insensitive=True, all_mappings=None):
     """
     Inject translations into an SVG file based on mapping files.
 
@@ -210,8 +210,9 @@ def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, case
         logger.error(f"SVG file not found: {svg_file_path}")
         return None
 
-    # Load all mapping files
-    all_mappings = load_all_mappings(mapping_files)
+    if not all_mappings and mapping_files:
+        # Load all mapping files
+        all_mappings = load_all_mappings(mapping_files)
 
     if not all_mappings:
         logger.error("No valid mappings found")
@@ -240,6 +241,9 @@ def inject(svg_file_path, mapping_files, output_file=None, overwrite=False, case
     # Fix old <svg:switch> tags if present
     for elem in root.findall(".//svg:switch", namespaces={"svg": "http://www.w3.org/2000/svg"}):
         elem.tag = "switch"
+
+    if not output_file and output_dir:
+        output_file = output_dir / svg_file_path.name
 
     # Write the modified SVG
     tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
