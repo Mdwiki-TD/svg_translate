@@ -90,14 +90,15 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
 
     switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
 
-    for switch in switches:
-        # Find all text elements within this switch
-        text_elements = switch.xpath('./svg:text', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+    # Assume data structure like: {"new": {"english": {"ar": "..."}}}
+    # Extract that level once
+    all_mappings = all_mappings.get("new", all_mappings)
 
+    for switch in switches:
+        text_elements = switch.xpath('./svg:text', namespaces={'svg': 'http://www.w3.org/2000/svg'})
         if not text_elements:
             continue
 
-        # Identify default text (no systemLanguage attribute)
         default_texts = None
         default_node = None
 
@@ -106,94 +107,69 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
             if not system_lang:
                 text_contents = extract_text_from_node(text_elem)
                 default_texts = [normalize_text(text) for text in text_contents]
-
                 if case_insensitive:
                     default_texts = [text.lower() for text in default_texts]
-
                 default_node = text_elem
                 break
 
         if not default_texts:
             continue
 
-        # Find matching translation in the mappings
-        translation_key = None
-        translations_data = None
+        # Determine translations for each text line
+        available_translations = {}
+        for text in default_texts:
+            key = text.lower() if case_insensitive else text
+            if key in all_mappings:
+                available_translations[key] = all_mappings[key]
+            else:
+                logger.debug(f"No mapping for '{key}'")
 
-        # Try to find a match using the first text as key
-        first_text = default_texts[0]
-        if first_text in all_mappings:
-            translation_key = first_text
-            translations_data = all_mappings[first_text]
-
-        # If not found, try to match by comparing all texts
-        if not translation_key:
-            for key, data in all_mappings.items():
-                if '_texts' in data and data['_texts'] == default_texts:
-                    translation_key = key
-                    translations_data = data
-                    break
-
-        if not translation_key:
+        if not available_translations:
             continue
 
-        # Get available translations for this text
-        available_translations = translations_data.get('_translations', {})
+        existing_languages = {t.get('systemLanguage') for t in text_elements if t.get('systemLanguage')}
 
-        # Check which translations already exist
-        existing_languages = set()
-        for text_elem in text_elements:
-            system_lang = text_elem.get('systemLanguage')
-            if system_lang:
-                existing_languages.add(system_lang)
+        # We assume all texts share same set of languages
+        all_langs = set()
+        for data in available_translations.values():
+            all_langs.update(data.keys())
 
-        # Add missing translations
-        for lang, translated_texts in available_translations.items():
-            if lang in existing_languages:
-                if overwrite:
-                    # Find the existing translation node and update it
-                    for text_elem in text_elements:
-                        if text_elem.get('systemLanguage') == lang:
-                            # Update the text content for each tspan
-                            tspans = text_elem.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-                            if tspans and len(tspans) == len(translated_texts):
-                                for i, tspan in enumerate(tspans):
-                                    tspan.text = translated_texts[i]
-                            elif not tspans and len(translated_texts) == 1:
-                                text_elem.text = translated_texts[0]
+        for lang in all_langs:
+            if lang in existing_languages and not overwrite:
+                stats['skipped_translations'] += 1
+                continue
 
-                            stats['updated_translations'] += 1
-                            logger.debug(f"overwrite Updated {lang} translation for '{default_texts}'")
-                            break
-                else:
-                    stats['skipped_translations'] += 1
-                    logger.debug(f"Skipped existing {lang} translation for '{default_texts}'")
+            # Create or update node
+            if lang in existing_languages and overwrite:
+                for text_elem in text_elements:
+                    if text_elem.get('systemLanguage') == lang:
+                        tspans = text_elem.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+                        for i, tspan in enumerate(tspans):
+                            eng_text = default_texts[i]
+                            if eng_text in available_translations and lang in available_translations[eng_text]:
+                                tspan.text = available_translations[eng_text][lang]
+                        stats['updated_translations'] += 1
+                        break
             else:
-                logger.debug(f"-- Lang {lang} not in existing_languages for '{default_texts}'")
-
-                # Create a new translation node
-                # Clone the default node
                 new_node = etree.Element(default_node.tag, attrib=default_node.attrib)
-
-                # Update attributes
                 new_node.set('systemLanguage', lang)
-
-                # Generate unique ID
                 original_id = default_node.get('id')
                 if original_id:
                     new_id = generate_unique_id(original_id, lang, existing_ids)
                     new_node.set('id', new_id)
                     existing_ids.add(new_id)
 
-                # Add the translation text for each tspan
                 tspans = default_node.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-                if tspans and len(tspans) == len(translated_texts):
-                    # Clone the tspan structure
-                    for i, tspan in enumerate(tspans):
-                        new_tspan = etree.Element(tspan.tag, attrib=tspan.attrib)
-                        new_tspan.text = translated_texts[i]
 
-                        # Generate unique ID for tspan
+                if tspans:
+                    for tspan in tspans:
+                        new_tspan = etree.Element(tspan.tag, attrib=tspan.attrib)
+                        eng_text = normalize_text(tspan.text or "")
+                        key = eng_text.lower() if case_insensitive else eng_text
+                        translated = all_mappings.get(key, {}).get(lang, eng_text)
+                        new_tspan.text = translated
+
+                        # Generate unique ID for tspan if needed
                         original_tspan_id = tspan.get('id')
                         if original_tspan_id:
                             new_tspan_id = generate_unique_id(original_tspan_id, lang, existing_ids)
@@ -201,14 +177,15 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
                             existing_ids.add(new_tspan_id)
 
                         new_node.append(new_tspan)
-                elif not tspans and len(translated_texts) == 1:
-                    new_node.text = translated_texts[0]
 
-                # Insert the new node
+                else:
+                    eng_text = normalize_text(default_node.text or "")
+                    key = eng_text.lower() if case_insensitive else eng_text
+                    translated = all_mappings.get(key, {}).get(lang, eng_text)
+                    new_node.text = translated
+
                 switch.insert(0, new_node)
-
                 stats['inserted_translations'] += 1
-                logger.debug(f"Inserted {lang} translation for '{default_texts}'")
 
         stats['processed_switches'] += 1
 
