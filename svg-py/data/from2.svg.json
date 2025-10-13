@@ -1,4 +1,20 @@
 {
+  "new": {
+    "default_tspans_by_id": {
+      "tspan2208": "Rear speakers carry",
+      "tspan2207": "same signal,",
+      "tspan2215": "but are connected in anti-phase"
+    },
+    "rear speakers carry": {
+      "ar": "السماعات الخلفية تنقل"
+    },
+    "same signal,": {
+      "ar": "الإشارة نفسها،"
+    },
+    "but are connected in anti-phase": {
+      "ar": "لكنها موصولة بمرحلتين متعاكستين."
+    }
+  },
   "rear speakers carry": {
     "_texts": [
       "rear speakers carry",
