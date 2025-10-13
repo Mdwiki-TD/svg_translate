@@ -30,8 +30,9 @@ def test2():
 
     Dir = Path(__file__).parent  # Get the directory path of the current script
 
-    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg", overwrite=True)
-    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg", overwrite=True)
+    # _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_raw.svg", overwrite=False)
+    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2.svg", overwrite=False)
+    _data = svg_extract_and_inject(Dir / "tests/files2/from2.svg", Dir / "tests/files2/to2_overwrite.svg", overwrite=True)
 
 
 if __name__ == '__main__':
