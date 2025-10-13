@@ -61,25 +61,27 @@ def extract(svg_file_path, case_insensitive=True):
 
         # Find translations
         switch_translations = {}
-
+        # ---
+        tspans_by_id = {}
+        # ---
+        default_texts = []
+        # ----
         for text_elem in text_elements:
             system_lang = text_elem.get('systemLanguage')
             # ---
-            tspans = text_elem.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-            # ---
-            tspans_by_id = {}
-            tspans_to_id = {}
-            # ---
-            if tspans:
-                # Return a list of text from each tspan element
-                text_contents = [tspan.text.strip() if tspan.text else "" for tspan in tspans]
-                tspans_by_id = {tspan.get('id'): tspan.text.strip() for tspan in tspans if tspan.text}
-                tspans_to_id = {span: id for id, span in tspans_by_id.items()}
-            else:
-                text_contents = [text_elem.text.strip()] if text_elem.text else [""]
-            # ---
             if not system_lang:
-                translations["new"]["default_tspans_by_id"].update(tspans_by_id)
+                # ---
+                tspans = text_elem.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+                # ---
+                if tspans:
+                    tspans_by_id = {tspan.get('id'): tspan.text.strip() for tspan in tspans if tspan.text}
+                    # ----
+                    translations["new"]["default_tspans_by_id"].update(tspans_by_id)
+                    # Return a list of text from each tspan element
+                    text_contents = [tspan.text.strip() if tspan.text else "" for tspan in tspans]
+                else:
+                    text_contents = [text_elem.text.strip()] if text_elem.text else [""]
+                # ---
                 # This is the default text
                 default_texts = [normalize_text(text, case_insensitive) for text in text_contents]
                 # ---
@@ -88,7 +90,22 @@ def extract(svg_file_path, case_insensitive=True):
                     if text2 not in translations["new"]:
                         translations["new"][text2] = {}
                 # ---
-            else:
+        # ----
+        for text_elem in text_elements:
+            system_lang = text_elem.get('systemLanguage')
+            # ---
+            if system_lang:
+                tspans = text_elem.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+                # ---
+                tspans_to_id = {}
+                # ----
+                if tspans:
+                    tspans_to_id = {tspan.text.strip(): tspan.get('id') for tspan in tspans if tspan.text}
+                    # Return a list of text from each tspan element
+                    text_contents = [tspan.text.strip() if tspan.text else "" for tspan in tspans]
+                else:
+                    text_contents = [text_elem.text.strip()] if text_elem.text else [""]
+                # ---
                 # This is a translation
                 normalized_contents = [normalize_text(text) for text in text_contents]
                 # ---
@@ -100,13 +117,17 @@ def extract(svg_file_path, case_insensitive=True):
                     # ---
                     en_key = tspans_to_id.get(text.strip(), "").split("-")[0].strip()
                     # ---
-                    en_key = en_key.lower() if case_insensitive else en_key
+                    en_key_text = translations["new"]["default_tspans_by_id"].get(en_key) or translations["new"]["default_tspans_by_id"].get(en_key.lower())
                     # ---
-                    print(en_key)
+                    print(f"{en_key=}, {en_key_text=}")
                     # ---
-                    if translations["new"]["default_tspans_by_id"].get(en_key):
-                        en_text = translations["new"]["default_tspans_by_id"][en_key]
-                        translations["new"][en_text][system_lang] = text_ar
+                    if en_key_text:
+                        # ----
+                        if en_key_text in translations["new"]:
+                            translations["new"][en_key_text][system_lang] = text_ar
+
+                        elif en_key_text.lower() in translations["new"]:
+                            translations["new"][en_key_text.lower()][system_lang] = text_ar
 
         # If we found both default text and translations, add to our data
         if default_texts and switch_translations:
