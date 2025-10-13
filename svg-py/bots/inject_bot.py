@@ -10,10 +10,32 @@ import logging
 from pathlib import Path
 from lxml import etree
 
-from .utils import normalize_text, extract_text_from_node
+# from .utils import normalize_text, extract_text_from_node
 from .translation_ready import make_translation_ready
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_text(text):
+    """Normalize text by trimming whitespace and collapsing internal whitespace."""
+    if not text:
+        return ""
+    # Trim leading/trailing whitespace
+    text = text.strip()
+    # Replace multiple internal whitespace with single space
+    text = ' '.join(text.split())
+    return text
+
+
+def extract_text_from_node(node):
+    """Extract text from a text node, handling tspan elements."""
+    # Try to find tspan elements first
+    tspans = node.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+    if tspans:
+        # Return a list of text from each tspan element
+        return [tspan.text.strip() if tspan.text else "" for tspan in tspans]
+    # Fall back to direct text content
+    return [node.text.strip()] if node.text else [""]
 
 
 def generate_unique_id(base_id, lang, existing_ids):
@@ -58,13 +80,15 @@ def load_all_mappings(mapping_files):
     return all_mappings
 
 
-def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=False, overwrite=False):
+def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, overwrite=False):
     stats = {
         'processed_switches': 0,
         'inserted_translations': 0,
         'skipped_translations': 0,
         'updated_translations': 0
     }
+
+    switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
 
     for switch in switches:
         # Find all text elements within this switch
@@ -238,7 +262,7 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
     # Collect all existing IDs to ensure uniqueness
     existing_ids = set(root.xpath('//@id'))
 
-    stats = work_on_switches(switches, existing_ids, all_mappings, case_insensitive=case_insensitive, overwrite=overwrite)
+    stats = work_on_switches(root, existing_ids, all_mappings, case_insensitive=case_insensitive, overwrite=overwrite)
 
     # Fix old <svg:switch> tags if present
     for elem in root.findall(".//svg:switch", namespaces={"svg": "http://www.w3.org/2000/svg"}):
@@ -249,6 +273,7 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
 
     # Write the modified SVG
     tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+
     logger.info(f"Saved modified SVG to {output_file}")
 
     logger.info(f"Processed {stats['processed_switches']} switches")
