@@ -89,6 +89,10 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
     }
 
     switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+    logger.info(f"Found {len(switches)} switch elements")
+
+    if not switches:
+        logger.error("No switch elements found in SVG")
 
     # Assume data structure like: {"new": {"english": {"ar": "..."}}}
     # Extract that level once
@@ -192,6 +196,31 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
     return stats
 
 
+def sort_switch_texts(elem):
+    """
+    Sort <text> elements inside each <switch> so that elements
+    without systemLanguage attribute come last.
+    """
+    ns = {"svg": "http://www.w3.org/2000/svg"}
+
+    # Iterate over all <switch> elements
+    # Get all <text> elements
+    texts = elem.findall("svg:text", namespaces=ns)
+
+    # Separate those with systemLanguage and those without
+    without_lang = [t for t in texts if t.get("systemLanguage") is None]
+
+    # Clear switch content
+    for t in without_lang:
+        elem.remove(t)
+
+    # Re-insert <text> elements: first with language, then without
+    for t in without_lang:
+        elem.append(t)
+
+    return elem
+
+
 def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False, case_insensitive=True, all_mappings=None):
     """
     Inject translations into an SVG file based on mapping files.
@@ -230,11 +259,6 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
 
     tree, root = make_translation_ready(svg_file_path)
     # Find all switch elements
-    switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-    logger.info(f"Found {len(switches)} switch elements")
-
-    if not switches:
-        logger.error("No switch elements found in SVG")
 
     # Collect all existing IDs to ensure uniqueness
     existing_ids = set(root.xpath('//@id'))
@@ -244,6 +268,7 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
     # Fix old <svg:switch> tags if present
     for elem in root.findall(".//svg:switch", namespaces={"svg": "http://www.w3.org/2000/svg"}):
         elem.tag = "switch"
+        sort_switch_texts(elem)
 
     if not output_file and output_dir:
         output_file = output_dir / svg_file_path.name
