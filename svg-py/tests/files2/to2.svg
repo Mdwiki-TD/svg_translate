@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 <svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
     xmlns:xlink="http://www.w3.org/1999/xlink" version="1.0" width="1000" height="1000" id="svg2235">
@@ -32,16 +32,22 @@
             xlink:href="#use2248" />
         <switch style="font-size:30px;font-family:Bitstream Vera Sans">
             <text x="250.88867" y="847.29651" style="font-size:30px;font-family:Bitstream Vera Sans"
-                id="text2205"
-                xml:space="preserve">
+                id="text2205-ar" xml:space="preserve" systemLanguage="ar">
+        <tspan x="250.88867" y="800.29651" id="tspan2208-ar">السماعات الخلفية تنقل</tspan>
+      </text>
+            <text x="250.88867" y="847.29651" style="font-size:30px;font-family:Bitstream Vera Sans"
+                id="text2205" xml:space="preserve">
                 <tspan x="250.88867" y="800.29651" id="tspan2208">Rear speakers carry</tspan>
                 <tspan x="250.88867" y="847.29651" id="tspan2207">same signal,</tspan>
             </text>
         </switch>
         <switch style="font-size:30px;font-family:Bitstream Vera Sans">
             <text x="259.34814" y="927.29651" style="font-size:30px;font-family:Bitstream Vera Sans"
-                id="text2213"
-                xml:space="preserve">
+                id="text2213-ar" xml:space="preserve" systemLanguage="ar">
+        <tspan x="259.34814" y="927.29651" id="tspan2215-ar">لكنها ! بمرحلتين متعاكستين.</tspan>
+      </text>
+            <text x="259.34814" y="927.29651" style="font-size:30px;font-family:Bitstream Vera Sans"
+                id="text2213" xml:space="preserve">
                 <tspan x="259.34814" y="927.29651" id="tspan2215">But are
                     connected in anti-phase</tspan>
             </text>
