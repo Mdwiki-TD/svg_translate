@@ -10,7 +10,6 @@ SVG_NS = "http://www.w3.org/2000/svg"
 XMLNS_ATTR = "{http://www.w3.org/2000/xmlns/}xmlns"
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 class SvgStructureException(Exception):

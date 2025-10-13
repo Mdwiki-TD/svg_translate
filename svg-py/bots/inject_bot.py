@@ -145,6 +145,8 @@ def work_on_switches(switches, existing_ids, all_mappings, case_insensitive=Fals
                     stats['skipped_translations'] += 1
                     logger.debug(f"Skipped existing {lang} translation for '{default_texts}'")
             else:
+                logger.debug(f"-- Lang {lang} not in existing_languages for '{default_texts}'")
+
                 # Create a new translation node
                 # Clone the default node
                 new_node = etree.Element(default_node.tag, attrib=default_node.attrib)

@@ -1,4 +1,6 @@
 
+import sys
+sys.argv.append("DEBUG")
 
 from pathlib import Path
 
