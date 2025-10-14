@@ -16,11 +16,14 @@ from .bots.inject_bot import inject
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(
-    level=logging.DEBUG if "DEBUG" in sys.argv else logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+
+def config_logger():
+
+    logging.basicConfig(
+        level=logging.DEBUG if "DEBUG" in sys.argv else logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
 
 def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None):

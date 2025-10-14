@@ -119,7 +119,7 @@ def extract(svg_file_path, case_insensitive=True):
                     # ---
                     en_key_text = translations["new"]["default_tspans_by_id"].get(en_key) or translations["new"]["default_tspans_by_id"].get(en_key.lower())
                     # ---
-                    print(f"{en_key=}, {en_key_text=}")
+                    logger.info(f"{en_key=}, {en_key_text=}")
                     # ---
                     if en_key_text:
                         # ----
