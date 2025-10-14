@@ -8,3 +8,5 @@ plan.md
 *.zip
 svg-py/bots/inject_bot_old.py
 /inj
+/commons/downloaded_svgs
+commons/temp.txt

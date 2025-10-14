@@ -283,4 +283,4 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
     logger.info(f"Updated {stats['updated_translations']} translations")
     logger.info(f"Skipped {stats['skipped_translations']} existing translations")
 
-    return stats
+    return tree
