@@ -27,14 +27,19 @@ def start(title):
     output_dir.mkdir(parents=True, exist_ok=True)
     output_dir_translated.mkdir(parents=True, exist_ok=True)
 
-    files = download_commons_svgs(titles, out_dir=output_dir)
+    files = download_commons_svgs(titles2, out_dir=output_dir)
 
     translations = extract(output_dir / main_title, case_insensitive=True)
+
     if not translations:
         print("No translations found for main title")
         return
 
     for n, file in enumerate(files):
+        # ---
+        if file.name == main_title:
+            continue
+        # ---
         tree = svg_extract_and_injects(translations, file, save_result=False)
 
         output_file = output_dir_translated / file.name
