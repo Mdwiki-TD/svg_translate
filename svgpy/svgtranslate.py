@@ -11,8 +11,8 @@ import sys
 import logging
 from pathlib import Path
 
-from bots.extract_bot import extract
-from bots.inject_bot import inject
+from .bots.extract_bot import extract
+from .bots.inject_bot import inject
 
 logger = logging.getLogger(__name__)
 
@@ -73,15 +73,15 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     return _result
 
 
-def svg_extract_and_injects(translations, inject_file, output_dir=None):
+def svg_extract_and_injects(translations, inject_file, output_dir=None, save_result=False):
 
     inject_file = Path(str(inject_file))
 
-    if not output_dir:
+    if not output_dir and save_result:
         output_dir = Path(__file__).parent / "translated"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    _result = inject(inject_file, output_dir=output_dir, all_mappings=translations)
+    _result = inject(inject_file, output_dir=output_dir, all_mappings=translations, save_result=save_result)
 
     if _result is None:
         logger.error(f"Failed to inject translations into {inject_file}")
