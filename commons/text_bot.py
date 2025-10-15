@@ -37,12 +37,3 @@ def get_wikitext(title, project="commons.m.wikimedia.org"):
     except Exception as e:
         print("Error:", e)
     return None
-
-
-if __name__ == "__main__":
-    title = "Template:OWID/Parkinsons prevalence"
-    text = get_wikitext(title)
-    if text:
-        print(text[:500])  # print first 500 chars
-    else:
-        print("Page not found or empty.")

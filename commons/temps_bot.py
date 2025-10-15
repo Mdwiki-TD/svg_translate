@@ -42,12 +42,3 @@ def get_files(text):
             matches = re.findall(r"File:([^\n|!]+\.svg)", tpl.string)
             titles.extend(m.strip() for m in matches)
     return main_title, titles
-
-
-if __name__ == "__main__":
-    text = (Dir / "temp.txt").read_text(encoding="utf-8")
-    main_title, titles = get_files(text)
-
-    print("Main title:", main_title)
-    print("Files count:", len(titles))
-    print("First 5 files:", titles[:5])

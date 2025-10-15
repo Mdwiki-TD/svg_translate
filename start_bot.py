@@ -10,27 +10,31 @@ from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
 
 
-def start(title):
+def start(title, output_dir=None, titles_limit=None):
 
     text = get_wikitext(title)
 
     main_title, titles = get_files(text)
 
-    # use only 10 titles
-    titles = titles[:10]
+    if titles_limit and titles_limit.is_integer() and len(titles) < titles_limit:
+        # use only n titles
+        titles = titles[:titles_limit]
 
     titles2 = titles
     titles2.append(main_title)
 
-    output_dir = Path(__file__).parent / "new_data/files"
-    output_dir_translated = Path(__file__).parent / "new_data/translated"
+    if not output_dir:
+        output_dir = Path(__file__).parent / "new_data"
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir_main = output_dir / "files"
+    output_dir_translated = output_dir / "translated"
+
+    output_dir_main.mkdir(parents=True, exist_ok=True)
     output_dir_translated.mkdir(parents=True, exist_ok=True)
 
-    files = download_commons_svgs(titles2, out_dir=output_dir)
+    files = download_commons_svgs(titles2, out_dir=output_dir_main)
 
-    translations = extract(output_dir / main_title, case_insensitive=True)
+    translations = extract(output_dir_main / main_title, case_insensitive=True)
 
     if not translations:
         print("No translations found for main title")
@@ -41,6 +45,7 @@ def start(title):
     saved_done = 0
     no_save = 0
 
+    new_data_paths = {}
     for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
         if file.name == main_title:
@@ -48,14 +53,11 @@ def start(title):
         # ---
         tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True)
 
-        # print(f"Processed {stats['processed_switches']} switches")
-        # print(f"Inserted {stats['inserted_translations']} translations")
-        # print(f"Updated {stats['updated_translations']} translations")
-        # print(f"Skipped {stats['skipped_translations']} existing translations")
-
         output_file = output_dir_translated / file.name
 
         if tree:
+            new_data_paths[file.name] = str(output_file)
+
             tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
             saved_done += 1
         else:
@@ -66,16 +68,16 @@ def start(title):
         if n == 10:
             break
 
-    files_stats_dir = Path(__file__).parent / "new_data/files_stats"
-    files_stats_dir.mkdir(parents=True, exist_ok=True)
+    files_stats_path = output_dir / "files_stats.json"
 
-    files_stats_path = files_stats_dir / "files_stats.json"
     with open(files_stats_path, "w") as f:
         json.dump(files_stats, f, indent=4, ensure_ascii=False)
 
     # dump files_stats to files_stats.json
     print(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}")
     print(f"files_stats at: {files_stats_path}")
+
+    return new_data_paths
 
 
 if __name__ == "__main__":

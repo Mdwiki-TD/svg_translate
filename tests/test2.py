@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from svgtranslate import svg_extract_and_inject, svg_extract_and_injects
-from bots.extract_bot import extract
+from svgpy.svgtranslate import svg_extract_and_injects
+from svgpy.bots.extract_bot import extract
 
 
 def test():

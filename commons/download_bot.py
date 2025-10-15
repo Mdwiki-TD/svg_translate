@@ -51,12 +51,3 @@ def download_commons_svgs(titles, out_dir):
     print(f"Downloaded {success} files, skipped {existing} existing files, failed to download {failed} files")
 
     return files
-
-
-if __name__ == "__main__":
-    # Example usage
-    titles = [
-        "parkinsons-disease-prevalence-ihme,Africa,1990.svg",
-        "parkinsons-disease-prevalence-ihme,North America,1991.svg",
-    ]
-    download_commons_svgs(titles, Path(__file__).parent / "downloaded_svgs")

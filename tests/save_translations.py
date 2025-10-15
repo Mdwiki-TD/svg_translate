@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from svgtranslate import extract
+from svgpy.svgtranslate import extract
 import json
 
 result = extract('test_multiple_tspans.svg')
