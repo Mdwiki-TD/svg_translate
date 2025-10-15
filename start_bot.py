@@ -45,6 +45,7 @@ def start_upload(files_to_upload, main_title_link):
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):
 
+    print("----"*15)
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
 
     translations = files_data.get("translations", {}).get("new", {})
@@ -60,7 +61,7 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
     if files_to_upload:
         start_upload(files_to_upload, main_title_link)
 
-    print(f"no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
+    print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
 
 
 def main():
@@ -85,7 +86,7 @@ def main():
 
     for title in titles:
         output_dir = svg_data_dir / title.split("/")[1]
-        one_title(title, output_dir, titles_limit=10)
+        one_title(title, output_dir, titles_limit=1000)
         # break
 
 
