@@ -82,6 +82,7 @@ def load_all_mappings(mapping_files):
 
 def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, overwrite=False):
     stats = {
+        'new_languages': 0,
         'processed_switches': 0,
         'inserted_translations': 0,
         'skipped_translations': 0,

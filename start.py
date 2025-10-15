@@ -1,5 +1,6 @@
 
 from pathlib import Path
+from tqdm import tqdm
 import json
 from commons.download_bot import download_commons_svgs
 from commons.temps_bot import get_files
@@ -40,7 +41,7 @@ def start(title):
     saved_done = 0
     no_save = 0
 
-    for n, file in enumerate(files):
+    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
         if file.name == main_title:
             continue
