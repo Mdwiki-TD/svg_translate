@@ -85,6 +85,9 @@ def main():
         "Template:OWID/new infections with tetanus",
     ]
 
+    titles = [
+        "Template:OWID/Death rate from obesity",
+    ]
     svg_data_dir = Path(__file__).parent / "svg_data"
 
     for title in titles:
