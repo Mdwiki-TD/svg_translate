@@ -43,10 +43,10 @@ def start_upload(files_to_upload, main_title_link):
         break
 
 
-def one_title(title):
+def one_title(title, titles_limit=None, overwrite=False):
     output_dir = Path(__file__).parent / "svg_data"
 
-    files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
+    files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
 
     print(f"len files_data: {len(files_data['files']):,}")
 
@@ -81,7 +81,7 @@ def main():
     ]
 
     for title in titles:
-        one_title(title)
+        one_title(title, titles_limit=10)
         break
 
 
