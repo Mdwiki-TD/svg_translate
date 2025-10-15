@@ -87,7 +87,6 @@ def extract(svg_file_path, case_insensitive=True):
                     text2 = text.lower() if case_insensitive else text
                     if text2 not in translations["new"]:
                         translations["new"][text2] = {}
-                # ---
         # ----
         for text_elem in text_elements:
             system_lang = text_elem.get('systemLanguage')
@@ -154,10 +153,19 @@ def extract(svg_file_path, case_insensitive=True):
 
     logger.info(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")
 
+    translations["title"] = {}
+    # ---
+    for x, tr in translations["new"].items():
+        # if x end with year and all tr.values() end with same year then add x=tr to translations["title"]
+        if x and x[-4:].isdigit():
+            year = x[-4:]
+            if all(v[-4:].isdigit() and v[-4:] == year for v in tr.values()):
+                translations["title"][x] = tr
+    # ---
     if not translations["new"]["default_tspans_by_id"]:
         del translations["new"]["default_tspans_by_id"]
 
     if not translations["new"]:
         del translations["new"]
-
+    # ---
     return translations

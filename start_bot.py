@@ -70,7 +70,7 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
 def main():
     titles = [
         "Template:Owidslider/indoor air pollution",
-        "Template:OWID/maternal mortality",
+        # "Template:OWID/maternal mortality",
         "Template:OWID/dalys rate from all causes",
         "Template:OWID/Parkinsons prevalence",
         "Template:OWID/cancer death rates",
