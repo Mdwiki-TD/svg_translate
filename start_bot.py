@@ -2,9 +2,12 @@
 from pathlib import Path
 from tqdm import tqdm
 import json
+import mwclient
+
 from commons.download_bot import download_commons_svgs
 from commons.temps_bot import get_files
 from commons.text_bot import get_wikitext
+from commons.upload_bot import upload_file
 
 from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
@@ -16,7 +19,9 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
     no_save = 0
 
     files_stats = {}
-    new_data_paths = {}
+    # new_data_paths = {}
+
+    # files = list(set(files))
 
     for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
@@ -25,8 +30,8 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
         output_file = output_dir_translated / file.name
 
         if tree:
-            new_data_paths[file.name] = str(output_file)
-
+            # new_data_paths[file.name] = str(output_file)
+            stats["file_path"] = str(output_file)
             tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
             saved_done += 1
         else:
@@ -38,7 +43,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
     print(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}")
 
-    return files_stats, new_data_paths
+    return files_stats  # , new_data_paths
 
 
 def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
@@ -74,7 +79,7 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
 
     files = download_commons_svgs(titles, out_dir=output_dir_main)
 
-    files_stats, new_data_paths = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+    files_stats = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
 
     files_stats_path = output_dir / "files_stats.json"
 
@@ -83,12 +88,25 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
 
     print(f"files_stats at: {files_stats_path}")
 
-    return new_data_paths
+    return files_stats
+
+
+def main(title):
+    output_dir = Path(__file__).parent / "svg_data"
+
+    files_stats = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
+
+    print(f"len files_stats: {len(files_stats):,}")
+
+    site = mwclient.Site('commons.wikimedia.org')
+    site.login(username, password)
+
+    for file_name, file_data in new_data_paths.items():
+        file_path = file_data["file_path"]
+
+        upload_file(file_name, file_path, site=site)
 
 
 if __name__ == "__main__":
     title = "Template:OWID/Parkinsons prevalence"
-    new_data_paths = start_on_template_title(title)
-    # print(json.dumps(new_data_paths, indent=4, ensure_ascii=False))
-
-    print(f"len new_data_paths: {len(new_data_paths):,}")
+    new_data_paths = main(title)
