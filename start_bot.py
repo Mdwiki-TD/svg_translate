@@ -10,7 +10,7 @@ from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
 
 
-def start_injects(files, translations, output_dir_translated, overwrite=True):
+def start_injects(files, translations, output_dir_translated, overwrite=False):
 
     saved_done = 0
     no_save = 0
@@ -20,7 +20,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=True):
 
     for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
-        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True)
+        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
 
         output_file = output_dir_translated / file.name
 
@@ -41,7 +41,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=True):
     return files_stats, new_data_paths
 
 
-def start_on_template_title(title, output_dir=None, titles_limit=None):
+def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
 
     text = get_wikitext(title)
 
@@ -50,9 +50,6 @@ def start_on_template_title(title, output_dir=None, titles_limit=None):
     if titles_limit and titles_limit.is_integer() and len(titles) < titles_limit:
         # use only n titles
         titles = titles[:titles_limit]
-
-    titles2 = titles
-    titles2.append(main_title)
 
     if not output_dir:
         output_dir = Path(__file__).parent / "new_data"
@@ -63,19 +60,21 @@ def start_on_template_title(title, output_dir=None, titles_limit=None):
     output_dir_main.mkdir(parents=True, exist_ok=True)
     output_dir_translated.mkdir(parents=True, exist_ok=True)
 
-    files = download_commons_svgs(titles2, out_dir=output_dir_main)
+    files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
+    if not files1:
+        print(f"No files found for main title: {main_title}")
+        return {}
 
-    main_title_path = output_dir_main / main_title
+    main_title_path = files1[0]
     translations = extract(main_title_path, case_insensitive=True)
 
     if not translations:
         print("No translations found for main title")
-        return
+        return {}
 
-    if main_title_path in files:
-        files.remove(main_title_path)
+    files = download_commons_svgs(titles, out_dir=output_dir_main)
 
-    files_stats, new_data_paths = start_injects(files, translations, output_dir_translated, overwrite=True)
+    files_stats, new_data_paths = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
 
     files_stats_path = output_dir / "files_stats.json"
 

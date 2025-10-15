@@ -76,7 +76,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     return _result
 
 
-def svg_extract_and_injects(translations, inject_file, output_dir=None, save_result=False, return_stats=False):
+def svg_extract_and_injects(translations, inject_file, output_dir=None, save_result=False, **kwargs):
 
     inject_file = Path(str(inject_file))
 
@@ -84,4 +84,4 @@ def svg_extract_and_injects(translations, inject_file, output_dir=None, save_res
         output_dir = Path(__file__).parent / "translated"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    return inject(inject_file, output_dir=output_dir, all_mappings=translations, save_result=save_result, return_stats=return_stats)
+    return inject(inject_file, output_dir=output_dir, all_mappings=translations, save_result=save_result, **kwargs)
