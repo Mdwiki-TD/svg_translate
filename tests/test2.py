@@ -1,7 +1,6 @@
 
 
-from svgpy.svgtranslate import svg_extract_and_injects
-from svgpy.bots.extract_bot import extract
+from svg_translate import svg_extract_and_injects, extract
 
 from pathlib import Path
 tests_files_dir = Path(__file__).parent.parent / "tests_files"

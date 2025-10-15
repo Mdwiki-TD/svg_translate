@@ -1,6 +1,6 @@
 
 
-from commons.download_bot import download_commons_svgs
+from svg_translate import download_commons_svgs
 
 
 from pathlib import Path

@@ -6,36 +6,12 @@ python I:/mdwiki/pybot/svg/svg-py/bots/inject_bot.py
 """
 
 import json
-import logging
 from pathlib import Path
 from lxml import etree
 
-# from .utils import normalize_text, extract_text_from_node
+from .utils import normalize_text, extract_text_from_node
 from .translation_ready import make_translation_ready
-
-logger = logging.getLogger(__name__)
-
-
-def normalize_text(text):
-    """Normalize text by trimming whitespace and collapsing internal whitespace."""
-    if not text:
-        return ""
-    # Trim leading/trailing whitespace
-    text = text.strip()
-    # Replace multiple internal whitespace with single space
-    text = ' '.join(text.split())
-    return text
-
-
-def extract_text_from_node(node):
-    """Extract text from a text node, handling tspan elements."""
-    # Try to find tspan elements first
-    tspans = node.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-    if tspans:
-        # Return a list of text from each tspan element
-        return [tspan.text.strip() if tspan.text else "" for tspan in tspans]
-    # Fall back to direct text content
-    return [node.text.strip()] if node.text else [""]
+from ..log import logger
 
 
 def generate_unique_id(base_id, lang, existing_ids):
@@ -80,7 +56,8 @@ def load_all_mappings(mapping_files):
     return all_mappings
 
 
-def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, overwrite=False):
+def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False,
+                     overwrite=False):
     """Process SVG switch elements for internationalization.
 
     Args:
@@ -128,9 +105,7 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
             system_lang = text_elem.get('systemLanguage')
             if not system_lang:
                 text_contents = extract_text_from_node(text_elem)
-                default_texts = [normalize_text(text) for text in text_contents]
-                if case_insensitive:
-                    default_texts = [text.lower() for text in default_texts]
+                default_texts = [normalize_text(text, case_insensitive) for text in text_contents]
                 default_node = text_elem
                 break
 
@@ -246,7 +221,8 @@ def sort_switch_texts(elem):
 
 
 def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False,
-            case_insensitive=True, all_mappings=None, save_result=False, **kwargs):
+            case_insensitive=True, all_mappings=None, save_result=False
+            , **kwargs):
     """
     Inject translations into an SVG file based on mapping files.
 

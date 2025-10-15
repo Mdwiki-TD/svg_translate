@@ -1,11 +1,11 @@
 
 
-from .start_bot import start_on_template_title
-from .svgpy import svg_extract_and_injects, extract, inject
+from .svg_translate import start_on_template_title, svg_extract_and_injects, extract, inject, upload_file
 
 __all__ = [
     "start_on_template_title",
     "svg_extract_and_injects",
     "extract",
     "inject",
+    "upload_file",
 ]

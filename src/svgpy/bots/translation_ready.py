@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 import re
 import copy
-import logging
 from pathlib import Path
 from typing import List
 from lxml import etree
 
+from ..log import logger
+
 SVG_NS = "http://www.w3.org/2000/svg"
 XMLNS_ATTR = "{http://www.w3.org/2000/xmlns/}xmlns"
-
-logger = logging.getLogger(__name__)
 
 
 class SvgStructureException(Exception):
@@ -135,7 +134,7 @@ def make_translation_ready(svg_file_path: Path, write_back: bool = False) -> etr
             translatable_nodes.append(tspan)
         # else:
             # Nested tspans or children not supported
-            # raise SvgStructureException('structure-error-nested-tspans-not-supported', tspan)
+            raise SvgStructureException('structure-error-nested-tspans-not-supported', tspan)
 
     # Process text elements: wrap raw text nodes into <tspan>
     texts = root.findall(".//{%s}text" % SVG_NS)

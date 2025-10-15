@@ -1,5 +1,5 @@
 
-from commons.text_bot import get_wikitext
+from svg_translate import get_wikitext
 
 
 title = "Template:OWID/Parkinsons prevalence"
