@@ -1,4 +1,9 @@
+"""
 
+python3 I:/mdwiki/svg_repo/start_bot.py
+python3 start_bot.py
+
+"""
 from pathlib import Path
 import mwclient
 
