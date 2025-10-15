@@ -40,11 +40,19 @@ def start(title):
         if file.name == main_title:
             continue
         # ---
-        tree = svg_extract_and_injects(translations, file, save_result=False)
+        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True)
+
+        print(f"Processed {stats['processed_switches']} switches")
+        print(f"Inserted {stats['inserted_translations']} translations")
+        print(f"Updated {stats['updated_translations']} translations")
+        print(f"Skipped {stats['skipped_translations']} existing translations")
 
         output_file = output_dir_translated / file.name
+        if tree:
+            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+        else:
+            print(f"Failed to translate {file.name}")
 
-        tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
         if n == 10:
             break
 

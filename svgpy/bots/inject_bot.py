@@ -221,7 +221,7 @@ def sort_switch_texts(elem):
     return elem
 
 
-def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False, case_insensitive=True, all_mappings=None, save_result=False):
+def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False, case_insensitive=True, all_mappings=None, save_result=False):
     """
     Inject translations into an SVG file based on mapping files.
 
@@ -240,7 +240,7 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
 
     if not svg_file_path.exists():
         logger.error(f"SVG file not found: {svg_file_path}")
-        return None
+        return None, {}
 
     if not all_mappings and mapping_files:
         # Load all mapping files
@@ -248,7 +248,7 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
 
     if not all_mappings:
         logger.error("No valid mappings found")
-        return None
+        return None, {}
 
     logger.info(f"Injecting translations into {svg_file_path}")
 
@@ -283,5 +283,18 @@ def inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None,
     logger.info(f"Inserted {stats['inserted_translations']} translations")
     logger.info(f"Updated {stats['updated_translations']} translations")
     logger.info(f"Skipped {stats['skipped_translations']} existing translations")
+
+    return tree, stats
+
+
+def inject(inject_file, *args, **kwargs):
+
+    tree, stats = _inject(inject_file, *args, **kwargs)
+
+    if tree is None:
+        logger.error(f"Failed to inject translations into {inject_file}")
+
+    if kwargs.get("return_stats"):
+        return tree, stats
 
     return tree
