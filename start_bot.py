@@ -7,6 +7,7 @@ python3 start_bot.py
 from tqdm import tqdm
 from pathlib import Path
 import mwclient
+import sys
 
 from svg_translate import start_on_template_title, upload_file, config_logger
 
@@ -58,7 +59,7 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
 
     no_file_path = len(files_data["files"]) - len(files_to_upload)
 
-    if files_to_upload:
+    if files_to_upload and "noup" not in sys.argv:
         start_upload(files_to_upload, main_title_link)
 
     print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
