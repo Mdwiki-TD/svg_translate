@@ -10,7 +10,7 @@ from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
 
 
-def start(title, output_dir=None, titles_limit=None):
+def start_on_template_title(title, output_dir=None, titles_limit=None):
 
     text = get_wikitext(title)
 
@@ -65,8 +65,7 @@ def start(title, output_dir=None, titles_limit=None):
             no_save += 1
 
         files_stats[file.name] = stats
-        if n == 10:
-            break
+        # if n == 10: break
 
     files_stats_path = output_dir / "files_stats.json"
 
@@ -82,4 +81,4 @@ def start(title, output_dir=None, titles_limit=None):
 
 if __name__ == "__main__":
     title = "Template:OWID/Parkinsons prevalence"
-    start(title)
+    start_on_template_title(title)
