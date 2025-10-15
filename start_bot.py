@@ -31,7 +31,7 @@ def start_upload(files_to_upload, main_title_link):
     if site.logged_in:
         print(f"<<yellow>>logged in as {site.username}.")
 
-    for file_name, file_data in tqdm(files_to_upload, desc="uploading files"):
+    for file_name, file_data in tqdm(files_to_upload.items(), desc="uploading files"):
         # ---
         file_path = file_data.get("file_path", None)
         # ---
@@ -39,11 +39,11 @@ def start_upload(files_to_upload, main_title_link):
         # ---
         summary = f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
         # ---
-        upload = upload_file(file_name, file_path, site=site, summary=summary)
+        upload = upload_file(file_name, file_path, site=site, summary=summary) or {}
         # ---
-        print(f"upload: {upload}")
+        print(f"upload: {upload.get('result')}")
         # ---
-        break
+        # break
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):
@@ -52,8 +52,12 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
 
     translations = files_data.get("translations", {}).get("new", {})
+
     if files_data['files']:
         print(f"len files_data: {len(files_data['files']):,}")
+
+        if files_data['main_title'] in files_data['files']:
+            del files_data['files'][files_data['main_title']]
 
         main_title_link = f"[[:File:{files_data['main_title']}]]"
         files_to_upload = {x: v for x, v in files_data["files"].items() if v.get("file_path", None)}

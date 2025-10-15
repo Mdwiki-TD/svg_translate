@@ -41,4 +41,8 @@ def get_files(text):
             # Find all filenames inside this template
             matches = re.findall(r"File:([^\n|!]+\.svg)", tpl.string)
             titles.extend(m.strip() for m in matches)
+
+    if main_title:
+        main_title = main_title.replace("_", " ").strip()
+
     return main_title, titles
