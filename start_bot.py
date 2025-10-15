@@ -43,7 +43,7 @@ def start_upload(files_to_upload, main_title_link):
         break
 
 
-def main(title):
+def one_title(title):
     output_dir = Path(__file__).parent / "svg_data"
 
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
@@ -62,6 +62,28 @@ def main(title):
     print(f"no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}")
 
 
+def main():
+    titles = [
+        "Template:Owidslider/indoor air pollution",
+        "Template:OWID/maternal mortality",
+        "Template:OWID/dalys rate from all causes",
+        "Template:OWID/Parkinsons prevalence",
+        "Template:OWID/cancer death rates",
+        "Template:OWID/overarching legal frameworks regarding gender equality",
+        "Template:OWID/share with mental and substance disorders",
+        "Template:OWID/share with drug use disorders",
+        "Template:OWID/number of deaths from tetanus",
+        "Template:OWID/tuberculosis deaths. WHO",
+        "Template:OWID/death rates cocaine",
+        "Template:OWID/hepatitis c number of deaths",
+        "Template:OWID/death rates substance disorders who",
+        "Template:OWID/new infections with tetanus",
+    ]
+
+    for title in titles:
+        one_title(title)
+        break
+
+
 if __name__ == "__main__":
-    title = "Template:OWID/Parkinsons prevalence"
-    new_data_paths = main(title)
+    main()
