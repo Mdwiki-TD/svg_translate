@@ -69,13 +69,13 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
 
 def main():
     titles = [
+        "Template:OWID/share with mental and substance disorders",
         "Template:Owidslider/indoor air pollution",
         # "Template:OWID/maternal mortality",
         "Template:OWID/dalys rate from all causes",
         "Template:OWID/Parkinsons prevalence",
         "Template:OWID/cancer death rates",
         "Template:OWID/overarching legal frameworks regarding gender equality",
-        "Template:OWID/share with mental and substance disorders",
         "Template:OWID/share with drug use disorders",
         "Template:OWID/number of deaths from tetanus",
         "Template:OWID/tuberculosis deaths. WHO",
