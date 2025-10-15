@@ -90,7 +90,7 @@ def main():
     ]
 
     titles = [
-        "Template:OWID/Death rate from obesity",
+        "Template:OWID/death rate from obesity",
     ]
     svg_data_dir = Path(__file__).parent / "svg_data"
 
