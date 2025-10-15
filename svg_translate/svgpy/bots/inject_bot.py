@@ -88,6 +88,7 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False,
 
     # Assume data structure like: {"new": {"english": {"ar": "..."}}}
     # Extract that level once
+    all_mappings_title = all_mappings.get("title", {})
     all_mappings = all_mappings.get("new", all_mappings)
 
     all_languages = set()
@@ -111,6 +112,14 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False,
 
         if not default_texts:
             continue
+
+        for x in default_texts:
+            if x[-4:].isdigit():
+                year = x[-4:]
+                key = x[:-4]
+                if key in all_mappings_title:
+                    tr = all_mappings_title[key]
+                    all_mappings[x] = {lang: f"{tr[lang]} {year}" for lang in tr.keys()}
 
         # Determine translations for each text line
         available_translations = {}

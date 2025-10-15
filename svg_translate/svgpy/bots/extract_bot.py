@@ -159,8 +159,8 @@ def extract(svg_file_path, case_insensitive=True):
         # if x end with year and all tr.values() end with same year then add x=tr to translations["title"]
         if x and x[-4:].isdigit():
             year = x[-4:]
-            if all(v[-4:].isdigit() and v[-4:] == year for v in tr.values()):
-                translations["title"][x] = tr
+            if year != x and all(v[-4:].isdigit() and v[-4:] == year for v in tr.values()):
+                translations["title"][x[:-4]] = {k: z[:-4] for k, z in tr.items()}
     # ---
     if not translations["new"]["default_tspans_by_id"]:
         del translations["new"]["default_tspans_by_id"]
