@@ -10,6 +10,37 @@ from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
 
 
+def start_injects(files, translations, output_dir_translated, overwrite=True):
+
+    saved_done = 0
+    no_save = 0
+
+    files_stats = {}
+    new_data_paths = {}
+
+    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
+        # ---
+        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True)
+
+        output_file = output_dir_translated / file.name
+
+        if tree:
+            new_data_paths[file.name] = str(output_file)
+
+            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+            saved_done += 1
+        else:
+            print(f"Failed to translate {file.name}")
+            no_save += 1
+
+        files_stats[file.name] = stats
+        # if n == 10: break
+
+    print(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}")
+
+    return files_stats, new_data_paths
+
+
 def start_on_template_title(title, output_dir=None, titles_limit=None):
 
     text = get_wikitext(title)
@@ -34,46 +65,23 @@ def start_on_template_title(title, output_dir=None, titles_limit=None):
 
     files = download_commons_svgs(titles2, out_dir=output_dir_main)
 
-    translations = extract(output_dir_main / main_title, case_insensitive=True)
+    main_title_path = output_dir_main / main_title
+    translations = extract(main_title_path, case_insensitive=True)
 
     if not translations:
         print("No translations found for main title")
         return
 
-    files_stats = {}
+    if main_title_path in files:
+        files.remove(main_title_path)
 
-    saved_done = 0
-    no_save = 0
-
-    new_data_paths = {}
-    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
-        # ---
-        if file.name == main_title:
-            continue
-        # ---
-        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True)
-
-        output_file = output_dir_translated / file.name
-
-        if tree:
-            new_data_paths[file.name] = str(output_file)
-
-            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
-            saved_done += 1
-        else:
-            print(f"Failed to translate {file.name}")
-            no_save += 1
-
-        files_stats[file.name] = stats
-        # if n == 10: break
+    files_stats, new_data_paths = start_injects(files, translations, output_dir_translated, overwrite=True)
 
     files_stats_path = output_dir / "files_stats.json"
 
     with open(files_stats_path, "w") as f:
         json.dump(files_stats, f, indent=4, ensure_ascii=False)
 
-    # dump files_stats to files_stats.json
-    print(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}")
     print(f"files_stats at: {files_stats_path}")
 
     return new_data_paths
@@ -82,4 +90,6 @@ def start_on_template_title(title, output_dir=None, titles_limit=None):
 if __name__ == "__main__":
     title = "Template:OWID/Parkinsons prevalence"
     new_data_paths = start_on_template_title(title)
-    print(json.dumps(new_data_paths, indent=4, ensure_ascii=False))
+    # print(json.dumps(new_data_paths, indent=4, ensure_ascii=False))
+
+    print(f"len new_data_paths: {len(new_data_paths):,}")
