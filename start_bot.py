@@ -43,8 +43,7 @@ def start_upload(files_to_upload, main_title_link):
         break
 
 
-def one_title(title, titles_limit=None, overwrite=False):
-    output_dir = Path(__file__).parent / "svg_data"
+def one_title(title, output_dir, titles_limit=None, overwrite=False):
 
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
 
@@ -80,9 +79,12 @@ def main():
         "Template:OWID/new infections with tetanus",
     ]
 
+    svg_data_dir = Path(__file__).parent / "svg_data"
+
     for title in titles:
-        one_title(title, titles_limit=10)
-        break
+        output_dir = svg_data_dir / title.split("/")[1]
+        one_title(title, output_dir, titles_limit=10)
+        # break
 
 
 if __name__ == "__main__":

@@ -65,7 +65,7 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
 
     main_title, titles = get_files(text)
 
-    if titles_limit and titles_limit.is_integer() and len(titles) < titles_limit:
+    if titles_limit and titles_limit > 0 and len(titles) > titles_limit:
         # use only n titles
         titles = titles[:titles_limit]
 
