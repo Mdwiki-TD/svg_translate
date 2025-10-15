@@ -52,19 +52,19 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
 
     translations = files_data.get("translations", {}).get("new", {})
+    if files_data['files']:
+        print(f"len files_data: {len(files_data['files']):,}")
 
-    print(f"len files_data: {len(files_data['files']):,}")
+        main_title_link = f"[[:File:{files_data['main_title']}]]"
+        files_to_upload = {x: v for x, v in files_data["files"].items() if v.get("file_path", None)}
+        print(f"len files_to_upload: {len(files_to_upload):,}")
 
-    main_title_link = f"[[:File:{files_data['main_title']}]]"
-    files_to_upload = {x: v for x, v in files_data["files"].items() if v.get("file_path", None)}
-    print(f"len files_to_upload: {len(files_to_upload):,}")
+        no_file_path = len(files_data["files"]) - len(files_to_upload)
 
-    no_file_path = len(files_data["files"]) - len(files_to_upload)
+        if files_to_upload and "noup" not in sys.argv:
+            start_upload(files_to_upload, main_title_link)
 
-    if files_to_upload and "noup" not in sys.argv:
-        start_upload(files_to_upload, main_title_link)
-
-    print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
+        print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
 
 
 def main():

@@ -132,7 +132,7 @@ def make_translation_ready(svg_file_path: Path, write_back: bool = False) -> etr
         element_children = [c for c in tspan if isinstance(c.tag, str)]
         if len(element_children) == 0:
             translatable_nodes.append(tspan)
-        # else:
+        else:
             # Nested tspans or children not supported
             raise SvgStructureException('structure-error-nested-tspans-not-supported', tspan)
 
