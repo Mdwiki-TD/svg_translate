@@ -60,7 +60,13 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
 
 def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
-    data = {}
+
+    data = {
+        "files": {},
+        "saved_done": 0,
+        "no_save": 0,
+        "nested_files": 0,
+    }
     text = get_wikitext(title)
 
     main_title, titles = get_files(text)
@@ -91,6 +97,11 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
     if not translations:
         logger.info("No translations found for main title")
         return data
+
+    translations_file = output_dir / "translations.json"
+
+    with open(translations_file, "w", encoding="utf-8") as f:
+        json.dump(translations, f, indent=4, ensure_ascii=False)
 
     files = download_commons_svgs(titles, out_dir=output_dir_main)
 

@@ -154,4 +154,10 @@ def extract(svg_file_path, case_insensitive=True):
 
     logger.info(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")
 
+    if not translations["new"]["default_tspans_by_id"]:
+        del translations["new"]["default_tspans_by_id"]
+
+    if not translations["new"]:
+        del translations["new"]
+
     return translations
