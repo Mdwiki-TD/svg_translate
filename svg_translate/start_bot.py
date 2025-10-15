@@ -3,12 +3,12 @@ from pathlib import Path
 from tqdm import tqdm
 import json
 
-from commons.download_bot import download_commons_svgs
-from commons.temps_bot import get_files
-from commons.text_bot import get_wikitext
+from .commons.download_bot import download_commons_svgs
+from .commons.temps_bot import get_files
+from .commons.text_bot import get_wikitext
 
-from svgpy.svgtranslate import svg_extract_and_injects
-from svgpy.bots.extract_bot import extract
+from .svgpy.svgtranslate import svg_extract_and_injects
+from .svgpy.bots.extract_bot import extract
 
 
 def start_injects(files, translations, output_dir_translated, overwrite=False):
