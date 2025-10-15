@@ -81,4 +81,5 @@ def start_on_template_title(title, output_dir=None, titles_limit=None):
 
 if __name__ == "__main__":
     title = "Template:OWID/Parkinsons prevalence"
-    start_on_template_title(title)
+    new_data_paths = start_on_template_title(title)
+    print(json.dumps(new_data_paths, indent=4, ensure_ascii=False))
