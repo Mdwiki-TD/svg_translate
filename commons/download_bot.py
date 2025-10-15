@@ -1,6 +1,7 @@
 import requests
 from pathlib import Path
 from urllib.parse import quote
+from tqdm import tqdm
 
 
 def download_commons_svgs(titles, out_dir):
@@ -21,25 +22,36 @@ def download_commons_svgs(titles, out_dir):
     })
     files = []
 
-    for i, title in enumerate(titles, 1):
+    existing = 0
+    failed = 0
+    success = 0
+
+    for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files:"):
         # Construct full URL for direct file access
         url = base + quote(title)
         out_path = out_dir / title
 
         # Skip if already exists
         if out_path.exists():
-            print(f"[{i}] Skipped existing: {title}")
+            # print(f"[{i}] Skipped existing: {title}")
+            existing += 1
             files.append(out_path)
             continue
 
         r = session.get(url, timeout=30, allow_redirects=True)
         if r.status_code == 200:  # v and r.content.startswith(b"<?xml")
-            print(f"[{i}] Downloaded: {title}")
+            # print(f"[{i}] Downloaded: {title}")
             out_path.write_bytes(r.content)
+            success += 1
             files.append(out_path)
         else:
-            print(f"[{i}] Failed (non-SVG or not found): {title}")
+            failed += 1
+            # print(f"[{i}] Failed (non-SVG or not found): {title}")
+
+    print(f"Downloaded {success} files, skipped {existing} existing files, failed to download {failed} files")
+
     return files
+
 
 if __name__ == "__main__":
     # Example usage

@@ -221,7 +221,8 @@ def sort_switch_texts(elem):
     return elem
 
 
-def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False, case_insensitive=True, all_mappings=None, save_result=False):
+def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None, overwrite=False,
+            case_insensitive=True, all_mappings=None, save_result=False, **kwargs):
     """
     Inject translations into an SVG file based on mapping files.
 

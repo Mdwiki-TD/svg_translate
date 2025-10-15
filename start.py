@@ -1,6 +1,6 @@
 
 from pathlib import Path
-
+import json
 from commons.download_bot import download_commons_svgs
 from commons.temps_bot import get_files
 from commons.text_bot import get_wikitext
@@ -35,6 +35,11 @@ def start(title):
         print("No translations found for main title")
         return
 
+    files_stats = {}
+
+    saved_done = 0
+    no_save = 0
+
     for n, file in enumerate(files):
         # ---
         if file.name == main_title:
@@ -42,19 +47,34 @@ def start(title):
         # ---
         tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True)
 
-        print(f"Processed {stats['processed_switches']} switches")
-        print(f"Inserted {stats['inserted_translations']} translations")
-        print(f"Updated {stats['updated_translations']} translations")
-        print(f"Skipped {stats['skipped_translations']} existing translations")
+        # print(f"Processed {stats['processed_switches']} switches")
+        # print(f"Inserted {stats['inserted_translations']} translations")
+        # print(f"Updated {stats['updated_translations']} translations")
+        # print(f"Skipped {stats['skipped_translations']} existing translations")
 
         output_file = output_dir_translated / file.name
+
         if tree:
             tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+            saved_done += 1
         else:
             print(f"Failed to translate {file.name}")
+            no_save += 1
 
+        files_stats[file.name] = stats
         if n == 10:
             break
+
+    files_stats_dir = Path(__file__).parent / "new_data/files_stats"
+    files_stats_dir.mkdir(parents=True, exist_ok=True)
+
+    files_stats_path = files_stats_dir / "files_stats.json"
+    with open(files_stats_path, "w") as f:
+        json.dump(files_stats, f, indent=4, ensure_ascii=False)
+
+    # dump files_stats to files_stats.json
+    print(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}")
+    print(f"files_stats at: {files_stats_path}")
 
 
 if __name__ == "__main__":
