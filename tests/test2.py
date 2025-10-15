@@ -1,21 +1,22 @@
 
 
-from pathlib import Path
-
 from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
+
+from pathlib import Path
+tests_files_dir = Path(__file__).parent.parent / "tests_files"
 
 
 def test():
 
-    parkinsons_Dir = Path(__file__).parent / "parkinsons"
+    parkinsons_Dir = tests_files_dir / "parkinsons"
     input_file = parkinsons_Dir / "ar.svg"
 
     translations = extract(input_file, case_insensitive=True)
 
     inject_files = [x for x in parkinsons_Dir.glob("*.svg") if x != input_file]
 
-    output_dir = Path(__file__).parent / "translated/parkinsons"
+    output_dir = tests_files_dir / "translated/parkinsons"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for file in inject_files:

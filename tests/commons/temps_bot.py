@@ -1,11 +1,10 @@
 
-from pathlib import Path
-
-Dir = Path(__file__).parent
-
 from commons.temps_bot import get_files
 
-text = (Dir / "temp.txt").read_text(encoding="utf-8")
+from pathlib import Path
+tests_files_dir = Path(__file__).parent.parent / "tests_files"
+
+text = (tests_files_dir / "temp.txt").read_text(encoding="utf-8")
 main_title, titles = get_files(text)
 
 print("Main title:", main_title)

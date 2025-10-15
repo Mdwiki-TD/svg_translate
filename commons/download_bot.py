@@ -11,7 +11,7 @@ def download_commons_svgs(titles, out_dir):
         titles (list): list of filenames (e.g. 'parkinsons-disease-prevalence-ihme,Africa,1990.svg')
         out_dir (str|Path): local folder to save files
     """
-    out_dir = Path(out_dir)
+    out_dir = Path(str(out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"

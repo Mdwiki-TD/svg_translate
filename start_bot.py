@@ -7,10 +7,13 @@ import mwclient
 from commons.download_bot import download_commons_svgs
 from commons.temps_bot import get_files
 from commons.text_bot import get_wikitext
+
 from commons.upload_bot import upload_file
 
 from svgpy.svgtranslate import svg_extract_and_injects
 from svgpy.bots.extract_bot import extract
+
+from commons.user_info import username, password
 
 
 def start_injects(files, translations, output_dir_translated, overwrite=False):
@@ -47,7 +50,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
 
 def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
-
+    data = {}
     text = get_wikitext(title)
 
     main_title, titles = get_files(text)
@@ -55,6 +58,8 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
     if titles_limit and titles_limit.is_integer() and len(titles) < titles_limit:
         # use only n titles
         titles = titles[:titles_limit]
+
+    data["main_title"] = main_title
 
     if not output_dir:
         output_dir = Path(__file__).parent / "new_data"
@@ -68,43 +73,60 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
     files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
     if not files1:
         print(f"No files found for main title: {main_title}")
-        return {}
+        return data
 
     main_title_path = files1[0]
     translations = extract(main_title_path, case_insensitive=True)
 
     if not translations:
         print("No translations found for main title")
-        return {}
+        return data
 
     files = download_commons_svgs(titles, out_dir=output_dir_main)
 
-    files_stats = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+    data["files"] = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
 
     files_stats_path = output_dir / "files_stats.json"
 
     with open(files_stats_path, "w") as f:
-        json.dump(files_stats, f, indent=4, ensure_ascii=False)
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
     print(f"files_stats at: {files_stats_path}")
 
-    return files_stats
+    return data
 
 
 def main(title):
     output_dir = Path(__file__).parent / "svg_data"
 
-    files_stats = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
+    files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
 
-    print(f"len files_stats: {len(files_stats):,}")
+    print(f"len files_data: {len(files_data):,}")
 
-    site = mwclient.Site('commons.wikimedia.org')
-    site.login(username, password)
+    site = mwclient.Site('commons.m.wikimedia.org')
 
-    for file_name, file_data in new_data_paths.items():
+    try:
+        site.login(username, password)
+    except mwclient.errors.LoginError as e:
+        print(f"Could not login error: {e}")
+
+    if site.logged_in:
+        print(f"<<yellow>>logged in as {site.username}.")
+
+    main_title_link = f"[[:File:{files_data['main_title']}]]"
+
+    for file_name, file_data in files_data["files"].items():
         file_path = file_data["file_path"]
-
-        upload_file(file_name, file_path, site=site)
+        # ---
+        summary = f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
+        # ---
+        print(f"start uploading file: {file_name}.")
+        # ---
+        upload = upload_file(file_name, file_path, site=site, summary=summary)
+        # ---
+        print(f"upload: {upload}")
+        # ---
+        break
 
 
 if __name__ == "__main__":
