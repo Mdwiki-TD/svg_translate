@@ -281,8 +281,11 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
     # parser = etree.XMLParser(remove_blank_text=True)
     # tree = etree.parse(str(svg_file_path), parser)
     # root = tree.getroot()
-
-    tree, root = make_translation_ready(svg_file_path)
+    try:
+        tree, root = make_translation_ready(svg_file_path)
+    except Exception as e:
+        logger.error(f"Failed to parse SVG file: {e}")
+        return None, {}
     # Find all switch elements
 
     # Collect all existing IDs to ensure uniqueness
