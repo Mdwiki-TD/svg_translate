@@ -81,7 +81,21 @@ def load_all_mappings(mapping_files):
 
 
 def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, overwrite=False):
+    """Process SVG switch elements for internationalization.
+
+    Args:
+        root: XML root element
+        existing_ids: Set of existing IDs to avoid duplicates
+        all_mappings: Dictionary of translations
+        case_insensitive: Whether to ignore case in text matching
+        overwrite: Whether to update existing translations
+
+    Returns:
+        Dictionary of processing statistics
+    """
+    SVG_NS = {'svg': 'http://www.w3.org/2000/svg'}
     stats = {
+        'all_languages': 0,
         'new_languages': 0,
         'processed_switches': 0,
         'inserted_translations': 0,
@@ -89,7 +103,7 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
         'updated_translations': 0
     }
 
-    switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+    switches = root.xpath('//svg:switch', namespaces=SVG_NS)
     logger.info(f"Found {len(switches)} switch elements")
 
     if not switches:
@@ -99,8 +113,11 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
     # Extract that level once
     all_mappings = all_mappings.get("new", all_mappings)
 
+    all_languages = set()
+    new_languages = set()
+
     for switch in switches:
-        text_elements = switch.xpath('./svg:text', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+        text_elements = switch.xpath('./svg:text', namespaces=SVG_NS)
         if not text_elements:
             continue
 
@@ -133,6 +150,7 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
             continue
 
         existing_languages = {t.get('systemLanguage') for t in text_elements if t.get('systemLanguage')}
+        all_languages.update(existing_languages)
 
         # We assume all texts share same set of languages
         all_langs = set()
@@ -148,7 +166,7 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
             if lang in existing_languages and overwrite:
                 for text_elem in text_elements:
                     if text_elem.get('systemLanguage') == lang:
-                        tspans = text_elem.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+                        tspans = text_elem.xpath('./svg:tspan', namespaces=SVG_NS)
                         for i, tspan in enumerate(tspans):
                             eng_text = default_texts[i]
                             if eng_text in available_translations and lang in available_translations[eng_text]:
@@ -156,6 +174,8 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
                         stats['updated_translations'] += 1
                         break
             else:
+                new_languages.add(lang)
+
                 new_node = etree.Element(default_node.tag, attrib=default_node.attrib)
                 new_node.set('systemLanguage', lang)
                 original_id = default_node.get('id')
@@ -164,7 +184,7 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
                     new_node.set('id', new_id)
                     existing_ids.add(new_id)
 
-                tspans = default_node.xpath('./svg:tspan', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+                tspans = default_node.xpath('./svg:tspan', namespaces=SVG_NS)
 
                 if tspans:
                     for tspan in tspans:
@@ -193,6 +213,9 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False, o
                 stats['inserted_translations'] += 1
 
         stats['processed_switches'] += 1
+
+    stats["all_languages"] = len(all_languages)
+    stats["new_languages"] = len(new_languages)
 
     return stats
 
