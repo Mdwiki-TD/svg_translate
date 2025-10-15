@@ -62,6 +62,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
 
     data = {
+        "translations": {},
         "files": {},
         "saved_done": 0,
         "no_save": 0,
@@ -94,6 +95,8 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
     main_title_path = files1[0]
     translations = extract(main_title_path, case_insensitive=True)
 
+    data["translations"] = translations or {}
+
     if not translations:
         logger.info("No translations found for main title")
         return data
@@ -111,7 +114,7 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
 
     files_stats_path = output_dir / "files_stats.json"
 
-    with open(files_stats_path, "w") as f:
+    with open(files_stats_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
     logger.info(f"files_stats at: {files_stats_path}")
