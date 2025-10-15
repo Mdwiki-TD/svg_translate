@@ -1,8 +1,8 @@
 
 import requests
 import mwclient
-import os
 from pathlib import Path
+from ..log import logger
 
 
 def upload_file(file_name, file_path, site=None, username=None, password=None, summary=None):
@@ -23,7 +23,7 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
     page = site.Pages[f"File:{file_name}"]
 
     if not page.exists:
-        print(f"Warning: File {file_name} not exists on Commons")
+        logger.error(f"Warning: File {file_name} not exists on Commons")
         return False
 
     file_path = Path(str(file_path))
@@ -44,16 +44,16 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
             ignore=True  # skip warnings like "file exists"
         )
 
-        print(f"Successfully uploaded {file_name} to Wikimedia Commons")
+        logger.info(f"Successfully uploaded {file_name} to Wikimedia Commons")
         return response
     except requests.exceptions.HTTPError:
-        print("Error: HTTP error occurred while uploading file")
+        logger.error("Error: HTTP error occurred while uploading file")
     except mwclient.errors.FileExists:
-        print("Error: File already exists on Wikimedia Commons")
+        logger.error("Error: File already exists on Wikimedia Commons")
     except mwclient.errors.InsufficientPermission:
-        print("Error: User does not have sufficient permissions to perform an action")
+        logger.error("Error: User does not have sufficient permissions to perform an action")
     except Exception as e:
-        print(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
-        print(f"error: {e}")
+        logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
+        logger.error(f"error: {e}")
 
     return False

@@ -4,6 +4,9 @@ from urllib.parse import quote
 from tqdm import tqdm
 
 
+from ..log import logger
+
+
 def download_commons_svgs(titles, out_dir):
     """
     Download SVG files from Wikimedia Commons.
@@ -35,21 +38,21 @@ def download_commons_svgs(titles, out_dir):
 
         # Skip if already exists
         if out_path.exists():
-            # print(f"[{i}] Skipped existing: {title}")
+            logger.debug(f"[{i}] Skipped existing: {title}")
             existing += 1
             files.append(out_path)
             continue
 
         r = session.get(url, timeout=30, allow_redirects=True)
         if r.status_code == 200:  # v and r.content.startswith(b"<?xml")
-            # print(f"[{i}] Downloaded: {title}")
+            logger.debug(f"[{i}] Downloaded: {title}")
             out_path.write_bytes(r.content)
             success += 1
             files.append(out_path)
         else:
             failed += 1
-            # print(f"[{i}] Failed (non-SVG or not found): {title}")
+            logger.error(f"[{i}] Failed (non-SVG or not found): {title}")
 
-    print(f"Downloaded {success} files, skipped {existing} existing files, failed to download {failed} files")
+    logger.info(f"Downloaded {success} files, skipped {existing} existing files, failed to download {failed} files")
 
     return files

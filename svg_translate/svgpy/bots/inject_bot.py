@@ -11,7 +11,7 @@ from lxml import etree
 
 from .utils import normalize_text, extract_text_from_node
 from .translation_ready import make_translation_ready
-from ..log import logger
+from ...log import logger
 
 
 def generate_unique_id(base_id, lang, existing_ids):
@@ -241,7 +241,7 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
 
     if not svg_file_path.exists():
         logger.error(f"SVG file not found: {svg_file_path}")
-        return None, {}
+        return None, {"error": "File not exists"}
 
     if not all_mappings and mapping_files:
         # Load all mapping files
@@ -249,7 +249,7 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
 
     if not all_mappings:
         logger.error("No valid mappings found")
-        return None, {}
+        return None, {"error": "No valid mappings found"}
 
     logger.info(f"Injecting translations into {svg_file_path}")
 
@@ -261,7 +261,7 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
         tree, root = make_translation_ready(svg_file_path)
     except Exception as e:
         logger.error(f"Failed to parse SVG file: {e}")
-        return None, {}
+        return None, {"error": str(e)}
     # Find all switch elements
 
     # Collect all existing IDs to ensure uniqueness
@@ -295,8 +295,7 @@ def inject(inject_file, *args, **kwargs):
 
     tree, stats = _inject(inject_file, *args, **kwargs)
 
-    if tree is None:
-        logger.error(f"Failed to inject translations into {inject_file}")
+    # if tree is None: logger.error(f"Failed to inject translations into {inject_file}")
 
     if kwargs.get("return_stats"):
         return tree, stats

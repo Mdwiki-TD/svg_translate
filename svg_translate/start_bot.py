@@ -10,11 +10,16 @@ from .commons.text_bot import get_wikitext
 from .svgpy.svgtranslate import svg_extract_and_injects
 from .svgpy.bots.extract_bot import extract
 
+from .log import logger, config_logger
+
+# config_logger("CRITICAL")
+
 
 def start_injects(files, translations, output_dir_translated, overwrite=False):
 
     saved_done = 0
     no_save = 0
+    nested_files = 0
 
     files_stats = {}
     # new_data_paths = {}
@@ -24,6 +29,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
     for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
         tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
+        stats["file_path"] = ""
 
         output_file = output_dir_translated / file.name
 
@@ -33,15 +39,24 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
             tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
             saved_done += 1
         else:
-            print(f"Failed to translate {file.name}")
+            # logger.error(f"Failed to translate {file.name}")
             no_save += 1
+            if stats.get("error") == "structure-error-nested-tspans-not-supported":
+                nested_files += 1
 
         files_stats[file.name] = stats
         # if n == 10: break
 
-    print(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}")
+    logger.info(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}, nested_files: {nested_files:,}")
 
-    return files_stats  # , new_data_paths
+    data = {
+        "saved_done": saved_done,
+        "no_save": no_save,
+        "nested_files": nested_files,
+        "files": files_stats,
+    }
+
+    return data
 
 
 def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
@@ -67,25 +82,27 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
 
     files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
     if not files1:
-        print(f"No files found for main title: {main_title}")
+        logger.info(f"No files found for main title: {main_title}")
         return data
 
     main_title_path = files1[0]
     translations = extract(main_title_path, case_insensitive=True)
 
     if not translations:
-        print("No translations found for main title")
+        logger.info("No translations found for main title")
         return data
 
     files = download_commons_svgs(titles, out_dir=output_dir_main)
 
-    data["files"] = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+    injects_result = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+
+    data.update(injects_result)
 
     files_stats_path = output_dir / "files_stats.json"
 
     with open(files_stats_path, "w") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-    print(f"files_stats at: {files_stats_path}")
+    logger.info(f"files_stats at: {files_stats_path}")
 
     return data

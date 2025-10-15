@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from lxml import etree
 
-from ..log import logger
+from ...log import logger
 from .utils import normalize_text, extract_text_from_node
 
 

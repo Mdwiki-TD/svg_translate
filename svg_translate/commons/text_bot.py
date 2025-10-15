@@ -1,6 +1,8 @@
 
 import requests
 
+from ..log import logger
+
 
 def get_wikitext(title, project="commons.m.wikimedia.org"):
     """
@@ -35,5 +37,6 @@ def get_wikitext(title, project="commons.m.wikimedia.org"):
             if revs:
                 return revs[0].get("*") or revs[0].get("slots", {}).get("main", {}).get("*")
     except Exception as e:
-        print("Error:", e)
+        logger.error("Error: get_wikitext :", e)
+
     return None

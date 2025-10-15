@@ -7,23 +7,12 @@ to other SVG files by inserting missing <text systemLanguage="XX"> blocks.
 """
 
 import json
-import sys
-import logging
 from pathlib import Path
 
 from .bots.extract_bot import extract
 from .bots.inject_bot import inject
 
-logger = logging.getLogger(__name__)
-
-
-def config_logger():
-
-    logging.basicConfig(
-        level=logging.DEBUG if "DEBUG" in sys.argv else logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+from ..log import logger
 
 
 def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None):
@@ -66,7 +55,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
         output_file = output_dir / inject_file.name
 
-    print("______________________\n"*5)
+    logger.debug("______________________\n"*5)
 
     _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite)
 

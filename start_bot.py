@@ -4,20 +4,19 @@ python3 I:/mdwiki/svg_repo/start_bot.py
 python3 start_bot.py
 
 """
+from tqdm import tqdm
 from pathlib import Path
 import mwclient
 
-from svg_translate import start_on_template_title, upload_file
+from svg_translate import start_on_template_title, upload_file, config_logger
 
 from user_info import username, password
 
+config_logger("CRITICAL")
+# config_logger("ERROR")
 
-def main(title):
-    output_dir = Path(__file__).parent / "svg_data"
 
-    files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
-
-    print(f"len files_data: {len(files_data):,}")
+def start_upload(files_to_upload, main_title_link):
 
     site = mwclient.Site('commons.m.wikimedia.org')
 
@@ -29,20 +28,38 @@ def main(title):
     if site.logged_in:
         print(f"<<yellow>>logged in as {site.username}.")
 
-    main_title_link = f"[[:File:{files_data['main_title']}]]"
-
-    for file_name, file_data in files_data["files"].items():
-        file_path = file_data["file_path"]
+    for file_name, file_data in tqdm(files_to_upload, desc="uploading files"):
         # ---
-        summary = f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
+        file_path = file_data.get("file_path", None)
         # ---
         print(f"start uploading file: {file_name}.")
+        # ---
+        summary = f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
         # ---
         upload = upload_file(file_name, file_path, site=site, summary=summary)
         # ---
         print(f"upload: {upload}")
         # ---
         break
+
+
+def main(title):
+    output_dir = Path(__file__).parent / "svg_data"
+
+    files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=None, overwrite=False)
+
+    print(f"len files_data: {len(files_data['files']):,}")
+
+    main_title_link = f"[[:File:{files_data['main_title']}]]"
+    files_to_upload = {x: v for x, v in files_data["files"].items() if v.get("file_path", None)}
+    print(f"len files_to_upload: {len(files_to_upload):,}")
+
+    no_file_path = len(files_data["files"]) - len(files_to_upload)
+
+    if files_to_upload:
+        start_upload(files_to_upload, main_title_link)
+
+    print(f"no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}")
 
 
 if __name__ == "__main__":
