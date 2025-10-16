@@ -70,6 +70,10 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
     }
     text = get_wikitext(title)
 
+    if not text:
+        logger.error("NO TEXT")
+        return None
+
     main_title, titles = get_files(text)
 
     if titles_limit and titles_limit > 0 and len(titles) > titles_limit:

@@ -41,7 +41,9 @@ def start_upload(files_to_upload, main_title_link):
         # ---
         upload = upload_file(file_name, file_path, site=site, summary=summary) or {}
         # ---
-        print(f"upload: {upload.get('result')}")
+        result = upload.get('result')
+        # ---
+        print(f"upload: {result}")
         # ---
         # break
 
@@ -50,6 +52,10 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
 
     print("----"*15)
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
+
+    if not files_data:
+        print("no files_data")
+        return None
 
     translations = files_data.get("translations", {}).get("new", {})
 

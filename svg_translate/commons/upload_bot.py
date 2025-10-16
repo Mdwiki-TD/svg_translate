@@ -47,13 +47,17 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
         logger.info(f"Successfully uploaded {file_name} to Wikimedia Commons")
         return response
     except requests.exceptions.HTTPError:
-        logger.error("Error: HTTP error occurred while uploading file")
+        logger.error("HTTP error occurred while uploading file")
     except mwclient.errors.FileExists:
-        logger.error("Error: File already exists on Wikimedia Commons")
+        logger.error("File already exists on Wikimedia Commons")
     except mwclient.errors.InsufficientPermission:
-        logger.error("Error: User does not have sufficient permissions to perform an action")
+        logger.error("User does not have sufficient permissions to perform an action")
     except Exception as e:
         logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
-        logger.error(f"error: {e}")
+        logger.error(f"{e}")
+        # ---
+        if 'ratelimited' in str(e):
+            print("You've exceeded your rate limit. Please wait some time and try again.")
+            return {"result": "ratelimited"}
 
     return False
