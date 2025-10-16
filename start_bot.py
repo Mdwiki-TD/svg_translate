@@ -10,6 +10,7 @@ from tqdm import tqdm
 from pathlib import Path
 import mwclient
 import sys
+import os
 
 from svg_translate import start_on_template_title, upload_file, config_logger
 
@@ -98,7 +99,11 @@ def main():
     titles = [
         "Template:OWID/death rate from obesity",
     ]
+
     svg_data_dir = Path(__file__).parent / "svg_data"
+
+    if os.getenv("HOME"):
+        svg_data_dir = Path(__file__).parent.parent/ "svg_data"
 
     for title in titles:
         output_dir = svg_data_dir / title.split("/")[1]
