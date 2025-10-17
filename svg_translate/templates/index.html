@@ -1,118 +1,89 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SVG Translate Bot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
+</head>
+
+<body>
     <div class="container py-4">
-      <h1 class="mb-4">SVG Translate Bot</h1>
+        <h1 class="mb-4">SVG Translate Bot</h1>
 
-      <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
-        <div class="col-sm-8">
-          <label for="title" class="form-label">Template Title</label>
-          <input type="text" class="form-control" id="title" name="title" placeholder="Template:OWID/death rate from obesity" required>
-        </div>
-        <div class="col-sm-4 d-flex align-items-end">
-          <button type="submit" class="btn btn-primary w-100">Start</button>
-        </div>
-      </form>
+        <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
+            <div class="col-sm-8">
+                <label for="title" class="form-label">Template Title</label>
+                <input type="text" class="form-control" id="title" name="title"
+                    value="Template:OWID/death rate from obesity" required>
+            </div>
+            <div class="col-sm-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Start</button>
+            </div>
+        </form>
 
-      {% if task_id %}
-      <div id="progress-section" data-task-id="{{ task_id }}">
-        <h2 class="h5">Task Status</h2>
-        <div id="task-meta" class="mb-2 text-muted">Task ID: <code>{{ task_id }}</code></div>
-        <div id="stages" class="row g-3">
-          {% if task and task.data and task.data.stages %}
-            {% for st in task.data.stages %}
-              <div class="col-12 col-md-6">
-                <div class="card">
-                  <div class="card-body">
-                    <h5 class="card-title">{{ st.name }}</h5>
-                    <p class="card-text">{{ st.message }}</p>
-                    <span class="badge text-bg-secondary">{{ st.status }}</span>
-                  </div>
+        {% if task_id %}
+        <div id="progress-section" data-task-id="{{ task_id }}">
+            <h2 class="h5">Task Status</h2>
+            <div id="task-meta" class="mb-2 text-muted">Task ID: <code>{{ task_id }}</code></div>
+            <div id="stages" class="row g-3">
+                {% if task and task.data and task.data.stages %}
+                {% for st in task.data.stages %}
+                <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ st.name }}</h5>
+                            <p class="card-text">{{ st.message }}</p>
+                            <span class="badge text-bg-secondary">{{ st.status }}</span>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            {% endfor %}
-          {% else %}
-            <div class="col-12"><div class="alert alert-info">Starting…</div></div>
-          {% endif %}
-        </div>
+                {% endfor %}
+                {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">Starting…</div>
+                </div>
+                {% endif %}
+            </div>
 
-        <div class="mt-4" id="results">
-          {% if task and task.data and task.data.results %}
-            <h3 class="h6">Summary</h3>
-            <ul class="list-group">
-              <li class="list-group-item">Total files: {{ task.data.results.total_files }}</li>
-              <li class="list-group-item">Ready to upload: {{ task.data.results.files_to_upload_count }}</li>
-              <li class="list-group-item">No file path: {{ task.data.results.no_file_path }}</li>
-              <li class="list-group-item">Nested files: {{ task.data.results.nested_files }}</li>
-              <li class="list-group-item">New translations: {{ task.data.results.new_translations_count }}</li>
-            </ul>
-          {% endif %}
+            <div class="mt-4" id="results">
+                {% if task and task.data and task.data.results %}
+                <h3 class="h6">Summary</h3>
+                <ul class="list-group">
+                    <li class="list-group-item">Total files: {{ task.data.results.total_files }}</li>
+                    <li class="list-group-item">Ready to upload: {{ task.data.results.files_to_upload_count }}</li>
+                    <li class="list-group-item">No file path: {{ task.data.results.no_file_path }}</li>
+                    <li class="list-group-item">Nested files: {{ task.data.results.nested_files }}</li>
+                    <li class="list-group-item">New translations: {{ task.data.results.new_translations_count }}</li>
+                </ul>
+                {% endif %}
+            </div>
         </div>
-      </div>
-      {% endif %}
+        {% endif %}
     </div>
 
     <script>
-      (function(){
-        const section = document.getElementById('progress-section');
-        if(!section) return;
-        const taskId = section.getAttribute('data-task-id');
-
-        async function refresh(){
-          try{
-            const res = await fetch(`/status/${taskId}`);
-            if(!res.ok) return;
-            const data = await res.json();
-
-            // Update stages
-            const stagesContainer = document.getElementById('stages');
-            if (data.data && data.data.stages && stagesContainer){
-              stagesContainer.innerHTML = data.data.stages.map(st => `
-                <div class="col-12 col-md-6">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">${st.name}</h5>
-                      <p class="card-text">${st.message || ''}</p>
-                      <span class="badge text-bg-secondary">${st.status}</span>
-                    </div>
-                  </div>
+        (function ()               const section = document.getElementById('progress-section')              if (!section) return              const taskId = section.getAttribute('data-task-id'); async function refresh()                   try                       const res = await fetch(`/status/${taskId}`)                      if (!res.ok) return                      const data = await res.json();                      // Update stage                      const stagesContainer = document.getElementById('stages')                      if (data.data && data.data.stages && stagesContainer)                           stagesContainer.innerHTML = data.data.stages.map(st => `
+        <div class="col-12 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">${st.name}</h5>
+                    <p class="card-text">${st.message || ''}</p>
+                    <span class="badge text-bg-secondary">${st.status}</span>
                 </div>
-              `).join('');
-            }
-
-            // Update results
-            const results = document.getElementById('results');
-            if (data.data && data.data.results && results){
-              const r = data.data.results;
-              results.innerHTML = `
-                <h3 class="h6">Summary</h3>
+            </div>
+        </div>
+        `).join('')                      }                      // Update result                      const results = document.getElementById('results')                      if (data.data && data.data.results && results)                           const r = data.data.results                          results.innerHTML = `
+            < h3 class="h6" > Summary</h3 >
                 <ul class="list-group">
-                  <li class="list-group-item">Total files: ${r.total_files}</li>
-                  <li class="list-group-item">Ready to upload: ${r.files_to_upload_count}</li>
-                  <li class="list-group-item">No file path: ${r.no_file_path}</li>
-                  <li class="list-group-item">Nested files: ${r.nested_files}</li>
-                  <li class="list-group-item">New translations: ${r.new_translations_count}</li>
+                    <li class="list-group-item">Total files: ${r.total_files}</li>
+                    <li class="list-group-item">Ready to upload: ${r.files_to_upload_count}</li>
+                    <li class="list-group-item">No file path: ${r.no_file_path}</li>
+                    <li class="list-group-item">Nested files: ${r.nested_files}</li>
+                    <li class="list-group-item">New translations: ${r.new_translations_count}</li>
                 </ul>
-              `;
-            }
+              `                      }                      // Stop polling on completion or erro                      if (data.status === 'completed' || data.status === 'error')                           clearInterval(timer)                                        } catch (e) { /* ignore transient errors */               }              const timer = setInterval(refresh, 2000)              refresh()          })()</script>
+</body>
 
-            // Stop polling on completion or error
-            if (data.status === 'completed' || data.status === 'error'){
-              clearInterval(timer);
-            }
-          }catch(e){ /* ignore transient errors */ }
-        }
-
-        const timer = setInterval(refresh, 2000);
-        refresh();
-      })();
-    </script>
-  </body>
-  </html>
-
+</html>

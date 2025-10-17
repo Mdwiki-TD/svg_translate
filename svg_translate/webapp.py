@@ -89,7 +89,7 @@ if __name__ == "__main__":
     try:
         import uvicorn
 
-        uvicorn.run("svg_translate.webapp:create_asgi_app", host="127.0.0.1", port=8000, factory=True)
+        uvicorn.run("svg_translate.webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
     except Exception:
         app = create_app()
-        app.run(host="127.0.0.1", port=8000, debug=True)
+        app.run(host="127.0.0.1", port=8200, debug=True)
