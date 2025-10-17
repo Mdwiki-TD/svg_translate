@@ -59,68 +59,58 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
     return data
 
 
-def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
+def one_title(title, output_dir=None, titles_limit=None, overwrite=False):
+    workflow = []
 
-    data = {
-        "translations": {},
-        "files": {},
-        "saved_done": 0,
-        "no_save": 0,
-        "nested_files": 0,
-    }
-    text = get_wikitext(title)
+    def add_stage(stage, status, message, **kwargs):
+        workflow.append({"stage": stage, "status": status, "message": message, **kwargs})
 
-    if not text:
-        logger.error("NO TEXT")
-        return None
+    try:
+        add_stage("Fetching wikitext", "in_progress", f"Fetching wikitext for title: {title}")
+        text = get_wikitext(title)
+        if not text:
+            add_stage("Fetching wikitext", "failed", "No wikitext found for this title.")
+            return workflow
+        add_stage("Fetching wikitext", "completed", "Wikitext fetched successfully.")
 
-    main_title, titles = get_files(text)
+        add_stage("Parsing files", "in_progress", "Parsing files from wikitext.")
+        main_title, titles = get_files(text)
+        if titles_limit and titles_limit > 0:
+            titles = titles[:titles_limit]
+        add_stage("Parsing files", "completed", f"Found main title '{main_title}' and {len(titles)} other files.")
 
-    if titles_limit and titles_limit > 0 and len(titles) > titles_limit:
-        # use only n titles
-        titles = titles[:titles_limit]
+        if not output_dir:
+            output_dir = Path(__file__).parent / "new_data"
+        output_dir_main = output_dir / "files"
+        output_dir_translated = output_dir / "translated"
+        output_dir_main.mkdir(parents=True, exist_ok=True)
+        output_dir_translated.mkdir(parents=True, exist_ok=True)
 
-    data["main_title"] = main_title
+        add_stage("Downloading main file", "in_progress", f"Downloading {main_title}.")
+        files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
+        if not files1:
+            add_stage("Downloading main file", "failed", f"Could not download main file: {main_title}.")
+            return workflow
+        main_title_path = files1[0]
+        add_stage("Downloading main file", "completed", f"Successfully downloaded {main_title}.")
 
-    if not output_dir:
-        output_dir = Path(__file__).parent / "new_data"
+        add_stage("Extracting translations", "in_progress", "Extracting translations from the main file.")
+        translations = extract(main_title_path, case_insensitive=True)
+        if not translations:
+            add_stage("Extracting translations", "failed", "No translations found in the main file.")
+            return workflow
+        add_stage("Extracting translations", "completed", f"Found {len(translations)} translations.", translations=translations)
 
-    output_dir_main = output_dir / "files"
-    output_dir_translated = output_dir / "translated"
+        add_stage("Downloading other files", "in_progress", f"Downloading {len(titles)} other files.")
+        files = download_commons_svgs(titles, out_dir=output_dir_main)
+        add_stage("Downloading other files", "completed", f"Successfully downloaded {len(files)} files.")
 
-    output_dir_main.mkdir(parents=True, exist_ok=True)
-    output_dir_translated.mkdir(parents=True, exist_ok=True)
+        add_stage("Injecting translations", "in_progress", f"Injecting translations into {len(files)} files.")
+        injects_result = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+        add_stage("Injecting translations", "completed", "Finished injecting translations.", **injects_result)
 
-    files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
-    if not files1:
-        logger.info(f"No files found for main title: {main_title}")
-        return data
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        add_stage("Error", "failed", f"An unexpected error occurred: {str(e)}")
 
-    main_title_path = files1[0]
-    translations = extract(main_title_path, case_insensitive=True)
-
-    data["translations"] = translations or {}
-
-    if not translations:
-        logger.info("No translations found for main title")
-        return data
-
-    translations_file = output_dir / "translations.json"
-
-    with open(translations_file, "w", encoding="utf-8") as f:
-        json.dump(translations, f, indent=4, ensure_ascii=False)
-
-    files = download_commons_svgs(titles, out_dir=output_dir_main)
-
-    injects_result = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
-
-    data.update(injects_result)
-
-    files_stats_path = output_dir / "files_stats.json"
-
-    with open(files_stats_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-
-    logger.info(f"files_stats at: {files_stats_path}")
-
-    return data
+    return workflow

@@ -1,1 +1,5 @@
 lxml
+Flask
+uvicorn
+asgiref
+python-dotenv
