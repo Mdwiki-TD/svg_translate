@@ -1,14 +1,6 @@
-"""
-
-python3 I:/mdwiki/svg_repo/start_bot.py
-python3 start_bot.py
-
-tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_translate/start_bot.py noup"
-
-"""
 """Web entry-point for translating and uploading SVG assets."""
-
 from __future__ import annotations
+
 
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -42,6 +34,8 @@ def _format_stage(name: str, status: str, message: str = "") -> Dict[str, str]:
 
 def _safe_directory_name(title: str) -> str:
     """Create a filesystem-friendly directory name for a template title."""
+    if "Template:OWID/" in title:
+        return title.replace("Template:OWID/", "").replace("/", "_").strip()
 
     sanitized = title.replace("Template:", "").replace("/", "_").strip()
     return sanitized or "unnamed"
@@ -204,7 +198,6 @@ def create_app() -> Flask:
     app.secret_key = os.getenv("SVG_TRANSLATE_SECRET_KEY", "dev-secret")
 
     base_output_dir = Path(os.getenv("SVG_TRANSLATE_OUTPUT_DIR", Path(__file__).parent / "svg_data"))
-    base_output_dir.mkdir(parents=True, exist_ok=True)
     app.config["OUTPUT_BASE_DIR"] = base_output_dir
     app.config["TITLES_LIMIT"] = int(os.getenv("SVG_TRANSLATE_TITLES_LIMIT", "1000"))
 
@@ -222,7 +215,12 @@ def create_app() -> Flask:
                 )
 
             task_id = uuid.uuid4().hex
+
             output_dir = app.config["OUTPUT_BASE_DIR"] / _safe_directory_name(title)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            print(str(output_dir))
+
             task_data = one_title(
                 title,
                 output_dir=output_dir,
@@ -248,21 +246,16 @@ def create_app() -> Flask:
 
 
 def create_asgi_app():
-    """Return an ASGI-compatible wrapper around the Flask app."""
-
+    # Expose ASGI wrapper for uvicorn
     return WsgiToAsgi(create_app())
 
 
-def main():
-    """Run the web application using Uvicorn."""
-
-    host = os.getenv("SVG_TRANSLATE_HOST", "0.0.0.0")
-    port = int(os.getenv("SVG_TRANSLATE_PORT", "8000"))
-
-    import uvicorn  # imported lazily to avoid hard dependency for library usage
-
-    uvicorn.run("start_bot:create_asgi_app", host=host, port=port, factory=True)
-
-
 if __name__ == "__main__":
-    main()
+    # Optional: run with uvicorn if available; otherwise, fallback to Flask dev server
+    try:
+        import uvicorn
+
+        uvicorn.run("start_bot:create_asgi_app", host="127.0.0.1", port=8000, factory=True)
+    except Exception:
+        app = create_app()
+        app.run(host="127.0.0.1", port=8000, debug=True)
