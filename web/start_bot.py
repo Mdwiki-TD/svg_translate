@@ -1,25 +1,131 @@
-"""
 
-python3 I:/mdwiki/svg_repo/start_bot.py
-python3 start_bot.py
-
-tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_translate/start_bot.py noup"
-
-"""
 from pathlib import Path
-import sys
+from tqdm import tqdm
 import os
+import sys
 import json
 
-from svg_translate import start_on_template_title, config_logger
-from svg_translate.upload_files import start_upload
+from svg_translate import download_commons_svgs, get_files, get_wikitext, svg_extract_and_injects, extract, logger, config_logger, start_upload
 
 from user_info import username, password
 
 config_logger("CRITICAL")
 
 
-def one_title(title, output_dir, titles_limit=None, overwrite=False, do_upload=None):
+def start_injects(files, translations, output_dir_translated, overwrite=False):
+
+    saved_done = 0
+    no_save = 0
+    nested_files = 0
+
+    files_stats = {}
+    # new_data_paths = {}
+
+    # files = list(set(files))
+
+    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
+        # ---
+        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
+        stats["file_path"] = ""
+
+        output_file = output_dir_translated / file.name
+
+        if tree:
+            # new_data_paths[file.name] = str(output_file)
+            stats["file_path"] = str(output_file)
+            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+            saved_done += 1
+        else:
+            # logger.error(f"Failed to translate {file.name}")
+            no_save += 1
+            if stats.get("error") == "structure-error-nested-tspans-not-supported":
+                nested_files += 1
+
+        files_stats[file.name] = stats
+        # if n == 10: break
+
+    logger.info(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}, nested_files: {nested_files:,}")
+
+    data = {
+        "saved_done": saved_done,
+        "no_save": no_save,
+        "nested_files": nested_files,
+        "files": files_stats,
+    }
+
+    return data
+
+
+def one_title_work(title, output_dir=None, titles_limit=None, overwrite=False):
+
+    data = {
+        "translations": {},
+        "files": {},
+        "saved_done": 0,
+        "no_save": 0,
+        "nested_files": 0,
+    }
+    text = get_wikitext(title)
+
+    if not text:
+        logger.error("NO TEXT")
+        return None
+
+    main_title, titles = get_files(text)
+
+    if titles_limit and titles_limit > 0 and len(titles) > titles_limit:
+        # use only n titles
+        titles = titles[:titles_limit]
+
+    data["main_title"] = main_title
+
+    if not output_dir:
+        output_dir = Path(__file__).parent.parent / "svg_data"
+        if not os.getenv("HOME"):
+            output_dir = Path("I:/SVG/svg_data")
+
+    output_dir_main = output_dir / "files"
+    output_dir_translated = output_dir / "translated"
+
+    output_dir_main.mkdir(parents=True, exist_ok=True)
+    output_dir_translated.mkdir(parents=True, exist_ok=True)
+
+    files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
+    if not files1:
+        logger.info(f"No files found for main title: {main_title}")
+        return data
+
+    main_title_path = files1[0]
+    translations = extract(main_title_path, case_insensitive=True)
+
+    data["translations"] = translations or {}
+
+    if not translations:
+        logger.info("No translations found for main title")
+        return data
+
+    translations_file = output_dir / "translations.json"
+
+    with open(translations_file, "w", encoding="utf-8") as f:
+        json.dump(translations, f, indent=4, ensure_ascii=False)
+
+    files = download_commons_svgs(titles, out_dir=output_dir_main)
+
+    injects_result = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+
+    data.update(injects_result)
+
+    files_stats_path = output_dir / "files_stats.json"
+
+    with open(files_stats_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+    logger.info(f"files_stats at: {files_stats_path}")
+
+    return data
+
+
+def one_title_web(title, output_dir, titles_limit=None, overwrite=False, do_upload=None):
     """
     Run the title workflow and return structured results suitable for a web UI.
 
@@ -28,7 +134,7 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False, do_upload=N
     - stages: list of {name, status, message}
     - results: summary numbers
     - files_to_upload: mapping of files prepared for upload (path present)
-    - files_data: raw result from start_on_template_title (for diagnostics)
+    - files_data: raw result from one_title_work (for diagnostics)
     - error: optional error string if a stage fails
     """
 
@@ -55,7 +161,7 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False, do_upload=N
         # Stage: process-title
         stages[1]["status"] = "in_progress"
 
-        files_data = start_on_template_title(
+        files_data = one_title_work(
             title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite
         )
 
@@ -149,48 +255,3 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False, do_upload=N
                 st["message"] = f"Error: {e}"
                 break
         return result
-
-
-def main():
-    titles = [
-        "Template:OWID/share with mental and substance disorders",
-        "Template:Owidslider/indoor air pollution",
-        # "Template:OWID/maternal mortality",
-        "Template:OWID/dalys rate from all causes",
-        "Template:OWID/Parkinsons prevalence",
-        "Template:OWID/cancer death rates",
-        "Template:OWID/overarching legal frameworks regarding gender equality",
-        "Template:OWID/share with drug use disorders",
-        "Template:OWID/number of deaths from tetanus",
-        "Template:OWID/tuberculosis deaths. WHO",
-        "Template:OWID/death rates cocaine",
-        "Template:OWID/hepatitis c number of deaths",
-        "Template:OWID/death rates substance disorders who",
-        "Template:OWID/new infections with tetanus",
-    ]
-
-    titles = [
-        "Template:OWID/death rate from obesity",
-    ]
-
-    svg_data_dir = Path(__file__).parent / "svg_data"
-
-    if os.getenv("HOME"):
-        svg_data_dir = Path(__file__).parent.parent/ "svg_data"
-
-    for title in titles:
-        output_dir = svg_data_dir / title.split("/")[1]
-        data = one_title(title, output_dir, titles_limit=1000)
-        # print a concise summary for CLI usage
-        if data:
-            print("----" * 15)
-            print(json.dumps({
-                "title": data.get("title"),
-                "results": data.get("results", {}),
-                "error": data.get("error"),
-            }, indent=2))
-        # break
-
-
-if __name__ == "__main__":
-    main()

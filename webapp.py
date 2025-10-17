@@ -9,9 +9,7 @@ from typing import Dict, Any
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from asgiref.wsgi import WsgiToAsgi
 
-from .log import config_logger
-from start_bot import one_title  # structured workflow from CLI module
-
+from web.start_bot import one_title_web
 
 # In-memory task storage for demo purposes
 TASKS: Dict[str, Dict[str, Any]] = {}
@@ -21,7 +19,11 @@ TASKS_LOCK = threading.Lock()
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
     slug = title.split("/")[-1]
-    base = Path(__file__).resolve().parent.parent / "svg_data"
+    base = Path(__file__).parent.parent / "svg_data"
+
+    if not os.getenv("HOME"):
+        base = Path("I:/SVG/svg_data")
+
     base.mkdir(parents=True, exist_ok=True)
     return base / slug
 
@@ -29,7 +31,7 @@ def _compute_output_dir(title: str) -> Path:
 def _run_task(task_id: str, title: str):
     try:
         output_dir = _compute_output_dir(title)
-        data = one_title(title, output_dir, titles_limit=1000, overwrite=False, do_upload=False)
+        data = one_title_web(title, output_dir, titles_limit=1000, overwrite=False, do_upload=False)
         with TASKS_LOCK:
             TASKS[task_id]["data"] = data
             TASKS[task_id]["status"] = "completed" if not data.get("error") else "error"
@@ -40,8 +42,7 @@ def _run_task(task_id: str, title: str):
 
 
 def create_app() -> Flask:
-    config_logger("INFO")
-    app = Flask(__name__, template_folder="templates")
+    app = Flask(__name__, template_folder="web/templates")
     app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 
     @app.get("/")
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     try:
         import uvicorn
 
-        uvicorn.run("svg_translate.webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
+        uvicorn.run("webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
     except Exception:
         app = create_app()
         app.run(host="127.0.0.1", port=8200, debug=True)
