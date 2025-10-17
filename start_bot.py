@@ -6,47 +6,16 @@ python3 start_bot.py
 tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_translate/start_bot.py noup"
 
 """
-from tqdm import tqdm
 from pathlib import Path
-import mwclient
 import sys
 import os
 
-from svg_translate import start_on_template_title, upload_file, config_logger
+from svg_translate import start_on_template_title, config_logger
+from svg_translate.upload_files import start_upload
 
 from user_info import username, password
 
 config_logger("CRITICAL")
-# config_logger("ERROR")
-
-
-def start_upload(files_to_upload, main_title_link):
-
-    site = mwclient.Site('commons.m.wikimedia.org')
-
-    try:
-        site.login(username, password)
-    except mwclient.errors.LoginError as e:
-        print(f"Could not login error: {e}")
-
-    if site.logged_in:
-        print(f"<<yellow>>logged in as {site.username}.")
-
-    for file_name, file_data in tqdm(files_to_upload.items(), desc="uploading files"):
-        # ---
-        file_path = file_data.get("file_path", None)
-        # ---
-        print(f"start uploading file: {file_name}.")
-        # ---
-        summary = f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
-        # ---
-        upload = upload_file(file_name, file_path, site=site, summary=summary) or {}
-        # ---
-        result = upload.get('result')
-        # ---
-        print(f"upload: {result}")
-        # ---
-        # break
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):
@@ -73,7 +42,7 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
         no_file_path = len(files_data["files"]) - len(files_to_upload)
 
         if files_to_upload and "noup" not in sys.argv:
-            start_upload(files_to_upload, main_title_link)
+            start_upload(files_to_upload, main_title_link, username, password)
 
         print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
 
