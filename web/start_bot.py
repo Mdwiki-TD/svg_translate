@@ -1,17 +1,10 @@
 
-# from pathlib import Path
-# import os
-# import sys
-from tqdm import tqdm
 import json
 import html
 from urllib.parse import quote
 
-from svg_translate import download_commons_svgs, get_files, get_wikitext, svg_extract_and_injects, extract, logger, config_logger, start_upload
+from svg_translate import download_commons_svgs, get_files, get_wikitext, start_injects, extract, logger, start_upload
 from user_info import username, password
-
-# config_logger("CRITICAL")
-config_logger("DEBUG")
 
 
 def json_save(path, data):
@@ -29,10 +22,8 @@ def json_save(path, data):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
-    except (OSError, TypeError, ValueError) as e:
-        logger.error(f"Error saving json: {e}")
-    except Exception as e:
-        logger.error(f"Error saving json: {e}")
+    except (OSError, TypeError, ValueError, Exception) as e:
+        logger.error(f"Error saving json: {e}, path: {str(path)}")
 
 
 def commons_link(title, name=None):
@@ -49,9 +40,9 @@ def save_files_stats(data, output_dir):
     logger.info(f"files_stats at: {files_stats_path}")
 
 
-def make_results_summary(files, files_to_upload, no_file_path, injects_result, translations, main_title, upload_result):
+def make_results_summary(len_files, files_to_upload, no_file_path, injects_result, translations, main_title, upload_result):
     return {
-        "total_files": len(files),
+        "total_files": len_files,
         "files_to_upload_count": len(files_to_upload),
         "no_file_path": no_file_path,
         "injects_result": {
@@ -63,51 +54,6 @@ def make_results_summary(files, files_to_upload, no_file_path, injects_result, t
         "upload_result": upload_result,
         "main_title": main_title,
     }
-
-
-def start_injects(files, translations, output_dir_translated, overwrite=False):
-
-    saved_done = 0
-    no_save = 0
-    nested_files = 0
-
-    files_stats = {}
-    # new_data_paths = {}
-
-    # files = list(set(files))
-
-    for _n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
-        # ---
-        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
-        stats["file_path"] = ""
-
-        output_file = output_dir_translated / file.name
-
-        if tree:
-            # new_data_paths[file.name] = str(output_file)
-            stats["file_path"] = str(output_file)
-            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
-            saved_done += 1
-        else:
-            # logger.error(f"Failed to translate {file.name}")
-            if stats.get("error") == "structure-error-nested-tspans-not-supported":
-                nested_files += 1
-            else:
-                no_save += 1
-
-        files_stats[file.name] = stats
-        # if n == 10: break
-
-    logger.info(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}, nested_files: {nested_files:,}")
-
-    data = {
-        "saved_done": saved_done,
-        "no_save": no_save,
-        "nested_files": nested_files,
-        "files": files_stats,
-    }
-
-    return data
 
 
 def text_task(stages, title):

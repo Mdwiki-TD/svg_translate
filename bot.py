@@ -15,8 +15,7 @@ from svg_translate.upload_files import start_upload
 
 from user_info import username, password
 
-config_logger("CRITICAL")
-# config_logger("ERROR")
+config_logger("ERROR") # DEBUG # ERROR # CRITICAL
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):

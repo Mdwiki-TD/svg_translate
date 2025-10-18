@@ -117,6 +117,7 @@ def run_task(
     translations, stages_list["translations_task"] = translations_task(stages_list["translations_task"], main_title, output_dir_main)
     # ---
     if not translations:
+        tasks[task_id]["status"] = "Failed"
         return
     # ---
     files, stages_list["download_stats"] = download_task(stages_list["download_stats"], output_dir_main, titles)
@@ -152,6 +153,6 @@ def run_task(
     # ---
     with tasks_lock:
         # ---
-        tasks[task_id]["results"] = make_results_summary(files, files_to_upload, no_file_path, injects_result, translations, main_title, upload_result)
+        tasks[task_id]["results"] = make_results_summary(len(files), files_to_upload, no_file_path, injects_result, translations, main_title, upload_result)
         # ---
         tasks[task_id]["status"] = "Completed" if not data.get("error") else "error"

@@ -1,6 +1,5 @@
 
 from pathlib import Path
-from tqdm import tqdm
 import json
 import os
 
@@ -8,56 +7,12 @@ from .commons.download_bot import download_commons_svgs
 from .commons.temps_bot import get_files
 from .commons.text_bot import get_wikitext
 
-from .svgpy.svgtranslate import svg_extract_and_injects
+from .injects_files import start_injects
 from .svgpy.bots.extract_bot import extract
 
-from .log import logger, config_logger
+from .log import logger  # , config_logger
 
 # config_logger("CRITICAL")
-
-
-def start_injects(files, translations, output_dir_translated, overwrite=False):
-
-    saved_done = 0
-    no_save = 0
-    nested_files = 0
-
-    files_stats = {}
-    # new_data_paths = {}
-
-    # files = list(set(files))
-
-    for _n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
-        # ---
-        tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
-        stats["file_path"] = ""
-
-        output_file = output_dir_translated / file.name
-
-        if tree:
-            # new_data_paths[file.name] = str(output_file)
-            stats["file_path"] = str(output_file)
-            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
-            saved_done += 1
-        else:
-            # logger.error(f"Failed to translate {file.name}")
-            no_save += 1
-            if stats.get("error") == "structure-error-nested-tspans-not-supported":
-                nested_files += 1
-
-        files_stats[file.name] = stats
-        # if n == 10: break
-
-    logger.info(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}, nested_files: {nested_files:,}")
-
-    data = {
-        "saved_done": saved_done,
-        "no_save": no_save,
-        "nested_files": nested_files,
-        "files": files_stats,
-    }
-
-    return data
 
 
 def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite=False):
