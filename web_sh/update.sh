@@ -36,7 +36,11 @@ if [ -d "$TARGET_DIR" ]; then
 fi
 
 # Move the new source into the target directory
-mv "$CLONE_DIR/src" "$TARGET_DIR"
+if [ -d "$CLONE_DIR/src" ]; then
+    mv "$CLONE_DIR/src" "$TARGET_DIR"
+else
+    mv "$CLONE_DIR" "$TARGET_DIR"
+fi
 
 # Remove unused template file
 rm -f "$TARGET_DIR/service.template"
