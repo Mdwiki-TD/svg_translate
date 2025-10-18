@@ -15,7 +15,7 @@ from web.web_run_task import run_task
 # logger = logging.getLogger(__name__)
 
 from svg_translate import logger, config_logger
-from svg_translate.task_store import TaskStore
+from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
@@ -51,7 +51,18 @@ def index():
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found")
 
-    return render_template("index.html", task_id=task_id, task=task, form=task.get("form", {}))
+    error_code = request.args.get("error")
+    error_message = None
+    if error_code == "task-active":
+        error_message = "A task for this title is already in progress."
+
+    return render_template(
+        "index.html",
+        task_id=task_id,
+        task=task,
+        form=task.get("form", {}),
+        error_message=error_message,
+    )
 
 
 @app.post("/")
@@ -60,12 +71,20 @@ def start():
     if not title:
         return redirect(url_for("index"))
 
+    existing_task = TASK_STORE.get_active_task_by_title(title)
+    if existing_task:
+        return redirect(url_for("index", task_id=existing_task["id"], error="task-active"))
+
     task_id = uuid.uuid4().hex
-    TASK_STORE.create_task(
-        task_id,
-        title,
-        form={x: request.form.get(x) for x in request.form},
-    )
+    try:
+        TASK_STORE.create_task(
+            task_id,
+            title,
+            form={x: request.form.get(x) for x in request.form},
+        )
+    except TaskAlreadyExistsError as exc:
+        existing = exc.task
+        return redirect(url_for("index", task_id=existing["id"], error="task-active"))
 
     args = parse_args(request.form)
     # ---
@@ -87,7 +106,18 @@ def index2():
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found")
 
-    return render_template("index2.html", task_id=task_id, task=task, form=task.get("form", {}))
+    error_code = request.args.get("error")
+    error_message = None
+    if error_code == "task-active":
+        error_message = "A task for this title is already in progress."
+
+    return render_template(
+        "index2.html",
+        task_id=task_id,
+        task=task,
+        form=task.get("form", {}),
+        error_message=error_message,
+    )
 
 
 @app.get("/status/<task_id>")

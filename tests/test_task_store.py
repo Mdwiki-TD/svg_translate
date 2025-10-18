@@ -3,7 +3,7 @@ import threading
 import unittest
 from pathlib import Path
 
-from svg_translate.task_store import TaskStore
+from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
 from web.web_run_task import make_stages
 
 
@@ -39,4 +39,28 @@ class TaskStorePersistenceTest(unittest.TestCase):
             self.assertEqual(task["data"]["stages"]["initialize"]["status"], "Completed")
 
             restarted_store.close()
+
+    def test_duplicate_active_title_prevented(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "tasks.sqlite3"
+            store = TaskStore(db_path)
+
+            store.create_task("task1", "Example")
+            active = store.get_active_task_by_title("Example")
+            self.assertIsNotNone(active)
+            assert active is not None
+            self.assertEqual(active["id"], "task1")
+
+            with self.assertRaises(TaskAlreadyExistsError) as ctx:
+                store.create_task("task2", "Example")
+
+            self.assertEqual(ctx.exception.task["id"], "task1")
+
+            store.update_status("task1", "Completed")
+            self.assertIsNone(store.get_active_task_by_title("Example"))
+
+            # After completion the same title can be enqueued again
+            store.create_task("task2", "Example")
+
+            store.close()
 

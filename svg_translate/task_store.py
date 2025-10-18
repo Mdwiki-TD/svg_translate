@@ -9,6 +9,17 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
+TERMINAL_STATUSES = ("Completed", "Failed")
+
+
+class TaskAlreadyExistsError(Exception):
+    """Raised when attempting to create a duplicate active task."""
+
+    def __init__(self, task: Dict[str, Any]):
+        super().__init__("Task with this title is already in progress")
+        self.task = task
+
+
 def _serialize(value: Any) -> Optional[str]:
     if value is None:
         return None
@@ -81,6 +92,16 @@ class TaskStore:
     ) -> None:
         now = self._current_ts()
         with self._write_transaction() as cursor:
+            existing = cursor.execute(
+                """
+                SELECT * FROM tasks
+                WHERE title = ? AND status NOT IN (?, ?)
+                LIMIT 1
+                """,
+                (title, *TERMINAL_STATUSES),
+            ).fetchone()
+            if existing:
+                raise TaskAlreadyExistsError(self._row_to_task(existing))
             cursor.execute(
                 """
                 INSERT INTO tasks (id, title, status, form_json, data_json, results_json, created_at, updated_at)
@@ -103,6 +124,21 @@ class TaskStore:
             row = self._conn.execute(
                 "SELECT * FROM tasks WHERE id = ?",
                 (task_id,),
+            ).fetchone()
+        if not row:
+            return None
+        return self._row_to_task(row)
+
+    def get_active_task_by_title(self, title: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            row = self._conn.execute(
+                """
+                SELECT * FROM tasks
+                WHERE title = ? AND status NOT IN (?, ?)
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (title, *TERMINAL_STATUSES),
             ).fetchone()
         if not row:
             return None
