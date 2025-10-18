@@ -7,7 +7,7 @@ import threading
 import uuid
 from typing import Dict, Any
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from asgiref.wsgi import WsgiToAsgi
 
 from web.web_run_task import run_task
@@ -22,6 +22,11 @@ config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 # In-memory task storage for demo purposes
 TASKS: Dict[str, Dict[str, Any]] = {}
 TASKS_LOCK = threading.Lock()
+
+
+def _normalize_title(title: str) -> str:
+    """Return a normalized form of a title for duplicate detection."""
+    return title.strip().casefold()
 
 
 def parse_args(request_form):
@@ -60,17 +65,32 @@ def create_app() -> Flask:
 
     @app.post("/")
     def start():
-        title = request.form.get("title", "").strip()
+        raw_title = request.form.get("title", "")
+        title = raw_title.strip()
         if not title:
             return redirect(url_for("index"))
 
         task_id = uuid.uuid4().hex
         with TASKS_LOCK:
+            normalized_title = _normalize_title(title)
+            for existing_id, existing_task in TASKS.items():
+                existing_normalized = existing_task.get("normalized_title")
+                if existing_normalized is None and existing_task.get("title"):
+                    existing_normalized = _normalize_title(existing_task.get("title", ""))
+                if (
+                    existing_normalized == normalized_title
+                    and existing_task.get("status") not in {"Completed", "Failed"}
+                ):
+                    flash({"title": title, "task_id": existing_id}, "duplicate_task")
+                    return redirect(url_for("index", task_id=existing_id))
+
+            task_id = uuid.uuid4().hex
             TASKS[task_id] = {
                 "status": "Pending",
                 "data": None,
                 "title": title,
-                "form": {x : request.form.get(x) for x in request.form},
+                "normalized_title": normalized_title,
+                "form": {x: request.form.get(x) for x in request.form},
             }
 
         args = parse_args(request.form)

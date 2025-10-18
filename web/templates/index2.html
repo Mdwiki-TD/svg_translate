@@ -17,9 +17,20 @@
     <div class="container py-4">
         <h1 class="mb-4">SVG Translate Bot</h1>
 
-        {% if error_message %}
-        <div class="alert alert-info" role="alert">{{ error_message }}</div>
-        {% endif %}
+        {% with flashes = get_flashed_messages(with_categories=true) %}
+            {% if flashes %}
+                {% for category, message in flashes %}
+                    {% if category == 'duplicate_task' %}
+                        {% set duplicate_title = message['title'] if message is mapping and 'title' in message else message %}
+                        {% set duplicate_task_id = message['task_id'] if message is mapping and 'task_id' in message else task_id %}
+                        <div class="alert alert-warning" role="alert">
+                            A task for "{{ duplicate_title }}" is already running.
+                            <a href="{{ url_for('index', task_id=duplicate_task_id) }}#progress-section" class="alert-link">View its status.</a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
             <div class="col-sm-8">
