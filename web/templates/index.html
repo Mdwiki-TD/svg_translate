@@ -21,20 +21,21 @@
             <div class="col-12 col-md-6">
                 <label for="title" class="form-label">Template Title</label>
                 <input type="text" class="form-control" id="title" name="title"
-                    value="{{ title or 'Template:OWID/death rate from obesity'}}" required>
+                    value="{{ form.title if form and form.title else 'Template:OWID/death rate from obesity'}}"
+                    required>
             </div>
             <div class="col-6 col-md-3">
                 <label for="titles_limit" class="form-label">Titles Limit</label>
                 <input type="number" class="form-control" id="titles_limit" name="titles_limit" min="1"
-                    value="{{ request.form.get('titles_limit', 1000) }}">
+                    value="{{ form.titles_limit if form and form.titles_limit else 1000 }}">
             </div>
             <div class="col-12 col-md-3 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Start</button>
             </div>
             <div class="col-6 col-md-3">
                 <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" value="1" id="overwrite" name="overwrite"
-                        {{ 'checked' if request.form.get('overwrite') else '' }}>
+                    <input class="form-check-input" type="checkbox" value="z" id="overwrite" name="overwrite"
+                        {{ 'checked' if not form or form.overwrite == "z" else '' }}>
                     <label class="form-check-label" for="overwrite">
                         Overwrite Existing translations
                     </label>
@@ -43,7 +44,7 @@
             <div class="col-6 col-md-3">
                 <div class="form-check form-switch mt-2">
                     <input class="form-check-input" type="checkbox" value="1" id="upload" name="upload"
-                        {{ 'checked' if request.form.get('upload') else '' }}>
+                        {{ 'checked' if form and form.upload else '' }}>
                     <label class="form-check-label" for="upload">
                         Upload New translations
                     </label>

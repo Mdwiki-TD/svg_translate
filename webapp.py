@@ -28,6 +28,18 @@ TASKS: Dict[str, Dict[str, Any]] = {}
 TASKS_LOCK = threading.Lock()
 
 
+def prase_args(request):
+    # ---
+    args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    # ---
+    args.titles_limit = request.get("titles_limit", 1000, type=int)
+    args.upload = request.get("upload", False, type=bool)
+    # ---
+    args.overwrite = request.get("overwrite", False, type=bool)
+    # ---
+    return args
+
+
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
     slug = title.split("/")[-1]
@@ -40,21 +52,8 @@ def _compute_output_dir(title: str) -> Path:
     return base / slug
 
 
-def prase_args(request):
-    # ---
-    args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
-    # ---
-    args.titles_limit = request.get("titles_limit", 1000, type=int)
-    args.overwrite = request.get("overwrite", False, type=bool)
-    args.upload = request.get("upload", False, type=bool)
-    # ---
-    return args
-
-
-def _run_task(task_id: str, title: str, args: Dict) -> None:
-    output_dir = _compute_output_dir(title)
-    # ---
-    TASKS[task_id]["data"] = {
+def make_stages(title):
+    return {
         "title": title,
         "stages": {
             "initialize": {
@@ -101,6 +100,12 @@ def _run_task(task_id: str, title: str, args: Dict) -> None:
             },
         }
     }
+
+
+def _run_task(task_id: str, title: str, args: Dict) -> None:
+    output_dir = _compute_output_dir(title)
+    # ---
+    TASKS[task_id]["data"] = make_stages(title)
     # ---
     stages_list = TASKS[task_id]["data"]["stages"]
     # ---
@@ -172,7 +177,7 @@ def create_app() -> Flask:
 
         if not task:
             task = {"error": "not-found"}
-        return render_template("index.html", task_id=task_id, task=task, title=task.get("title", ""))
+        return render_template("index.html", task_id=task_id, task=task, form=task.get("form", {}))
 
     @app.post("/")
     def start():
@@ -182,7 +187,12 @@ def create_app() -> Flask:
 
         task_id = uuid.uuid4().hex
         with TASKS_LOCK:
-            TASKS[task_id] = {"status": "pending", "data": None, "title": title}
+            TASKS[task_id] = {
+                "status": "pending",
+                "data": None,
+                "title": title,
+                "form": {x : request.form.get(x) for x in request.form},
+            }
 
         args = prase_args(request.form)
         # ---
@@ -201,7 +211,7 @@ def create_app() -> Flask:
 
         if not task:
             task = {"error": "not-found"}
-        return render_template("index2.html", task_id=task_id, task=task, title=task.get("title", ""))
+        return render_template("index2.html", task_id=task_id, task=task, form=task.get("form", {}))
 
     @app.get("/status/<task_id>")
     def status(task_id: str):
