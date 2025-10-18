@@ -3,3 +3,4 @@ Flask
 asgiref
 uvicorn
 python-dotenv
+mwclient

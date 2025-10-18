@@ -146,7 +146,7 @@ def run_task(task_id: str, title: str, args: Any, tasks: MutableMapping[str, Any
     no_file_path = len(inject_files) - len(files_to_upload)
 
     # Stage 6: upload results
-    upload_result, stages_list["upload"] = upload_task(stages_list["upload"], files_to_upload, main_title, args.upload)
+    upload_result, stages_list["upload"] = upload_task(stages_list["upload"], files_to_upload, main_title, do_upload=args.upload)
 
     # Stage 7: save stats and mark done
     data = {

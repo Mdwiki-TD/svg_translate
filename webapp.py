@@ -27,10 +27,14 @@ TASKS_LOCK = threading.Lock()
 def parse_args(request_form):
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
+    upload = bool(request_form.get("upload"))
+    # ---
+    upload = False
+    # ---
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
         overwrite=bool(request_form.get("overwrite")),
-        upload=bool(request_form.get("upload"))
+        upload=upload
     )
     # ---
     return result
