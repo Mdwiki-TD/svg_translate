@@ -28,16 +28,16 @@ TASKS: Dict[str, Dict[str, Any]] = {}
 TASKS_LOCK = threading.Lock()
 
 
-def prase_args(request):
+def parse_args(request_form):
+    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
-    args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    titles_limit = request_form.get("titles_limit", 1000, type=int)
+    upload = bool(request_form.get("upload"))
+    overwrite = bool(request_form.get("overwrite"))
     # ---
-    args.titles_limit = request.get("titles_limit", 1000, type=int)
-    args.upload = request.get("upload", False, type=bool)
+    result = Args(titles_limit=titles_limit, overwrite=overwrite, upload=upload)
     # ---
-    args.overwrite = request.get("overwrite", False, type=bool)
-    # ---
-    return args
+    return result
 
 
 def _compute_output_dir(title: str) -> Path:
@@ -112,11 +112,13 @@ def _run_task(task_id: str, title: str, args: Dict) -> None:
     text, stages_list["get_text"] = text_task(stages_list["get_text"], title)
     # ---
     if not text:
+        TASKS[task_id]["status"] = "Failed"
         return
     # ---
     main_title, titles, stages_list["titles_task"] = titles_task(stages_list["titles_task"], text, titles_limit=args.titles_limit)
     # ---
     if not titles:
+        TASKS[task_id]["status"] = "Failed"
         return
     # ---
     output_dir_main = output_dir / "files"
@@ -125,16 +127,19 @@ def _run_task(task_id: str, title: str, args: Dict) -> None:
     translations, stages_list["translations_task"] = translations_task(stages_list["translations_task"], main_title, output_dir_main)
     # ---
     if not translations:
+        TASKS[task_id]["status"] = "Failed"
         return
     # ---
     files, stages_list["download_stats"] = download_task(stages_list["download_stats"], output_dir_main, titles)
     # ---
     if not files:
+        TASKS[task_id]["status"] = "Failed"
         return
     # ---
     injects_result, stages_list["inject_task"] = inject_task(stages_list["inject_task"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
     # ---
     if injects_result.get('saved_done', 0) == 0:
+        TASKS[task_id]["status"] = "Failed"
         logger.error("inject result saved 0 files")
         return
     # ---
@@ -235,6 +240,9 @@ if __name__ == "__main__":
         import uvicorn
 
         uvicorn.run("webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
+    except ImportError:
+        print("Uvicorn not installed")
+
     except Exception:
         app = create_app()
         app.run(host="127.0.0.1", port=8200, debug=True)

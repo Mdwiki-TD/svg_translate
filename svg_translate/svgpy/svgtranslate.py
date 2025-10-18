@@ -9,13 +9,15 @@ to other SVG files by inserting missing <text systemLanguage="XX"> blocks.
 import json
 from pathlib import Path
 
+from flask.config import T
+
 from .bots.extract_bot import extract
 from .bots.inject_bot import inject
 
 from ..log import logger
 
 
-def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None):
+def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None, save_result=False):
     """
     Extract translations from one SVG file and inject them into another.
 
@@ -59,12 +61,12 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
     logger.debug("______________________\n"*5)
 
-    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite, save_result=True)
+    tree, stats = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite, save_result=save_result, return_stats=True)
 
-    if _result is None:
+    if tree is None:
         logger.error(f"Failed to inject translations into {inject_file}")
 
-    return _result
+    return tree
 
 
 def svg_extract_and_injects(translations, inject_file, output_dir=None, save_result=False, **kwargs):
