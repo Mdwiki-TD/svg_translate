@@ -106,7 +106,8 @@ def main():
         svg_data_dir = Path(__file__).parent.parent/ "svg_data"
 
     for title in titles:
-        output_dir = svg_data_dir / title.split("/")[1]
+        # output_dir = svg_data_dir / title.split("/")[1]
+        output_dir = svg_data_dir / Path(title).name
         one_title(title, output_dir, titles_limit=1000)
         # break
 

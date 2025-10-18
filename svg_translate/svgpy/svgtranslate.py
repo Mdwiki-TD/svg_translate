@@ -57,7 +57,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
     logger.debug("______________________\n"*5)
 
-    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite)
+    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite, save_result=True)
 
     if _result is None:
         logger.error(f"Failed to inject translations into {inject_file}")
