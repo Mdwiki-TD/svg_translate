@@ -20,3 +20,4 @@ tests/no_translations_raw.svg
 /svg_data1
 start_bot copy.py
 web/templates/index_backup.html
+tasks.sqlite3
