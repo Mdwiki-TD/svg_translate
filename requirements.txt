@@ -4,3 +4,4 @@ asgiref
 uvicorn
 python-dotenv
 mwclient
+wikitextparser
