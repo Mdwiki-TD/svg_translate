@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-TERMINAL_STATUSES = ("Completedz", "Failedz")
+TERMINAL_STATUSES = ("Completed", "Failed")
 
 
 class TaskAlreadyExistsError(Exception):
