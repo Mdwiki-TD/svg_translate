@@ -1,6 +1,6 @@
 """
 
-python3 I:/mdwiki/svg_repo/start_bot.py
+python3 I:/SVG/svg_repo/bot.py
 python3 start_bot.py
 
 tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_translate/start_bot.py noup"

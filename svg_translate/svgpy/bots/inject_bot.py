@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 
-python I:/mdwiki/pybot/svg/svg-py/bots/inject_bot.py
+python I:/SVG/svg_repo/svgpy/bots/inject_bot.py
 
 """
 
