@@ -38,7 +38,6 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
         return None
 
     if not data_output_file:
-        # json_output_dir = Path.cwd() / "data"
         json_output_dir = Path(__file__).parent / "data"
         json_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -51,7 +50,6 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     logger.info(f"Saved translations to {data_output_file}")
 
     if not output_file:
-        # output_dir = Path.cwd() / "translated"
         output_dir = Path(__file__).parent / "translated"
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -59,7 +57,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
     logger.debug("______________________\n"*5)
 
-    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite, save_result=True)
+    _result = inject(inject_file, mapping_files=[data_output_file], output_file=output_file, overwrite=overwrite)
 
     if _result is None:
         logger.error(f"Failed to inject translations into {inject_file}")
