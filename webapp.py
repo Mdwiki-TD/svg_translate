@@ -132,6 +132,18 @@ def create_app() -> Flask:
 
         return redirect(url_for("index", task_id=task_id))
 
+    @app.get("/index2")
+    def index2():
+        task_id = request.args.get("task_id")
+        task = None
+        if task_id:
+            with TASKS_LOCK:
+                task = TASKS.get(task_id)
+
+        if not task:
+            task = {"error": "not-found"}
+        return render_template("index2.html", task_id=task_id, task=task)
+
     @app.get("/status/<task_id>")
     def status(task_id: str):
         with TASKS_LOCK:

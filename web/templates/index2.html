@@ -32,6 +32,9 @@
         <div id="progress-section" data-task-id="{{ task_id }}">
             <h2 class="h5">
                 Task Status <span id="task_status">
+                    {% if task %}
+                    ({{ task.status if task.status else "Not Found" if task.error and task.error == 'not-found' }})
+                    {% endif %}
                 </span>
             </h2>
 
@@ -39,12 +42,42 @@
                 <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
             </div>
             <div id="stages" class="row g-3">
-                <div class="col-12" id="alert_div">
-                    <div class="alert alert-info">Starting…</div>
+                {% if task and task.data and task.data.stages %}
+                {% for name, st in task.data.stages.items() %}
+                <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ name }}</h5>
+                            <p class="card-text">{{ st.message }}</p>
+                            <span class="badge text-bg-secondary">{{ st.status }}</span>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
+                {% else %}
+                <div class="col-12" id="alert_div">
+                    {% if task.error and task.error == 'not-found' %}
+                    <div class="alert alert-danger" role="alert">
+                        Task not found.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">Starting…</div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
 
             <div class="mt-4" id="results">
+                {% if task and task.results %}
+                <h3 class="h6">Summary</h3>
+                <ul class="list-group">
+                    <li class="list-group-item">Total files: {{ task.results.total_files }}</li>
+                    <li class="list-group-item">Ready to upload: {{ task.results.files_to_upload_count }}</li>
+                    <li class="list-group-item">No file path: {{ task.results.no_file_path }}</li>
+                    <li class="list-group-item">Nested files: {{ task.results.injects_result.nested_files }}</li>
+                    <li class="list-group-item">New translations: {{ task.results.new_translations_count }}</li>
+                </ul>
+                {% endif %}
             </div>
         </div>
         {% endif %}
