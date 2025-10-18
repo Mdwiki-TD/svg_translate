@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-TERMINAL_STATUSES = ("Completed", "Failed")
+TERMINAL_STATUSES = ("Completedz", "Failedz")
 
 
 class TaskAlreadyExistsError(Exception):
@@ -24,6 +24,11 @@ def _serialize(value: Any) -> Optional[str]:
     if value is None:
         return None
     return json.dumps(value)
+
+
+def _normalize_title(title: str) -> str:
+    """Return a normalized form of a title for duplicate detection."""
+    return title.strip().casefold()
 
 
 def _deserialize(value: Optional[str]) -> Any:
@@ -50,6 +55,7 @@ class TaskStore:
                 CREATE TABLE IF NOT EXISTS tasks (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
+                    normalized_title TEXT NOT NULL,
                     status TEXT NOT NULL,
                     form_json TEXT,
                     data_json TEXT,
@@ -92,24 +98,26 @@ class TaskStore:
     ) -> None:
         now = self._current_ts()
         with self._write_transaction() as cursor:
+            normalized_title = _normalize_title(title)
             existing = cursor.execute(
                 """
                 SELECT * FROM tasks
-                WHERE title = ? AND status NOT IN (?, ?)
+                WHERE normalized_title = ? AND status NOT IN (?, ?)
                 LIMIT 1
                 """,
-                (title, *TERMINAL_STATUSES),
+                (normalized_title, *TERMINAL_STATUSES)
             ).fetchone()
             if existing:
                 raise TaskAlreadyExistsError(self._row_to_task(existing))
             cursor.execute(
                 """
-                INSERT INTO tasks (id, title, status, form_json, data_json, results_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tasks (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task_id,
                     title,
+                    normalized_title,
                     status,
                     _serialize(form),
                     _serialize(data),
@@ -123,22 +131,23 @@ class TaskStore:
         with self._lock:
             row = self._conn.execute(
                 "SELECT * FROM tasks WHERE id = ?",
-                (task_id,),
+                (task_id,)
             ).fetchone()
         if not row:
             return None
         return self._row_to_task(row)
 
     def get_active_task_by_title(self, title: str) -> Optional[Dict[str, Any]]:
+        normalized_title = _normalize_title(title)
         with self._lock:
             row = self._conn.execute(
                 """
                 SELECT * FROM tasks
-                WHERE title = ? AND status NOT IN (?, ?)
+                WHERE normalized_title = ? AND status NOT IN (?, ?)
                 ORDER BY created_at DESC
                 LIMIT 1
                 """,
-                (title, *TERMINAL_STATUSES),
+                (normalized_title, *TERMINAL_STATUSES)
             ).fetchone()
         if not row:
             return None
@@ -197,6 +206,7 @@ class TaskStore:
         return {
             "id": row["id"],
             "title": row["title"],
+            "normalized_title": row["normalized_title"],
             "status": row["status"],
             "form": _deserialize(row["form_json"]),
             "data": _deserialize(row["data_json"]),

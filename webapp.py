@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections import namedtuple
 # import sys
 import os
-import uuid
 import threading
+import uuid
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from asgiref.wsgi import WsgiToAsgi
