@@ -18,6 +18,9 @@ def start_upload(files_to_upload, main_title_link, username, password):
     if site.logged_in:
         print(f"<<yellow>>logged in as {site.username}.")
 
+    done = 0
+    not_done = 0
+    errors = []
     for file_name, file_data in tqdm(files_to_upload.items(), desc="uploading files"):
         # ---
         file_path = file_data.get("file_path", None)
@@ -28,8 +31,15 @@ def start_upload(files_to_upload, main_title_link, username, password):
         # ---
         upload = upload_file(file_name, file_path, site=site, username=username, password=password, summary=summary) or {}
         # ---
-        result = upload.get('result')
+        result = upload.get('result') if isinstance(upload, dict) else None
         # ---
         print(f"upload: {result}")
         # ---
-        # break
+        if result == "Success":
+            done += 1
+        else:
+            not_done += 1
+            if isinstance(upload, dict) and 'error' in upload:
+                errors.append(upload.get('error'))
+    # ---
+    return {"done": done, "not_done": not_done, "errors": errors}

@@ -29,22 +29,25 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
 
     translations = files_data.get("translations", {}).get("new", {})
 
-    if files_data['files']:
-        print(f"len files_data: {len(files_data['files']):,}")
+    if not files_data['files']:
+        return
+    print(f"len files_data: {len(files_data['files']):,}")
 
-        if files_data['main_title'] in files_data['files']:
-            del files_data['files'][files_data['main_title']]
+    if files_data['main_title'] in files_data['files']:
+        del files_data['files'][files_data['main_title']]
 
-        main_title_link = f"[[:File:{files_data['main_title']}]]"
-        files_to_upload = {x: v for x, v in files_data["files"].items() if v.get("file_path", None)}
-        print(f"len files_to_upload: {len(files_to_upload):,}")
+    main_title_link = f"[[:File:{files_data['main_title']}]]"
+    files_to_upload = {x: v for x, v in files_data["files"].items() if v.get("file_path", None)}
+    print(f"len files_to_upload: {len(files_to_upload):,}")
 
-        no_file_path = len(files_data["files"]) - len(files_to_upload)
+    no_file_path = len(files_data["files"]) - len(files_to_upload)
 
-        if files_to_upload and "noup" not in sys.argv:
-            start_upload(files_to_upload, main_title_link, username, password)
+    if files_to_upload and "noup" not in sys.argv:
+        upload_result = start_upload(files_to_upload, main_title_link, username, password)
+        # {"done": done, "not_done": not_done, "errors": errors}
+        print(f"upload_result: Done: {upload_result['done']:,}, Not done: {upload_result['not_done']:,}, Errors: {len(upload_result['errors']):,}")
 
-        print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
+    print(f"output_dir: {output_dir.name}, no_file_path: {no_file_path}, nested_files: {files_data['nested_files']:,}, translations: {len(translations):,}")
 
 
 def main():
