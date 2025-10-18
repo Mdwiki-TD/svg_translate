@@ -11,19 +11,23 @@
             text-decoration: none;
         }
 
-        .timeline-item {
-            position: relative;
+        .list-group-item.running {
+            border-left: 4px solid var(--bs-primary);
+            animation: pulse 1.5s infinite;
         }
 
-        .timeline-item::before {
-            content: "";
-            position: absolute;
-            left: -11px;
-            top: 8px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: var(--bs-primary);
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
         }
     </style>
 </head>
@@ -77,15 +81,12 @@
             <div id="task-meta" class="mb-2 text-muted">
                 <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
             </div>
-            <div id="stages" class="row g-3">
-                <div class="col-12" id="alert_div">
-                    <div class="alert alert-info">Starting…</div>
-                </div>
-                <div class="timeline" id="timeline">
-                </div>
+            <div class="progress mb-3" style="height:8px;">
+                <div id="global-progress" class="progress-bar bg-primary" style="width:0%"></div>
+            </div>
+            <div class="col-12" id="alert_div">
             </div>
             <ul id="stagesnew" class="list-group"></ul>
-            <div id="stagesgrid" class="row row-cols-1 row-cols-md-3 g-3"></div>
             <div class="mt-4" id="results">
             </div>
         </div>
@@ -97,6 +98,12 @@
             const section = document.getElementById('progress-section');
             if (!section) return;
             const taskId = section.getAttribute('data-task-id');
+
+            function overall_progress(stages_obj) {
+                const total = stages_obj.length;
+                const done = stages_obj.filter(([_, st]) => st.status === "Completed").length;
+                return Math.round((done / total) * 100);
+            }
 
             function stages_html_new(st, name) {
                 const subname = st.sub_name ? ` <small class="text-muted">(${st.sub_name})</small>` : '';
@@ -110,15 +117,17 @@
                 const color = classes[st.status] || "secondary";
                 const percent = st.status === "Completed" ? 100 : st.status === "Running" ? 60 : st.status === "Pending" ? 10 : 0;
 
+                const cls = st.status === "Running" ? "running" : "";
+
                 return `
-                <li class="list-group-item">
+                <li class="list-group-item ${cls} border border-${color}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold">${name}${subname}</span>
-                    <span class="badge text-bg-${color}">${st.status}</span>
+                        <span class="fw-bold">${name}${subname}</span>
+                        <span class="badge text-bg-${color} border border-${color}">${st.status}</span>
                     </div>
                     <div class="small text-muted">${st.message || ''}</div>
                     <div class="progress mt-2" style="height: 6px;">
-                    <div class="progress-bar bg-${color}" style="width:${percent}%"></div>
+                        <div class="progress-bar bg-${color}" style="width:${percent}%"></div>
                     </div>
                 </li>
                 `;
@@ -155,10 +164,7 @@
                     }
 
                     // Update stages
-                    const stagesContainer = document.getElementById('stages');
                     const stagesContainerNew = document.getElementById('stagesnew');
-                    const stagesTimeline = document.getElementById('timeline');
-                    const stagesGrid = document.getElementById('stagesgrid');
                     // ---
                     if (taskData.data && taskData.data.stages) {
                         // ---
@@ -168,11 +174,13 @@
                         // sort stages_obj by number
                         stages_obj = Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number);
                         // ---
+                        document.getElementById("global-progress").style.width = `${overall_progress(stages_obj)}%`;
+                        // ---
                         stagesContainerNew.innerHTML = stages_obj.map(([name, st]) => stages_html_new(st, name)).join('');
                     }
 
                     // Update results
-                    const results = document.getElementById('results');
+                    const results = document.getElementById('results_x');
                     if (taskData && taskData.results && results) {
                         const r = taskData.results;
                         results.innerHTML = result_html(r);
@@ -186,6 +194,7 @@
                     if (['Completed', 'error', 'Failed'].includes(taskData.status)) {
                         clearInterval(timer);
                     }
+
                 } catch (e) { /* ignore transient errors */ }
             }
 

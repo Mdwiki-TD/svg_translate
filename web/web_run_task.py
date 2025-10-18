@@ -92,7 +92,7 @@ def run_task(
     # ---
     tasks[task_id]["data"] = {
         "title": title,
-        "stages": make_stages(title)
+        "stages": make_stages()
     }
     # ---
     stages_list = tasks[task_id]["data"]["stages"]
