@@ -4,8 +4,6 @@ set -euo pipefail
 
 BRANCH="${1:-main}"
 
-echo ">>> clone --branch ${BRANCH} ."
-
 REPO_URL="https://github.com/Mdwiki-TD/svg_translate.git"
 
 TARGET_DIR="$HOME/www/python/src"
@@ -17,13 +15,15 @@ backup_dir="$HOME/www/python/src_backup_$(date +%Y%m%d_%H%M%S)"
 # Navigate to the project directory
 cd "$HOME" || exit
 
+
+echo ">>> clone --branch ${BRANCH} ."
+
 # Remove temporary clone directory if it exists
 rm -rf "$CLONE_DIR"
 
 # Try to clone the repository into a temporary folder
 if git clone --branch "$BRANCH" "$REPO_URL" "$CLONE_DIR"; then
     echo "Repository cloned successfully."
-
 else
     echo "Failed to clone repository. No changes made." >&2
     exit 1
