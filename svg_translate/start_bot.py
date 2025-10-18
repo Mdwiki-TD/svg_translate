@@ -82,6 +82,10 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
 
     data["main_title"] = main_title
 
+    if not main_title:
+        logger.error("No main SVG title found in the template")
+        return data
+
     if not output_dir:
         output_dir = Path(__file__).parent / "new_data"
 
