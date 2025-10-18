@@ -17,6 +17,7 @@ def download_commons_svgs(titles, out_dir):
     out_dir = Path(str(out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # base = "https://commons.wikimedia.org/wiki/Special:FilePath/" # commons is blocked in Yemen
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
     session = requests.Session()
@@ -44,6 +45,7 @@ def download_commons_svgs(titles, out_dir):
             continue
 
         r = session.get(url, timeout=30, allow_redirects=True)
+        # if r.status_code == 200 and 'image/svg+xml' in r.headers.get('Content-Type', ''):
         if r.status_code == 200:  # v and r.content.startswith(b"<?xml")
             logger.debug(f"[{i}] Downloaded: {title}")
             out_path.write_bytes(r.content)
