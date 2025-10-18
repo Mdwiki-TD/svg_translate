@@ -9,8 +9,6 @@ to other SVG files by inserting missing <text systemLanguage="XX"> blocks.
 import json
 from pathlib import Path
 
-from flask.config import T
-
 from .bots.extract_bot import extract
 from .bots.inject_bot import inject
 
