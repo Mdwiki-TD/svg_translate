@@ -93,25 +93,27 @@ def fail_task(tasks, task_id, stages, msg=None):
 def run_task(task_id: str, title: str, args: Any, tasks: MutableMapping[str, Any], tasks_lock: threading.Lock) -> None:
 
     output_dir = _compute_output_dir(title)
-
-    tasks[task_id]["data"] = {
-        "title": title,
-        "stages": make_stages()
-    }
+    with tasks_lock:
+        tasks[task_id]["data"] = {
+            "title": title,
+            "stages": make_stages()
+        }
 
     stages_list = tasks[task_id]["data"]["stages"]
 
     # Stage 1: extract text
     text, stages_list["text"] = text_task(stages_list["text"], title)
     if not text:
-        return fail_task(tasks, task_id, stages_list, "No text extracted")
+        with tasks_lock:
+            return fail_task(tasks, task_id, stages_list, "No text extracted")
 
     # Stage 2: extract titles
     titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
 
     main_title, titles = titles_result["main_title"], titles_result["titles"]
     if not titles:
-        return fail_task(tasks, task_id, stages_list, "No titles found")
+        with tasks_lock:
+            return fail_task(tasks, task_id, stages_list, "No titles found")
 
     # Stage 3: get translations
     output_dir_main = output_dir / "files"
@@ -120,19 +122,22 @@ def run_task(task_id: str, title: str, args: Any, tasks: MutableMapping[str, Any
     translations, stages_list["translations"] = translations_task(stages_list["translations"], main_title, output_dir_main)
 
     if not translations:
-        return fail_task(tasks, task_id, stages_list, "No translations available")
+        with tasks_lock:
+            return fail_task(tasks, task_id, stages_list, "No translations available")
 
     # Stage 4: download SVG files
     files, stages_list["download"] = download_task(stages_list["download"], output_dir_main, titles)
 
     if not files:
-        return fail_task(tasks, task_id, stages_list, "No files downloaded")
+        with tasks_lock:
+            return fail_task(tasks, task_id, stages_list, "No files downloaded")
 
     # Stage 5: inject translations
     injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
 
     if not injects_result or injects_result.get("saved_done", 0) == 0:
-        return fail_task(tasks, task_id, stages_list, "Injection saved 0 files")
+        with tasks_lock:
+            return fail_task(tasks, task_id, stages_list, "Injection saved 0 files")
 
     inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
@@ -157,7 +162,9 @@ def run_task(task_id: str, title: str, args: Any, tasks: MutableMapping[str, Any
     with tasks_lock:
 
         tasks[task_id]["results"] = make_results_summary(len(files), len(files_to_upload), no_file_path, injects_result, translations, main_title, upload_result)
-        # ---
-        tasks[task_id]["status"] = "Completed" if not data.get("error") else "error"
-        # ---
+
+        # Consider any stage failure terminal
+        final_status = "Failed" if any(s.get("status") == "Failed" for s in stages_list.values()) else "Completed"
+        tasks[task_id]["status"] = final_status
+
         stages_list["initialize"]["status"] = "Completed"
