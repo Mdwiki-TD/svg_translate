@@ -100,10 +100,9 @@ def main():
         "Template:OWID/death rate from obesity",
     ]
 
-    svg_data_dir = Path(__file__).parent / "svg_data"
-
-    if os.getenv("HOME"):
-        svg_data_dir = Path(__file__).parent.parent/ "svg_data"
+    svg_data_dir = Path(__file__).parent.parent / "svg_data"
+    if not os.getenv("HOME"):
+        svg_data_dir = Path("I:/SVG/svg_data")
 
     for title in titles:
         # output_dir = svg_data_dir / title.split("/")[1]
