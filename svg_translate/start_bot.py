@@ -2,6 +2,7 @@
 from pathlib import Path
 from tqdm import tqdm
 import json
+import os
 
 from .commons.download_bot import download_commons_svgs
 from .commons.temps_bot import get_files
@@ -26,7 +27,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
     # files = list(set(files))
 
-    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
+    for _n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
         tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
         stats["file_path"] = ""
@@ -87,7 +88,9 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
         return data
 
     if not output_dir:
-        output_dir = Path(__file__).parent / "new_data"
+        output_dir = Path(__file__).parent.parent / "svg_data"
+        if not os.getenv("HOME"):
+            output_dir = Path("I:/SVG/svg_data")
 
     output_dir_main = output_dir / "files"
     output_dir_translated = output_dir / "translated"

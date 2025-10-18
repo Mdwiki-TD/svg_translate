@@ -28,7 +28,7 @@ To extract translations from an SVG file:
 
 ```python
 
-result = svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None)
+result = svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, save_result=False)
 
 ```
 
