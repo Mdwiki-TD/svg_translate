@@ -119,7 +119,9 @@ if __name__ == "__main__":
     try:
         import uvicorn
 
-        uvicorn.run("webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
+        # uvicorn.run("webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
+        uvicorn.run("webapp:create_asgi_app", factory=True)
     except Exception:
         app = create_app()
-        app.run(host="127.0.0.1", port=8200, debug=True)
+        # app.run(host="127.0.0.1", port=8200, debug=True)
+        app.run()
