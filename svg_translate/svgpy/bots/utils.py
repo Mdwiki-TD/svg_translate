@@ -5,8 +5,10 @@ from utils import normalize_text, extract_text_from_node
 
 """
 
+from ...log import logger
 
-def normalize_text(text):
+
+def normalize_text(text, case_insensitive=False):
     """Normalize text by trimming whitespace and collapsing internal whitespace."""
     if not text:
         return ""
@@ -14,6 +16,10 @@ def normalize_text(text):
     text = text.strip()
     # Replace multiple internal whitespace with single space
     text = ' '.join(text.split())
+    # ---
+    if case_insensitive:
+        text = text.lower()
+    # ---
     return text
 
 

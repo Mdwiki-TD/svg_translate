@@ -1,0 +1,21 @@
+/*.svg
+*.pyc
+plan-ar.md
+plan.md
+/svg22
+/svg-py/parkinsons
+/parkinsons
+*.zip
+svg-py/bots/inject_bot_old.py
+/inj
+/commons/downloaded_svgs
+commons/temp.txt
+/new_data
+/tests/translated
+/tests/parkinsons
+/old
+tests/no_translations_raw.svg
+/svg_data
+/tests/tests_files
+/svg_data1
+start_bot copy.py
