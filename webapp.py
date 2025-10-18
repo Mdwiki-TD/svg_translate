@@ -63,7 +63,7 @@ def create_app() -> Flask:
         task_id = uuid.uuid4().hex
         with TASKS_LOCK:
             TASKS[task_id] = {
-                "status": "pending",
+                "status": "Pending",
                 "data": None,
                 "title": title,
                 "form": {x : request.form.get(x) for x in request.form},

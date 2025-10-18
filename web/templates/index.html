@@ -114,6 +114,7 @@
 
             function overall_progress(stages_obj) {
                 const total = stages_obj.length;
+                if (!total) return 0;
                 const done = stages_obj.filter(([_, st]) => st.status === "Completed").length;
                 return Math.round((done / total) * 100);
             }

@@ -150,7 +150,8 @@ def extract(svg_file_path, case_insensitive=True):
     # Count languages
     all_languages = set()
     for text_dict in translations["old_way"].values():
-        all_languages.update(text_dict.keys())
+        langs = text_dict.get("_translations", {}).keys()
+        all_languages.update(langs)
 
     logger.info(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")
 

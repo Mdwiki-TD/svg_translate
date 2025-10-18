@@ -44,37 +44,37 @@ def make_stages():
         "text": {
             "sub_name": "",
             "number": 2,
-            "status": "pending",
+            "status": "Pending",
             "message": "Getting text"
         },
         "titles": {
             "sub_name": "",
             "number": 3,
-            "status": "pending",
+            "status": "Pending",
             "message": "Getting titles"
         },
         "translations": {
             "sub_name": "",
             "number": 4,
-            "status": "pending",
+            "status": "Pending",
             "message": "Getting translations"
         },
         "download": {
             "sub_name": "",
             "number": 5,
-            "status": "pending",
+            "status": "Pending",
             "message": "Downloading files"
         },
         "inject": {
             "sub_name": "",
             "number": 6,
-            "status": "pending",
+            "status": "Pending",
             "message": "Injecting translations"
         },
         "upload": {
             "sub_name": "",
             "number": 7,
-            "status": "pending",
+            "status": "Pending",
             "message": "Uploading files"
         },
     }
