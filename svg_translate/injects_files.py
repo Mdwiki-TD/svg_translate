@@ -32,6 +32,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
                 nested_files += 1
             else:
                 no_save += 1
+            files_stats[file.name] = stats
             continue
         # ---
         try:
