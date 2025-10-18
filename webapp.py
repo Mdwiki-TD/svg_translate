@@ -27,10 +27,14 @@ TASKS_LOCK = threading.Lock()
 def parse_args(request_form):
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
+    upload = bool(request_form.get("upload"))
+    # ---
+    upload = False
+    # ---
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
         overwrite=bool(request_form.get("overwrite")),
-        upload=bool(request_form.get("upload"))
+        upload=upload
     )
     # ---
     return result
@@ -63,7 +67,7 @@ def create_app() -> Flask:
         task_id = uuid.uuid4().hex
         with TASKS_LOCK:
             TASKS[task_id] = {
-                "status": "pending",
+                "status": "Pending",
                 "data": None,
                 "title": title,
                 "form": {x : request.form.get(x) for x in request.form},
@@ -116,9 +120,6 @@ if __name__ == "__main__":
         import uvicorn
 
         uvicorn.run("webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
-    except ImportError:
-        print("Uvicorn not installed")
-
     except Exception:
         app = create_app()
         app.run(host="127.0.0.1", port=8200, debug=True)

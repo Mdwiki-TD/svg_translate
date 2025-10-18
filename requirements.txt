@@ -3,3 +3,7 @@ Flask
 asgiref
 uvicorn
 python-dotenv
+mwclient
+wikitextparser
+requests
+gunicorn

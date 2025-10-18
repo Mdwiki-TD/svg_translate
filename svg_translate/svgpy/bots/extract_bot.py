@@ -5,12 +5,12 @@ python I:/SVG/svg_repo/svgpy/bots/extract_bot.py
 
 """
 
-import json
+# import json
 from pathlib import Path
 from lxml import etree
 
 from ...log import logger
-from .utils import normalize_text, extract_text_from_node
+from .utils import normalize_text  # , extract_text_from_node
 
 
 def extract(svg_file_path, case_insensitive=True):
@@ -55,8 +55,8 @@ def extract(svg_file_path, case_insensitive=True):
             continue
 
         # Identify default text (no systemLanguage attribute)
-        default_text = None
-        default_node = None
+        # default_text = None
+        # default_node = None
 
         # Find translations
         switch_translations = {}
@@ -150,7 +150,8 @@ def extract(svg_file_path, case_insensitive=True):
     # Count languages
     all_languages = set()
     for text_dict in translations["old_way"].values():
-        all_languages.update(text_dict.keys())
+        langs = text_dict.get("_translations", {}).keys()
+        all_languages.update(langs)
 
     logger.info(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")
 

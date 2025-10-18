@@ -297,7 +297,11 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
             output_file = output_dir / svg_file_path.name
 
         # Write the modified SVG
-        tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+        try:
+            tree.write(str(output_file), encoding='utf-8', xml_declaration=True, pretty_print=True)
+        except Exception as e:
+            logger.error(f"Failed writing {output_file}: {e}")
+            tree = None
 
     logger.info(f"Saved modified SVG to {output_file}")
 

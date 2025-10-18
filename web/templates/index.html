@@ -13,7 +13,7 @@
 
         .list-group-item.running {
             border-left: 4px solid var(--bs-primary);
-            animation: pulse 1.5s infinite;
+            /* animation: pulse 1.5s infinite; */
         }
 
         @keyframes pulse {
@@ -27,6 +27,16 @@
 
             100% {
                 opacity: 1;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .list-group-item {
+                font-size: 0.9rem;
+            }
+
+            .progress {
+                height: 4px;
             }
         }
     </style>
@@ -78,8 +88,11 @@
                 </span>
             </h2>
 
-            <div id="task-meta" class="mb-2 text-muted">
-                <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
+            <div class="d-flex justify-content-between align-items-center">
+                <div id="task-meta" class="mb-2 text-muted">
+                    <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
+                </div>
+                <div class="small text-muted" id="last-update"></div>
             </div>
             <div class="progress mb-3" style="height:8px;">
                 <div id="global-progress" class="progress-bar bg-primary" style="width:0%"></div>
@@ -101,6 +114,7 @@
 
             function overall_progress(stages_obj) {
                 const total = stages_obj.length;
+                if (!total) return 0;
                 const done = stages_obj.filter(([_, st]) => st.status === "Completed").length;
                 return Math.round((done / total) * 100);
             }
@@ -147,7 +161,7 @@
             }
             async function refresh() {
                 try {
-                    const res = await fetch(`/status/${taskId}`);
+                    const res = await fetch(`/status/${taskId}`, { cache: "no-store" });
                     const taskData = await res.json();
                     if (!res.ok) {
                         // Stop polling on completion or error
@@ -194,6 +208,8 @@
                     if (['Completed', 'error', 'Failed'].includes(taskData.status)) {
                         clearInterval(timer);
                     }
+
+                    document.getElementById('last-update').innerHTML = `Last updated: ${new Date().toLocaleTimeString()}`;
 
                 } catch (e) { /* ignore transient errors */ }
             }
