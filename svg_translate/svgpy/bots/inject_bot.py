@@ -152,9 +152,17 @@ def work_on_switches(root, existing_ids, mappings, case_insensitive=False,
                     if text_elem.get('systemLanguage') == lang:
                         tspans = text_elem.xpath('./svg:tspan', namespaces=SVG_NS)
                         for i, tspan in enumerate(tspans):
+                            # ---
                             eng_text = default_texts[i]
+                            # ---
+                            lookup_key = eng_text.lower() if case_insensitive else eng_text
+                            # ---
                             if eng_text in available_translations and lang in available_translations[eng_text]:
                                 tspan.text = available_translations[eng_text][lang]
+                            # ---
+                            elif lookup_key in available_translations and lang in available_translations[lookup_key]:
+                                tspan.text = available_translations[lookup_key][lang]
+                        # ---
                         stats['updated_translations'] += 1
                         break
             else:
