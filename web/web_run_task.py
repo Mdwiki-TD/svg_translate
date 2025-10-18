@@ -1,10 +1,9 @@
 #
 import os
+import threading
+# import logging
 from pathlib import Path
-from typing import Dict
 from typing import MutableMapping, Any
-
-from uvicorn.main import logger
 
 from web.start_bot import (
     save_files_stats,
@@ -16,6 +15,10 @@ from web.start_bot import (
     upload_task,
     make_results_summary
 )
+
+from svg_translate import logger
+
+# logger = logging.getLogger(__name__)
 
 
 def _compute_output_dir(title: str) -> Path:

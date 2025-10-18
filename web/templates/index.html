@@ -162,7 +162,7 @@
                     }
 
                     // Stop polling on completion or error
-                    if (taskData.status === 'Completed' || taskData.status === 'error') {
+                    if (['Completed', 'error', 'Failed'].includes(taskData.status)) {
                         clearInterval(timer);
                     }
                 } catch (e) { /* ignore transient errors */ }

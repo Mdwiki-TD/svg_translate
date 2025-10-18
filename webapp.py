@@ -10,7 +10,6 @@ from typing import Dict, Any
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from asgiref.wsgi import WsgiToAsgi
-from uvicorn.main import logger
 
 from web.start_bot import (
     save_files_stats,
@@ -22,6 +21,12 @@ from web.start_bot import (
     upload_task,
     make_results_summary
 )
+
+# from uvicorn.main import logger
+# import logging
+# logger = logging.getLogger(__name__)
+
+from svg_translate import logger
 
 # In-memory task storage for demo purposes
 TASKS: Dict[str, Dict[str, Any]] = {}

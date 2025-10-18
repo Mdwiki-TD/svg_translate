@@ -135,7 +135,7 @@ def titles_task(stages, text, titles_limit=None):
 
     if not titles:
         stages["status"] = "Failed"
-        logger.error("NO TEXT")
+        logger.error("no titles")
     else:
         stages["status"] = "Completed"
 
