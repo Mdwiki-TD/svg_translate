@@ -9,17 +9,9 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
       - uses: actions/checkout@v2
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          port: 22
-          request_pty: true
-          script_stop: true
-          key: ${{ secrets.KEY }}
-          script: |
-            echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" &&
-            ls ./* &&
-            "
+        script: |
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" &&
+          ls ./* &&
+          "
