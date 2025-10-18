@@ -5,3 +5,4 @@ uvicorn
 python-dotenv
 mwclient
 wikitextparser
+requests
