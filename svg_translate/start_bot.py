@@ -27,7 +27,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
     # files = list(set(files))
 
-    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
+    for _n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
         tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
         stats["file_path"] = ""

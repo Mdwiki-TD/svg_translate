@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from typing import Dict
+from typing import MutableMapping, Any
 
 from uvicorn.main import logger
 
@@ -78,22 +79,33 @@ def make_stages(title):
         }
     }
 
+# def run_task(task_id: str, title: str, args: Dict) -> None:
 
-def run_task(task_id: str, title: str, args: Dict) -> None:
+
+def run_task(
+    task_id: str,
+    title: str,
+    args: Any,
+    tasks: MutableMapping[str, Any],
+    tasks_lock: threading.Lock,
+) -> None:
+
     output_dir = _compute_output_dir(title)
     # ---
-    TASKS[task_id]["data"] = make_stages(title)
+    tasks[task_id]["data"] = make_stages(title)
     # ---
-    stages_list = TASKS[task_id]["data"]["stages"]
+    stages_list = tasks[task_id]["data"]["stages"]
     # ---
     text, stages_list["get_text"] = text_task(stages_list["get_text"], title)
     # ---
     if not text:
+        tasks[task_id]["status"] = "Failed"
         return
     # ---
     main_title, titles, stages_list["titles_task"] = titles_task(stages_list["titles_task"], text, titles_limit=args.titles_limit)
     # ---
     if not titles:
+        tasks[task_id]["status"] = "Failed"
         return
     # ---
     output_dir_main = output_dir / "files"
@@ -107,11 +119,13 @@ def run_task(task_id: str, title: str, args: Dict) -> None:
     files, stages_list["download_stats"] = download_task(stages_list["download_stats"], output_dir_main, titles)
     # ---
     if not files:
+        tasks[task_id]["status"] = "Failed"
         return
     # ---
     injects_result, stages_list["inject_task"] = inject_task(stages_list["inject_task"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
     # ---
     if injects_result.get('saved_done', 0) == 0:
+        tasks[task_id]["status"] = "Failed"
         logger.error("inject result saved 0 files")
         return
     # ---
@@ -133,8 +147,8 @@ def run_task(task_id: str, title: str, args: Dict) -> None:
     # ---
     upload_result, stages_list["upload_task"] = upload_task(stages_list["upload_task"], files_to_upload, main_title, args.upload)
     # ---
-    with TASKS_LOCK:
+    with tasks_lock:
         # ---
-        TASKS[task_id]["results"] = make_results_summary(files, files_to_upload, no_file_path, injects_result, translations, main_title, upload_result)
+        tasks[task_id]["results"] = make_results_summary(files, files_to_upload, no_file_path, injects_result, translations, main_title, upload_result)
         # ---
-        TASKS[task_id]["status"] = "Completed" if not data.get("error") else "error"
+        tasks[task_id]["status"] = "Completed" if not data.get("error") else "error"

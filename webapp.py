@@ -31,11 +31,11 @@ TASKS_LOCK = threading.Lock()
 def parse_args(request_form):
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
-    titles_limit = request_form.get("titles_limit", 1000, type=int)
-    upload = bool(request_form.get("upload"))
-    overwrite = bool(request_form.get("overwrite"))
-    # ---
-    result = Args(titles_limit=titles_limit, overwrite=overwrite, upload=upload)
+    result = Args(
+        titles_limit=request_form.get("titles_limit", 1000, type=int),
+        overwrite=bool(request_form.get("overwrite")),
+        upload=bool(request_form.get("upload"))
+    )
     # ---
     return result
 
@@ -199,7 +199,7 @@ def create_app() -> Flask:
                 "form": {x : request.form.get(x) for x in request.form},
             }
 
-        args = prase_args(request.form)
+        args = parse_args(request.form)
         # ---
         t = threading.Thread(target=_run_task, args=(task_id, title, args), daemon=True)
         t.start()

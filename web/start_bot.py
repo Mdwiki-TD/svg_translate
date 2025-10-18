@@ -4,29 +4,41 @@
 # import sys
 from tqdm import tqdm
 import json
+import html
+from urllib.parse import quote
 
 from svg_translate import download_commons_svgs, get_files, get_wikitext, svg_extract_and_injects, extract, logger, config_logger, start_upload
-
 from user_info import username, password
 
-config_logger("CRITICAL")
+# config_logger("CRITICAL")
+config_logger("DEBUG")
 
 
 def json_save(path, data):
-    if not data:
+
+    logger.info(f"Saving json to: {path}")
+
+    if not data or data is None:
         logger.error(f"Empty data to save to: {path}")
         return
     # ---
     try:
+        # p = Path(path)
+        # p.parent.mkdir(parents=True, exist_ok=True)
+        # with p.open("w", encoding="utf-8") as f:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
+
+    except (OSError, TypeError, ValueError) as e:
+        logger.error(f"Error saving json: {e}")
     except Exception as e:
         logger.error(f"Error saving json: {e}")
 
 
 def commons_link(title, name=None):
-    name = name or title
-    return f"<a href='https://commons.wikimedia.org/wiki/{title}' target='_blank'>{name}</a>"
+    safe_name = html.escape(name or title, quote=True)
+    href = f"https://commons.wikimedia.org/wiki/{quote(title, safe='/:()')}"
+    return f"<a href='{href}' target='_blank' rel='noopener noreferrer'>{safe_name}</a>"
 
 
 def save_files_stats(data, output_dir):
@@ -64,7 +76,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
     # files = list(set(files))
 
-    for n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
+    for _n, file in tqdm(enumerate(files, 1), total=len(files), desc="Inject files:"):
         # ---
         tree, stats = svg_extract_and_injects(translations, file, save_result=False, return_stats=True, overwrite=overwrite)
         stats["file_path"] = ""
@@ -190,6 +202,11 @@ def download_task(stages, output_dir_main, titles):
 
 def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
+    if output_dir is None:
+        stages["status"] = "Failed"
+        stages["message"] = "inject_task requires output_dir"
+        return {}, stages
+    # ---
     stages["message"] = f"inject 0/{len(files):,}"
     stages["status"] = "Running"
     # ---
@@ -211,13 +228,22 @@ def upload_task(stages, files_to_upload, main_title, do_upload=None):
     # ---
     stages["message"] = f"Uploading files 0/{len(files_to_upload):,}"
     # ---
-    if not do_upload or not files_to_upload:
-        stages["status"] = "Failed"
-        message = "Upload disabled" if not do_upload else "No files to upload"
-        stages["message"] += f" ({message})"
-        return {}, stages
+    if not do_upload:
+        stages["status"] = "Skipped"
+        stages["message"] += " (Upload disabled)"
+        return {"done": 0, "not_done": len(files_to_upload), "skipped": True, "reason": "disabled"}, stages
+    # ---
+    if not files_to_upload:
+        stages["status"] = "Skipped"
+        stages["message"] += " (No files to upload)"
+        return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
     # ---
     main_title_link = f"[[:File:{main_title}]]"
+    # ---
+    if not username or not password:
+        stages["status"] = "Failed"
+        stages["message"] += " (Missing credentials)"
+        return {"done": 0, "not_done": len(files_to_upload), "skipped": True, "reason": "missing-creds"}, stages
     # ---
     upload_result = start_upload(files_to_upload, main_title_link, username, password)
     # ---
