@@ -27,6 +27,8 @@ if ! git clone --branch "$BRANCH" "$REPO_URL" "$HOME/www/python/src"; then
     exit 1
 fi
 
+rm -f "$HOME/www/python/src/service.template"
+
 # Activate virtual environment with error handling
 
 if source "$HOME/www/python/venv/bin/activate"; then

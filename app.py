@@ -1,4 +1,4 @@
-from app import create_app
+from webapp import create_app
 
 if __name__ == "__main__":
     # Optional: run with uvicorn if available; otherwise, fallback to Flask dev server
