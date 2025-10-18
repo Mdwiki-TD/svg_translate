@@ -6,3 +6,4 @@ python-dotenv
 mwclient
 wikitextparser
 requests
+gunicorn
