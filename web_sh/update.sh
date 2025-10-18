@@ -12,13 +12,13 @@ TARGET_DIR="$HOME/www/python/src"
 
 CLONE_DIR="$HOME/temp_clone_path"
 
+backup_dir="$HOME/www/python/src_backup_$(date +%Y%m%d_%H%M%S)"
+
 # Navigate to the project directory
 cd "$HOME" || exit
 
 # Remove temporary clone directory if it exists
 rm -rf "$CLONE_DIR"
-
-backup_dir="$HOME/www/python/src_backup_$(date +%Y%m%d_%H%M%S)"
 
 # Try to clone the repository into a temporary folder
 if git clone --branch "$BRANCH" "$REPO_URL" "$CLONE_DIR"; then
