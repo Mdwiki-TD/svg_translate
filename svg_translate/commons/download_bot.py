@@ -44,8 +44,13 @@ def download_commons_svgs(titles, out_dir):
             existing += 1
             files.append(out_path)
             continue
+        try:
+            r = session.get(url, timeout=30, allow_redirects=True)
+        except requests.RequestException as exc:
+            failed += 1
+            logger.error(f"[{i}] Failed (network error): {title} -> {exc}")
+            continue
 
-        r = session.get(url, timeout=30, allow_redirects=True)
         if r.status_code == 200:  # v and r.content.startswith(b"<?xml")
             logger.debug(f"[{i}] Downloaded: {title}")
             out_path.write_bytes(r.content)
