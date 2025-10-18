@@ -4,7 +4,7 @@ on:
   push:
     branches:
       # - main
-      - "*"
+      - "webservice-sql"
 jobs:
   update:
     runs-on: ubuntu-latest
