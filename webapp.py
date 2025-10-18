@@ -44,9 +44,9 @@ def prase_args(request):
     # ---
     args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
-    args.titles_limit = request.get("titles_limit", 1000)
-    args.overwrite = request.get("overwrite", False)
-    args.upload = request.get("upload", False)
+    args.titles_limit = request.get("titles_limit", 1000, type=int)
+    args.overwrite = request.get("overwrite", False, type=bool)
+    args.upload = request.get("upload", False, type=bool)
     # ---
     return args
 
