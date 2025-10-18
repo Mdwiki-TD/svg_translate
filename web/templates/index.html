@@ -25,15 +25,27 @@
 
         {% if task_id %}
         <div id="progress-section" data-task-id="{{ task_id }}">
-            <h2 class="h5">Task Status</h2>
-            <div id="task-meta" class="mb-2 text-muted">Task ID: <code>{{ task_id }}</code></div>
+            <h2 class="h5">
+                Task Status <span id="task_status">
+                    {% if task %}
+                    ({{ task.status if task.status else "Not Found" if task.error and task.error == 'not-found' }})
+                    {% endif %}
+                </span>
+            </h2>
+
+            <div id="task-meta" class="mb-2 text-muted">
+                Task ID: <a href="/status/{{ task_id }}" class="btn btn-link" target="_blank">
+                    <code>{{ task_id }}</code>
+                </a>
+            </div>
+
             <div id="stages" class="row g-3">
                 {% if task and task.data and task.data.stages %}
-                {% for st in task.data.stages %}
+                {% for name, st in task.data.stages.items() %}
                 <div class="col-12 col-md-6">
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">{{ st.name }}</h5>
+                            <h5 class="card-title">{{ name }}</h5>
                             <p class="card-text">{{ st.message }}</p>
                             <span class="badge text-bg-secondary">{{ st.status }}</span>
                         </div>
@@ -41,21 +53,27 @@
                 </div>
                 {% endfor %}
                 {% else %}
-                <div class="col-12">
+                <div class="col-12" id="alert_div">
+                    {% if task.error and task.error == 'not-found' %}
+                    <div class="alert alert-danger" role="alert">
+                        Task not found.
+                    </div>
+                    {% else %}
                     <div class="alert alert-info">Starting…</div>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
 
             <div class="mt-4" id="results">
-                {% if task and task.data and task.data.results %}
+                {% if task and task.results %}
                 <h3 class="h6">Summary</h3>
                 <ul class="list-group">
-                    <li class="list-group-item">Total files: {{ task.data.results.total_files }}</li>
-                    <li class="list-group-item">Ready to upload: {{ task.data.results.files_to_upload_count }}</li>
-                    <li class="list-group-item">No file path: {{ task.data.results.no_file_path }}</li>
-                    <li class="list-group-item">Nested files: {{ task.data.results.nested_files }}</li>
-                    <li class="list-group-item">New translations: {{ task.data.results.new_translations_count }}</li>
+                    <li class="list-group-item">Total files: {{ task.results.total_files }}</li>
+                    <li class="list-group-item">Ready to upload: {{ task.results.files_to_upload_count }}</li>
+                    <li class="list-group-item">No file path: {{ task.results.no_file_path }}</li>
+                    <li class="list-group-item">Nested files: {{ task.results.injects_result.nested_files }}</li>
+                    <li class="list-group-item">New translations: {{ task.results.new_translations_count }}</li>
                 </ul>
                 {% endif %}
             </div>
@@ -64,26 +82,89 @@
     </div>
 
     <script>
-        (function ()               const section = document.getElementById('progress-section')              if (!section) return              const taskId = section.getAttribute('data-task-id'); async function refresh()                   try                       const res = await fetch(`/status/${taskId}`)                      if (!res.ok) return                      const data = await res.json();                      // Update stage                      const stagesContainer = document.getElementById('stages')                      if (data.data && data.data.stages && stagesContainer)                           stagesContainer.innerHTML = data.data.stages.map(st => `
-        <div class="col-12 col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">${st.name}</h5>
-                    <p class="card-text">${st.message || ''}</p>
-                    <span class="badge text-bg-secondary">${st.status}</span>
-                </div>
-            </div>
-        </div>
-        `).join('')                      }                      // Update result                      const results = document.getElementById('results')                      if (data.data && data.data.results && results)                           const r = data.data.results                          results.innerHTML = `
-            < h3 class="h6" > Summary</h3 >
-                <ul class="list-group">
+        (function () {
+            const section = document.getElementById('progress-section');
+            if (!section) return;
+            const taskId = section.getAttribute('data-task-id');
+
+            function stages_html(st, name) {
+                return `
+                    <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                        <h5 class="card-title">${name}</h5>
+                        <p class="card-text">${st.message || ''}</p>
+                        <span class="badge text-bg-secondary">${st.status}</span>
+                        </div>
+                    </div>
+                    </div>
+                `
+            }
+            function result_html(r) {
+                return `
+                    <h3 class="h6">Summary</h3>
+                    <ul class="list-group">
                     <li class="list-group-item">Total files: ${r.total_files}</li>
                     <li class="list-group-item">Ready to upload: ${r.files_to_upload_count}</li>
                     <li class="list-group-item">No file path: ${r.no_file_path}</li>
                     <li class="list-group-item">Nested files: ${r.nested_files}</li>
                     <li class="list-group-item">New translations: ${r.new_translations_count}</li>
-                </ul>
-              `                      }                      // Stop polling on completion or erro                      if (data.status === 'completed' || data.status === 'error')                           clearInterval(timer)                                        } catch (e) { /* ignore transient errors */               }              const timer = setInterval(refresh, 2000)              refresh()          })()</script>
+                    </ul>
+                `
+            }
+            async function refresh() {
+                try {
+                    const res = await fetch(`/status/${taskId}`);
+                    const taskData = await res.json();
+                    if (!res.ok) {
+                        // Stop polling on completion or error
+                        if (taskData?.error === 'not-found') {
+                            document.getElementById("task_status").innerText = " (Not Found)";
+                            document.getElementById("alert_div").innerHTML = `
+                            <div class="alert alert-danger" role="alert">
+                                Task not found.
+                            </div>
+                        `;
+                            clearInterval(timer);
+                        }
+                        return;
+                    }
+
+                    // Update stages
+                    const stagesContainer = document.getElementById('stages');
+                    if (taskData.data && taskData.data.stages && stagesContainer) {
+                        // ---
+                        let stages_obj = taskData.data.stages;
+                        // {"initialize":{"number": 1, "message":"Starting workflow","status":"in_progress"}, ... }
+                        // ---
+                        // sort stages_obj by number
+                        stages_obj = Object.fromEntries(Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number));
+                        // ---
+                        stagesContainer.innerHTML = Object.entries(stages_obj).map(([name, st]) => stages_html(st, name)).join('');
+                    }
+
+                    // Update results
+                    const results = document.getElementById('results');
+                    if (taskData && taskData.results && results) {
+                        const r = taskData.results;
+                        results.innerHTML = result_html(r);
+                    }
+
+                    if (taskData.status) {
+                        document.getElementById("task_status").innerText = ` (${taskData.status})`;
+                    }
+
+                    // Stop polling on completion or error
+                    if (taskData.status === 'Completed' || taskData.status === 'error') {
+                        clearInterval(timer);
+                    }
+                } catch (e) { /* ignore transient errors */ }
+            }
+
+            const timer = setInterval(refresh, 2000);
+            refresh();
+        })();
+    </script>
 </body>
 
 </html>

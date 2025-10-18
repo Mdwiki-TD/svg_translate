@@ -19,3 +19,4 @@ tests/no_translations_raw.svg
 /tests/tests_files
 /svg_data1
 start_bot copy.py
+web/templates/index2.html

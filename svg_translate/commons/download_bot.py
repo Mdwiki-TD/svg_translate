@@ -2,7 +2,7 @@ import requests
 from pathlib import Path
 from urllib.parse import quote
 from tqdm import tqdm
-
+# import time
 
 from ..log import logger
 
@@ -35,6 +35,8 @@ def download_commons_svgs(titles, out_dir):
         # Construct full URL for direct file access
         url = base + quote(title)
         out_path = out_dir / title
+
+        # if i % 10: time.sleep(5)
 
         # Skip if already exists
         if out_path.exists():
