@@ -3,15 +3,16 @@ name: Test
 on:
   push:
     branches:
-      # - main
       - "*"
+
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-      - uses: actions/checkout@v2
-        script: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" &&
-          ls ./* &&
-          "
+        uses: actions/checkout@v2
+
+      - name: Test workspace
+        run: |
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          ls ./*
