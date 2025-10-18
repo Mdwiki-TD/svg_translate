@@ -4,7 +4,7 @@ import json
 import sqlite3
 import threading
 from contextlib import contextmanager
-from datetime import datetime
+import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -75,7 +75,7 @@ class TaskStore:
                 cursor.close()
 
     def _current_ts(self) -> str:
-        return datetime.utcnow().isoformat(timespec="seconds")
+        return datetime.datetime.now(datetime.UTC).isoformat(timespec="seconds")
 
     def close(self) -> None:
         self._conn.close()
@@ -204,4 +204,3 @@ class TaskStore:
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
-

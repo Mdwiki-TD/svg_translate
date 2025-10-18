@@ -80,7 +80,7 @@ def start():
         TASK_STORE.create_task(
             task_id,
             title,
-            form={x: request.form.get(x) for x in request.form},
+            form={x: request.form.get(x) for x in request.form}
         )
     except TaskAlreadyExistsError as exc:
         existing = exc.task
