@@ -40,88 +40,75 @@ def parse_args(request_form):
     return result
 
 
-def create_app() -> Flask:
-    app = Flask(__name__, template_folder="web/templates")
-    app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
+app = Flask(__name__, template_folder="web/templates")
+app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 
-    @app.get("/")
-    def index():
-        task_id = request.args.get("task_id")
-        task = None
-        if task_id:
-            with TASKS_LOCK:
-                task = TASKS.get(task_id)
 
-        if not task:
-            task = {"error": "not-found"}
-            logger.debug(f"Task {task_id} not found")
-
-        return render_template("index.html", task_id=task_id, task=task, form=task.get("form", {}))
-
-    @app.post("/")
-    def start():
-        title = request.form.get("title", "").strip()
-        if not title:
-            return redirect(url_for("index"))
-
-        task_id = uuid.uuid4().hex
-        with TASKS_LOCK:
-            TASKS[task_id] = {
-                "status": "Pending",
-                "data": None,
-                "title": title,
-                "form": {x : request.form.get(x) for x in request.form},
-            }
-
-        args = parse_args(request.form)
-        # ---
-        # t = threading.Thread(target=_run_task, args=(task_id, title, args), daemon=True)
-        # ---
-        t = threading.Thread(target=run_task, args=(task_id, title, args, TASKS, TASKS_LOCK), daemon=True)
-        # ---
-        t.start()
-
-        return redirect(url_for("index", task_id=task_id))
-
-    @app.get("/index2")
-    def index2():
-        task_id = request.args.get("task_id")
-        task = None
-        if task_id:
-            with TASKS_LOCK:
-                task = TASKS.get(task_id)
-
-        if not task:
-            task = {"error": "not-found"}
-            logger.debug(f"Task {task_id} not found")
-
-        return render_template("index2.html", task_id=task_id, task=task, form=task.get("form", {}))
-
-    @app.get("/status/<task_id>")
-    def status(task_id: str):
+@app.get("/")
+def index():
+    task_id = request.args.get("task_id")
+    task = None
+    if task_id:
         with TASKS_LOCK:
             task = TASKS.get(task_id)
-            if not task:
-                logger.debug(f"Task {task_id} not found")
-                return jsonify({"error": "not-found"}), 404
-            return jsonify(task)
 
-    return app
+    if not task:
+        task = {"error": "not-found"}
+        logger.debug(f"Task {task_id} not found")
+
+    return render_template("index.html", task_id=task_id, task=task, form=task.get("form", {}))
 
 
-def create_asgi_app():
-    # Expose ASGI wrapper for uvicorn
-    return WsgiToAsgi(create_app())
+@app.post("/")
+def start():
+    title = request.form.get("title", "").strip()
+    if not title:
+        return redirect(url_for("index"))
+
+    task_id = uuid.uuid4().hex
+    with TASKS_LOCK:
+        TASKS[task_id] = {
+            "status": "Pending",
+            "data": None,
+            "title": title,
+            "form": {x : request.form.get(x) for x in request.form},
+        }
+
+    args = parse_args(request.form)
+    # ---
+    # t = threading.Thread(target=_run_task, args=(task_id, title, args), daemon=True)
+    # ---
+    t = threading.Thread(target=run_task, args=(task_id, title, args, TASKS, TASKS_LOCK), daemon=True)
+    # ---
+    t.start()
+
+    return redirect(url_for("index", task_id=task_id))
+
+
+@app.get("/index2")
+def index2():
+    task_id = request.args.get("task_id")
+    task = None
+    if task_id:
+        with TASKS_LOCK:
+            task = TASKS.get(task_id)
+
+    if not task:
+        task = {"error": "not-found"}
+        logger.debug(f"Task {task_id} not found")
+
+    return render_template("index2.html", task_id=task_id, task=task, form=task.get("form", {}))
+
+
+@app.get("/status/<task_id>")
+def status(task_id: str):
+    with TASKS_LOCK:
+        task = TASKS.get(task_id)
+        if not task:
+            logger.debug(f"Task {task_id} not found")
+            return jsonify({"error": "not-found"}), 404
+        return jsonify(task)
 
 
 if __name__ == "__main__":
-    # Optional: run with uvicorn if available; otherwise, fallback to Flask dev server
-    try:
-        import uvicorn
-
-        # uvicorn.run("webapp:create_asgi_app", host="127.0.0.1", port=8200, factory=True)
-        uvicorn.run("webapp:create_asgi_app", factory=True)
-    except Exception:
-        app = create_app()
-        # app.run(host="127.0.0.1", port=8200, debug=True)
-        app.run()
+    app.run()
