@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 
-python I:/mdwiki/pybot/svg/svg-py/bots/inject_bot.py
+python I:/SVG/svg_repo/svgpy/bots/inject_bot.py
 
 """
 
@@ -277,7 +277,8 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
     try:
         tree, root = make_translation_ready(svg_file_path)
     except Exception as e:
-        logger.error(f"Failed to parse SVG file: {e}")
+        if str(e) != "structure-error-nested-tspans-not-supported":
+            logger.error(f"Failed to parse SVG file: {e}")
         return None, {"error": str(e)}
     # Find all switch elements
 

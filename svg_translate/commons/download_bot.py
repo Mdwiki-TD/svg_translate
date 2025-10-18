@@ -43,7 +43,7 @@ def download_commons_svgs(titles, out_dir):
         if out_path.exists():
             logger.debug(f"[{i}] Skipped existing: {title}")
             existing += 1
-            files.append(out_path)
+            files.append(str(out_path))
             continue
 
         try:
@@ -59,7 +59,7 @@ def download_commons_svgs(titles, out_dir):
             logger.debug(f"[{i}] Downloaded: {title}")
             out_path.write_bytes(r.content)
             success += 1
-            files.append(out_path)
+            files.append(str(out_path))
         else:
             failed += 1
             logger.error(f"[{i}] Failed (non-SVG or not found): {title}")

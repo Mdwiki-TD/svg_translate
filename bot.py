@@ -1,6 +1,6 @@
 """
 
-python3 I:/mdwiki/svg_repo/start_bot.py
+python3 I:/SVG/svg_repo/bot.py
 python3 start_bot.py
 
 tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_translate/start_bot.py noup"
@@ -15,8 +15,7 @@ from svg_translate.upload_files import start_upload
 
 from user_info import username, password
 
-config_logger("CRITICAL")
-# config_logger("ERROR")
+config_logger("ERROR") # DEBUG # ERROR # CRITICAL
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):
