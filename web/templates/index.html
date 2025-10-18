@@ -98,26 +98,6 @@
             if (!section) return;
             const taskId = section.getAttribute('data-task-id');
 
-            function stages_grid(st, name) {
-                const classes = {
-                    "Completed": "text-bg-success",
-                    "Failed": "text-bg-danger",
-                    "Skipped": "text-bg-warning",
-                    "Running": "text-bg-primary",
-                    "Pending": "text-bg-secondary"
-                };
-                const statusClass = classes[st.status] || "text-bg-secondary";
-                return `
-                <div class="col">
-                    <div class="border rounded p-3 h-100 text-center">
-                    <div class="fw-bold">${name}</div>
-                    <div class="small text-muted mb-1">${st.message || ''}</div>
-                    <span class="badge ${statusClass}">${st.status}</span>
-                    </div>
-                </div>
-                `;
-            }
-
             function stages_html_new(st, name) {
                 const subname = st.sub_name ? ` <small class="text-muted">(${st.sub_name})</small>` : '';
                 const classes = {
@@ -144,54 +124,6 @@
                 `;
             }
 
-            function stages_timeline(st, name) {
-                let subname = st.sub_name ? ` (${st.sub_name})` : '';
-                let classes = {
-                    "Completed": "bg-success",
-                    "Failed": "bg-danger",
-                    "Skipped": "bg-warning",
-                    "Running": "bg-primary",
-                    "Pending": "bg-secondary"
-                }
-                let statusClass = classes[st.status] || "bg-secondary";
-                return `
-                    <div class="timeline-item border-start border-3 ps-3 mb-3">
-                        <h6 class="fw-bold mb-1">${name}</h6>
-                        <small class="text-muted">${subname}</small>
-                        <div class="d-flex align-items-center mt-1">
-                        <span class="badge ${statusClass}">${st.status}</span>
-                        <span class="ms-2 text-body">${st.message || ''}</span>
-                        </div>
-                    </div>
-                `
-            }
-            function stages_html(st, name) {
-                let subname = st.sub_name ? ` (${st.sub_name})` : '';
-                let classes = {
-                    "Completed": "text-bg-success",
-                    "Failed": "text-bg-danger",
-                    "Skipped": "text-bg-warning",
-                    "Running": "text-bg-primary",
-                    "Pending": "text-bg-secondary"
-                }
-                let statusClass = classes[st.status] || "text-bg-secondary";
-                return `
-                    <div class="col-12 col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title h5">
-                                ${name}
-                            </span>
-                            ${subname}
-                        </div>
-                        <div class="card-body">
-                            <p class="card-text">${st.message || ''}</p>
-                            <span class="badge ${statusClass}">${st.status}</span>
-                        </div>
-                    </div>
-                    </div>
-                `
-            }
             function result_html(r) {
                 return `
                     <h3 class="h6">Summary</h3>
@@ -236,16 +168,7 @@
                         // sort stages_obj by number
                         stages_obj = Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number);
                         // ---
-                        // stages_obj = Object.fromEntries(stages_obj);
-                        // stages_obj = Object.entries(stages_obj);
-                        // ---
-                        // stagesContainer.innerHTML = stages_obj.map(([name, st]) => stages_html(st, name)).join('');
-                        // ---
-                        // stagesTimeline.innerHTML = stages_obj.map(([name, st]) => stages_timeline(st, name)).join('');
-                        // ---
                         stagesContainerNew.innerHTML = stages_obj.map(([name, st]) => stages_html_new(st, name)).join('');
-                        // ---
-                        // stagesGrid.innerHTML = stages_obj.map(([name, st]) => stages_grid(st, name)).join('');
                     }
 
                     // Update results
