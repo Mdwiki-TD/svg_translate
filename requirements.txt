@@ -1,5 +1,1 @@
 lxml
-Flask
-asgiref
-uvicorn
-python-dotenv

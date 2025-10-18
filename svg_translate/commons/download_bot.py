@@ -2,7 +2,7 @@ import requests
 from pathlib import Path
 from urllib.parse import quote
 from tqdm import tqdm
-# import time
+
 
 from ..log import logger
 
@@ -17,6 +17,7 @@ def download_commons_svgs(titles, out_dir):
     out_dir = Path(str(out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # base = "https://commons.wikimedia.org/wiki/Special:FilePath/" # commons is blocked in Yemen
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
     session = requests.Session()
@@ -36,20 +37,21 @@ def download_commons_svgs(titles, out_dir):
         url = base + quote(title)
         out_path = out_dir / title
 
-        # if i % 10: time.sleep(5)
-
         # Skip if already exists
         if out_path.exists():
             logger.debug(f"[{i}] Skipped existing: {title}")
             existing += 1
             files.append(out_path)
             continue
+
         try:
             r = session.get(url, timeout=30, allow_redirects=True)
         except requests.RequestException as exc:
             failed += 1
             logger.error(f"[{i}] Failed (network error): {title} -> {exc}")
             continue
+
+        # if r.status_code == 200 and 'image/svg+xml' in r.headers.get('Content-Type', ''):
 
         if r.status_code == 200:  # v and r.content.startswith(b"<?xml")
             logger.debug(f"[{i}] Downloaded: {title}")
