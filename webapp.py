@@ -10,7 +10,7 @@ from typing import Dict, Any
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from asgiref.wsgi import WsgiToAsgi
 
-from web.web_run_task import run_task
+from web.web_run_task2 import run_task
 # from uvicorn.main import logger
 # import logging
 # logger = logging.getLogger(__name__)

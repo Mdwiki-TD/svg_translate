@@ -92,7 +92,12 @@ def titles_task(stages, text, titles_limit=None):
         # use only n titles
         titles = titles[:titles_limit]
 
-    return main_title, titles, stages
+    data = {
+        "main_title": main_title,
+        "titles": titles
+    }
+
+    return data, stages
 
 
 def translations_task(stages, main_title, output_dir_main):

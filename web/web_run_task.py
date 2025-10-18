@@ -80,13 +80,17 @@ def make_stages():
     }
 
 
-def run_task(
-    task_id: str,
-    title: str,
-    args: Any,
-    tasks: MutableMapping[str, Any],
-    tasks_lock: threading.Lock,
-) -> None:
+def fail_task(tasks, task_id, stages, msg=None):
+    """Mark task as failed and log reason."""
+    tasks[task_id]["status"] = "Failed"
+    stages["initialize"]["status"] = "Completed"
+    if msg:
+        logger.error(msg)
+    return None
+
+
+# --- main pipeline --------------------------------------------
+def run_task(task_id: str, title: str, args: Any, tasks: MutableMapping[str, Any], tasks_lock: threading.Lock) -> None:
 
     output_dir = _compute_output_dir(title)
     # ---
@@ -104,7 +108,9 @@ def run_task(
         stages_list["initialize"]["status"] = "Completed"
         return
     # ---
-    main_title, titles, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
+    titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
+    # ---
+    main_title, titles = titles_result["main_title"], titles_result["titles"]
     # ---
     if not titles:
         tasks[task_id]["status"] = "Failed"
