@@ -44,6 +44,7 @@ def extract(svg_file_path, case_insensitive=True):
     translations = {}
     translations["new"] = {}
     translations["new"]["default_tspans_by_id"] = {}
+    translations["old_way"] = {}
     processed_switches = 0
 
     for switch in switches:
@@ -131,15 +132,15 @@ def extract(svg_file_path, case_insensitive=True):
             # Create a key from the first default text (we could use all texts but this is simpler)
             default_key = default_texts[0]
 
-            if default_key not in translations:
-                translations[default_key] = {
+            if default_key not in translations["old_way"]:
+                translations["old_way"][default_key] = {
                     '_texts': default_texts,  # Store all default texts
                     '_translations': {}      # Store translations for each text
                 }
 
             # Store translations for each language and each text
             for lang, translated_texts in switch_translations.items():
-                translations[default_key]['_translations'][lang] = translated_texts
+                translations["old_way"][default_key]['_translations'][lang] = translated_texts
 
             processed_switches += 1
             logger.debug(f"Processed switch with default texts: {default_texts}")
@@ -148,7 +149,7 @@ def extract(svg_file_path, case_insensitive=True):
 
     # Count languages
     all_languages = set()
-    for text_dict in translations.values():
+    for text_dict in translations["old_way"].values():
         all_languages.update(text_dict.keys())
 
     logger.info(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")

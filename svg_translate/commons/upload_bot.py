@@ -30,8 +30,9 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
     file_path = Path(str(file_path))
 
     if not file_path.exists():
-        # skip raise here
-        return FileNotFoundError(f"File not found: {file_path}")
+        # raise FileNotFoundError(f"File not found: {file_path}")
+        logger.error(f"File not found: {file_path}")
+        return False
 
     try:
         with open(file_path, 'rb') as f:
