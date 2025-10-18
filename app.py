@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from collections import namedtuple
 # import sys
-import os
 import threading
 import uuid
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-from asgiref.wsgi import WsgiToAsgi
+# from asgiref.wsgi import WsgiToAsgi
 
 from web.web_run_task import run_task
 # from uvicorn.main import logger
@@ -16,10 +15,14 @@ from web.web_run_task import run_task
 
 from svg_translate import logger, config_logger
 from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
+from svg_config import TASK_DB_PATH, SECRET_KEY
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
-TASK_STORE = TaskStore(os.getenv("TASK_DB_PATH", "tasks.sqlite3"))
+TASK_STORE = TaskStore(TASK_DB_PATH)
+
+app = Flask(__name__, template_folder="web/templates")
+app.config["SECRET_KEY"] = SECRET_KEY
 
 
 def parse_args(request_form):
@@ -36,10 +39,6 @@ def parse_args(request_form):
     )
     # ---
     return result
-
-
-app = Flask(__name__, template_folder="web/templates")
-app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 
 @app.get("/")

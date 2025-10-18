@@ -15,6 +15,7 @@ from web.start_bot import (
     make_results_summary
 )
 
+from svg_config import svg_data_dir
 from svg_translate import logger
 from svg_translate.task_store import TaskStore
 
@@ -23,13 +24,12 @@ from svg_translate.task_store import TaskStore
 
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
-    slug = title.split("/")[-1]
-    base = Path(__file__).parent.parent / "svg_data"
-
-    if not os.getenv("HOME"):
-        base = Path("I:/SVG/svg_data")
-
+    slug = Path(title)  # title.split("/")[-1]
+    # ---
+    base = svg_data_dir
+    # ---
     base.mkdir(parents=True, exist_ok=True)
+    # ---
     return base / slug
 
 
@@ -170,12 +170,13 @@ def run_task(store: TaskStore, task_id: str, title: str, args: Any) -> None:
         injects_result,
         translations,
         main_title,
-        upload_result,
+        upload_result
     )
 
     store.update_results(task_id, results)
 
     final_status = "Failed" if any(s.get("status") == "Failed" for s in stages_list.values()) else "Completed"
     stages_list["initialize"]["status"] = "Completed"
+
     store.update_data(task_id, task_snapshot)
     store.update_status(task_id, final_status)
