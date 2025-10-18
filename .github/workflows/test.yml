@@ -20,10 +20,6 @@ jobs:
           script_stop: true
           key: ${{ secrets.KEY }}
           script: |
-            become copy-svg-langs sh -c "
-              rm -rf ~/test &&
-              mkdir -p ~/test &&
-              cp -r ./* ~/test/ &&
-              echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" &&
-              echo 'done..'
+            echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" &&
+            ls ./* &&
             "
