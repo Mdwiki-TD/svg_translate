@@ -33,56 +33,51 @@ def _compute_output_dir(title: str) -> Path:
     return base / slug
 
 
-def make_stages(title):
+def make_stages():
     return {
-        "title": title,
-        "stages": {
-            "initialize": {
-                "number": 1,
-                "sub_name": "",
-                "status": "Running",
-                "message": "Starting workflow"
-            },
-            "get_text": {
-                "sub_name": "",
-                "number": 2,
-                "status": "pending",
-                "message": "Getting text"
-            },
-            "titles_task": {
-                "sub_name": "",
-                "number": 3,
-                "status": "pending",
-                "message": "Getting titles"
-            },
-            "translations_task": {
-                "sub_name": "",
-                "number": 4,
-                "status": "pending",
-                "message": "Getting translations"
-            },
-            "download_stats": {
-                "sub_name": "",
-                "number": 5,
-                "status": "pending",
-                "message": "Downloading files"
-            },
-            "inject_task": {
-                "sub_name": "",
-                "number": 6,
-                "status": "pending",
-                "message": "Injecting translations"
-            },
-            "upload_task": {
-                "sub_name": "",
-                "number": 7,
-                "status": "pending",
-                "message": "Uploading files"
-            },
-        }
+        "initialize": {
+            "number": 1,
+            "sub_name": "",
+            "status": "Running",
+            "message": "Starting workflow"
+        },
+        "text": {
+            "sub_name": "",
+            "number": 2,
+            "status": "pending",
+            "message": "Getting text"
+        },
+        "titles": {
+            "sub_name": "",
+            "number": 3,
+            "status": "pending",
+            "message": "Getting titles"
+        },
+        "translations": {
+            "sub_name": "",
+            "number": 4,
+            "status": "pending",
+            "message": "Getting translations"
+        },
+        "download": {
+            "sub_name": "",
+            "number": 5,
+            "status": "pending",
+            "message": "Downloading files"
+        },
+        "inject": {
+            "sub_name": "",
+            "number": 6,
+            "status": "pending",
+            "message": "Injecting translations"
+        },
+        "upload": {
+            "sub_name": "",
+            "number": 7,
+            "status": "pending",
+            "message": "Uploading files"
+        },
     }
-
-# def run_task(task_id: str, title: str, args: Dict) -> None:
 
 
 def run_task(
@@ -95,41 +90,49 @@ def run_task(
 
     output_dir = _compute_output_dir(title)
     # ---
-    tasks[task_id]["data"] = make_stages(title)
+    tasks[task_id]["data"] = {
+        "title": title,
+        "stages": make_stages(title)
+    }
     # ---
     stages_list = tasks[task_id]["data"]["stages"]
     # ---
-    text, stages_list["get_text"] = text_task(stages_list["get_text"], title)
+    text, stages_list["text"] = text_task(stages_list["text"], title)
     # ---
     if not text:
         tasks[task_id]["status"] = "Failed"
+        stages_list["initialize"]["status"] = "Completed"
         return
     # ---
-    main_title, titles, stages_list["titles_task"] = titles_task(stages_list["titles_task"], text, titles_limit=args.titles_limit)
+    main_title, titles, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
     # ---
     if not titles:
         tasks[task_id]["status"] = "Failed"
+        stages_list["initialize"]["status"] = "Completed"
         return
     # ---
     output_dir_main = output_dir / "files"
     output_dir_main.mkdir(parents=True, exist_ok=True)
     # ---
-    translations, stages_list["translations_task"] = translations_task(stages_list["translations_task"], main_title, output_dir_main)
+    translations, stages_list["translations"] = translations_task(stages_list["translations"], main_title, output_dir_main)
     # ---
     if not translations:
         tasks[task_id]["status"] = "Failed"
+        stages_list["initialize"]["status"] = "Completed"
         return
     # ---
-    files, stages_list["download_stats"] = download_task(stages_list["download_stats"], output_dir_main, titles)
+    files, stages_list["download"] = download_task(stages_list["download"], output_dir_main, titles)
     # ---
     if not files:
         tasks[task_id]["status"] = "Failed"
+        stages_list["initialize"]["status"] = "Completed"
         return
     # ---
-    injects_result, stages_list["inject_task"] = inject_task(stages_list["inject_task"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
+    injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
     # ---
     if injects_result.get('saved_done', 0) == 0:
         tasks[task_id]["status"] = "Failed"
+        stages_list["initialize"]["status"] = "Completed"
         logger.error("inject result saved 0 files")
         return
     # ---
@@ -149,10 +152,12 @@ def run_task(
     # ---
     save_files_stats(data, output_dir)
     # ---
-    upload_result, stages_list["upload_task"] = upload_task(stages_list["upload_task"], files_to_upload, main_title, args.upload)
+    upload_result, stages_list["upload"] = upload_task(stages_list["upload"], files_to_upload, main_title, args.upload)
     # ---
     with tasks_lock:
         # ---
-        tasks[task_id]["results"] = make_results_summary(len(files), files_to_upload, no_file_path, injects_result, translations, main_title, upload_result)
+        tasks[task_id]["results"] = make_results_summary(len(files), len(files_to_upload), no_file_path, injects_result, translations, main_title, upload_result)
         # ---
         tasks[task_id]["status"] = "Completed" if not data.get("error") else "error"
+        # ---
+        stages_list["initialize"]["status"] = "Completed"

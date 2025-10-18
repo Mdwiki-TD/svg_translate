@@ -18,12 +18,12 @@
         .timeline-item::before {
             content: "";
             position: absolute;
-            left: -12px;
+            left: -11px;
             top: 8px;
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--bs-primary);
+            background-color: var(--bs-primary);
         }
     </style>
 </head>
@@ -84,7 +84,8 @@
                 <div class="timeline" id="timeline">
                 </div>
             </div>
-
+            <ul id="stagesnew" class="list-group"></ul>
+            <div id="stagesgrid" class="row row-cols-1 row-cols-md-3 g-3"></div>
             <div class="mt-4" id="results">
             </div>
         </div>
@@ -96,6 +97,52 @@
             const section = document.getElementById('progress-section');
             if (!section) return;
             const taskId = section.getAttribute('data-task-id');
+
+            function stages_grid(st, name) {
+                const classes = {
+                    "Completed": "text-bg-success",
+                    "Failed": "text-bg-danger",
+                    "Skipped": "text-bg-warning",
+                    "Running": "text-bg-primary",
+                    "Pending": "text-bg-secondary"
+                };
+                const statusClass = classes[st.status] || "text-bg-secondary";
+                return `
+                <div class="col">
+                    <div class="border rounded p-3 h-100 text-center">
+                    <div class="fw-bold">${name}</div>
+                    <div class="small text-muted mb-1">${st.message || ''}</div>
+                    <span class="badge ${statusClass}">${st.status}</span>
+                    </div>
+                </div>
+                `;
+            }
+
+            function stages_html_new(st, name) {
+                const subname = st.sub_name ? ` <small class="text-muted">(${st.sub_name})</small>` : '';
+                const classes = {
+                    "Completed": "success",
+                    "Failed": "danger",
+                    "Skipped": "warning",
+                    "Running": "primary",
+                    "Pending": "secondary"
+                };
+                const color = classes[st.status] || "secondary";
+                const percent = st.status === "Completed" ? 100 : st.status === "Running" ? 60 : st.status === "Pending" ? 10 : 0;
+
+                return `
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">${name}${subname}</span>
+                    <span class="badge text-bg-${color}">${st.status}</span>
+                    </div>
+                    <div class="small text-muted">${st.message || ''}</div>
+                    <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress-bar bg-${color}" style="width:${percent}%"></div>
+                    </div>
+                </li>
+                `;
+            }
 
             function stages_timeline(st, name) {
                 let subname = st.sub_name ? ` (${st.sub_name})` : '';
@@ -177,18 +224,28 @@
 
                     // Update stages
                     const stagesContainer = document.getElementById('stages');
+                    const stagesContainerNew = document.getElementById('stagesnew');
                     const stagesTimeline = document.getElementById('timeline');
+                    const stagesGrid = document.getElementById('stagesgrid');
+                    // ---
                     if (taskData.data && taskData.data.stages) {
                         // ---
                         let stages_obj = taskData.data.stages;
                         // {"initialize":{"number": 1, "message":"Starting workflow","status":"Running"}, ... }
                         // ---
                         // sort stages_obj by number
-                        stages_obj = Object.fromEntries(Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number));
+                        stages_obj = Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number);
                         // ---
-                        // stagesContainer.innerHTML = Object.entries(stages_obj).map(([name, st]) => stages_html(st, name)).join('');
-                        // stagesTimeline.innerHTML = Object.entries(stages_obj).map(([name, st]) => stages_html(st, name)).join('');
-                        stagesTimeline.innerHTML = Object.entries(stages_obj).map(([name, st]) => stages_timeline(st, name)).join('');
+                        // stages_obj = Object.fromEntries(stages_obj);
+                        // stages_obj = Object.entries(stages_obj);
+                        // ---
+                        // stagesContainer.innerHTML = stages_obj.map(([name, st]) => stages_html(st, name)).join('');
+                        // ---
+                        // stagesTimeline.innerHTML = stages_obj.map(([name, st]) => stages_timeline(st, name)).join('');
+                        // ---
+                        stagesContainerNew.innerHTML = stages_obj.map(([name, st]) => stages_html_new(st, name)).join('');
+                        // ---
+                        // stagesGrid.innerHTML = stages_obj.map(([name, st]) => stages_grid(st, name)).join('');
                     }
 
                     // Update results

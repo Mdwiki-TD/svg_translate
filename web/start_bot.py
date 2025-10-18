@@ -40,10 +40,10 @@ def save_files_stats(data, output_dir):
     logger.info(f"files_stats at: {files_stats_path}")
 
 
-def make_results_summary(len_files, files_to_upload, no_file_path, injects_result, translations, main_title, upload_result):
+def make_results_summary(len_files, files_to_upload_count, no_file_path, injects_result, translations, main_title, upload_result):
     return {
         "total_files": len_files,
-        "files_to_upload_count": len(files_to_upload),
+        "files_to_upload_count": files_to_upload_count,
         "no_file_path": no_file_path,
         "injects_result": {
             "nested_files": injects_result.get('nested_files', 0),
@@ -97,11 +97,8 @@ def titles_task(stages, text, titles_limit=None):
 
 def translations_task(stages, main_title, output_dir_main):
     # ---
-    stages["message"] = f"Load translations from main file {main_title}"
-    # ---
     stages["sub_name"] = commons_link(f'File:{main_title}')
     # ---
-    # stages["message"] = f"Load translations from main file <a href='https://commons.wikimedia.org/wiki/File:{main_title}' target='_blank'>File:{main_title}</a>"
     stages["message"] = "Load translations from main file"
     # ---
     stages["status"] = "Running"
@@ -126,7 +123,7 @@ def translations_task(stages, main_title, output_dir_main):
     # ---
     json_save(output_dir_main.parent / "translations.json", translations)
     # ---
-    stages["message"] = f"Loaded {len(translations):,} translations from main file"
+    stages["message"] = f"Loaded {len(translations.get('new', {})):,} translations from main file"
     # ---
     return translations, stages
 
@@ -150,7 +147,7 @@ def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
     if output_dir is None:
         stages["status"] = "Failed"
-        stages["message"] = "inject_task requires output_dir"
+        stages["message"] = "inject task requires output_dir"
         return {}, stages
     # ---
     stages["message"] = f"inject 0/{len(files):,}"
