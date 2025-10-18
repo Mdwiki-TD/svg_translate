@@ -21,7 +21,7 @@
             <div class="col-sm-8">
                 <label for="title" class="form-label">Template Title</label>
                 <input type="text" class="form-control" id="title" name="title"
-                    value="Template:OWID/death rate from obesity" required>
+                    value="{{ title or 'Template:OWID/death rate from obesity'}}" required>
             </div>
             <div class="col-sm-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Start</button>
@@ -57,13 +57,26 @@
             const taskId = section.getAttribute('data-task-id');
 
             function stages_html(st, name) {
+                let subname = st.sub_name ? ` (${st.sub_name})` : '';
+                let classes = {
+                    "Completed": "text-bg-success",
+                    "Failed": "text-bg-danger",
+                    "Running": "text-bg-primary",
+                    "Pending": "text-bg-secondary"
+                }
+                let statusClass = classes[st.status] || "text-bg-secondary";
                 return `
                     <div class="col-12 col-md-6">
                     <div class="card">
+                        <div class="card-header">
+                            <span class="card-title h5">
+                                ${name}
+                            </span>
+                            ${subname}
+                        </div>
                         <div class="card-body">
-                        <h5 class="card-title">${name}</h5>
-                        <p class="card-text">${st.message || ''}</p>
-                        <span class="badge text-bg-secondary">${st.status}</span>
+                            <p class="card-text">${st.message || ''}</p>
+                            <span class="badge ${statusClass}">${st.status}</span>
                         </div>
                     </div>
                     </div>
@@ -104,7 +117,7 @@
                     if (taskData.data && taskData.data.stages && stagesContainer) {
                         // ---
                         let stages_obj = taskData.data.stages;
-                        // {"initialize":{"number": 1, "message":"Starting workflow","status":"in_progress"}, ... }
+                        // {"initialize":{"number": 1, "message":"Starting workflow","status":"Running"}, ... }
                         // ---
                         // sort stages_obj by number
                         stages_obj = Object.fromEntries(Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number));

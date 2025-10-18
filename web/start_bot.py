@@ -13,11 +13,20 @@ config_logger("CRITICAL")
 
 
 def json_save(path, data):
+    if not data:
+        logger.error(f"Empty data to save to: {path}")
+        return
+    # ---
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
         logger.error(f"Error saving json: {e}")
+
+
+def commons_link(title, name=None):
+    name = name or title
+    return f"<a href='https://commons.wikimedia.org/wiki/{title}' target='_blank'>{name}</a>"
 
 
 def save_files_stats(data, output_dir):
@@ -91,12 +100,15 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
 
 def text_task(stages, title):
 
-    stages["status"] = "in_progress"
+    stages["status"] = "Running"
 
+    stages["sub_name"] = commons_link(title)
+    stages["message"] = "Load wikitext"
+    # ---
     text = get_wikitext(title)
 
     if not text:
-        stages["status"] = "Error"
+        stages["status"] = "Failed"
         logger.error("NO TEXT")
     else:
         stages["status"] = "Completed"
@@ -105,17 +117,20 @@ def text_task(stages, title):
 
 def titles_task(stages, text, titles_limit=None):
 
-    stages["status"] = "in_progress"
+    stages["status"] = "Running"
 
     main_title, titles = get_files(text)
 
     if not titles:
-        stages["status"] = "Error"
+        stages["status"] = "Failed"
         logger.error("NO TEXT")
     else:
         stages["status"] = "Completed"
 
+    stages["message"] = f"Found {len(titles):,} titles"
+
     if titles_limit and titles_limit > 0 and len(titles) > titles_limit:
+        stages["message"] += f", use only {titles_limit:,}"
         # use only n titles
         titles = titles[:titles_limit]
 
@@ -125,25 +140,35 @@ def titles_task(stages, text, titles_limit=None):
 def translations_task(stages, main_title, output_dir_main):
     # ---
     stages["message"] = f"Load translations from main file {main_title}"
-    stages["status"] = "in_progress"
+    # ---
+    stages["sub_name"] = commons_link(f'File:{main_title}')
+    # ---
+    # stages["message"] = f"Load translations from main file <a href='https://commons.wikimedia.org/wiki/File:{main_title}' target='_blank'>File:{main_title}</a>"
+    stages["message"] = "Load translations from main file"
+    # ---
+    stages["status"] = "Running"
     # ---
     files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
     if not files1:
-        logger.info(f"No files found for main title: {main_title}")
-        stages["status"] = "Error"
+        logger.error(f"when downloading main file: {main_title}")
+        stages["message"] = "Error when downloading main file"
+        stages["status"] = "Failed"
         return {}, stages
 
     main_title_path = files1[0]
     translations = extract(main_title_path, case_insensitive=True)
 
+    stages["status"] = "Failed" if not translations else "Completed"
+
     if not translations:
-        logger.info("No translations found for main title")
-        stages["status"] = "Error"
+        logger.info(f"Couldn't load translations from main file: {main_title}")
+        stages["message"] = "Couldn't load translations from main file"
+        # ---
         return translations, stages
-
+    # ---
     json_save(output_dir_main.parent / "translations.json", translations)
-
-    stages["status"] = "Completed"
+    # ---
+    stages["message"] = f"Loaded {len(translations):,} translations from main file"
     # ---
     return translations, stages
 
@@ -151,13 +176,13 @@ def translations_task(stages, main_title, output_dir_main):
 def download_task(stages, output_dir_main, titles):
     # ---
     stages["message"] = f"Downloading 0/{len(titles):,}"
-    stages["status"] = "in_progress"
+    stages["status"] = "Running"
     # ---
     files = download_commons_svgs(titles, out_dir=output_dir_main)
     # ---
     logger.info(f"files: {len(files)}")
     # ---
-    stages["message"] = f"Downloading {len(titles):,}/{len(titles):,}"
+    stages["message"] = f"Downloaded {len(titles):,}/{len(titles):,}"
     stages["status"] = "Completed"
     # ---
     return files, stages
@@ -166,7 +191,7 @@ def download_task(stages, output_dir_main, titles):
 def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
     stages["message"] = f"inject 0/{len(files):,}"
-    stages["status"] = "in_progress"
+    stages["status"] = "Running"
     # ---
     output_dir_translated = output_dir / "translated"
     output_dir_translated.mkdir(parents=True, exist_ok=True)
@@ -182,19 +207,26 @@ def inject_task(stages, files, translations, output_dir=None, overwrite=False):
 
 def upload_task(stages, files_to_upload, main_title, do_upload=None):
     # ---
-    if not files_to_upload or not do_upload:
-        stages["status"] = "Completed"
-        stages["message"] = "No files to upload" if not files_to_upload else "Upload disabled"
-        return {}, stages
+    stages["status"] = "Running"
     # ---
     stages["message"] = f"Uploading files 0/{len(files_to_upload):,}"
-    stages["status"] = "in_progress"
+    # ---
+    if not do_upload or not files_to_upload:
+        stages["status"] = "Failed"
+        message = "Upload disabled" if not do_upload else "No files to upload"
+        stages["message"] += f" ({message})"
+        return {}, stages
     # ---
     main_title_link = f"[[:File:{main_title}]]"
     # ---
     upload_result = start_upload(files_to_upload, main_title_link, username, password)
     # ---
-    stages["message"] = f"Total: {len(files_to_upload):,}, Done {upload_result['done']:,}, False: {upload_result['not_done']:,}"
+    stages["message"] = (
+        f"Total Files: {len(files_to_upload):,}, "
+        f"Files uploaded {upload_result['done']:,}, "
+        f"Files not uploaded: {upload_result['not_done']:,}"
+    )
+    # ---
     stages["status"] = "Completed"
     # ---
     return upload_result, stages

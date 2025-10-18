@@ -56,14 +56,14 @@ def load_all_mappings(mapping_files):
     return all_mappings
 
 
-def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False,
+def work_on_switches(root, existing_ids, mappings, case_insensitive=False,
                      overwrite=False):
     """Process SVG switch elements for internationalization.
 
     Args:
         root: XML root element
         existing_ids: Set of existing IDs to avoid duplicates
-        all_mappings: Dictionary of translations
+        mappings: Dictionary of translations
         case_insensitive: Whether to ignore case in text matching
         overwrite: Whether to update existing translations
 
@@ -88,8 +88,8 @@ def work_on_switches(root, existing_ids, all_mappings, case_insensitive=False,
 
     # Assume data structure like: {"new": {"english": {"ar": "..."}}}
     # Extract that level once
-    all_mappings_title = all_mappings.get("title", {})
-    all_mappings = all_mappings.get("new", all_mappings)
+    all_mappings_title = mappings.get("title", {})
+    all_mappings = mappings.get("new", mappings)
 
     all_languages = set()
     new_languages = set()

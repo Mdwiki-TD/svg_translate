@@ -137,7 +137,7 @@
                     if (taskData.data && taskData.data.stages && stagesContainer) {
                         // ---
                         let stages_obj = taskData.data.stages;
-                        // {"initialize":{"number": 1, "message":"Starting workflow","status":"in_progress"}, ... }
+                        // {"initialize":{"number": 1, "message":"Starting workflow","status":"Running"}, ... }
                         // ---
                         // sort stages_obj by number
                         stages_obj = Object.fromEntries(Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number));

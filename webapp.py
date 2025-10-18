@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import sys
+from collections import namedtuple
+# import sys
 import os
 import threading
 import uuid
@@ -11,8 +12,16 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 from asgiref.wsgi import WsgiToAsgi
 from uvicorn.main import logger
 
-from web.start_bot import save_files_stats, text_task, titles_task, translations_task, download_task, inject_task, upload_task, make_results_summary
-
+from web.start_bot import (
+    save_files_stats,
+    text_task,
+    titles_task,
+    translations_task,
+    download_task,
+    inject_task,
+    upload_task,
+    make_results_summary
+)
 
 # In-memory task storage for demo purposes
 TASKS: Dict[str, Dict[str, Any]] = {}
@@ -31,18 +40,65 @@ def _compute_output_dir(title: str) -> Path:
     return base / slug
 
 
-def _run_task(task_id: str, title: str):
+def prase_args(request):
+    # ---
+    args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    # ---
+    args.titles_limit = request.get("titles_limit", 1000)
+    args.overwrite = request.get("overwrite", False)
+    args.upload = request.get("upload", False)
+    # ---
+    return args
+
+
+def _run_task(task_id: str, title: str, args: Dict) -> None:
     output_dir = _compute_output_dir(title)
     # ---
     TASKS[task_id]["data"] = {
+        "title": title,
         "stages": {
-            "initialize": {"number": 1, "status": "in_progress", "message": "Starting workflow"},
-            "get_text": {"number": 2, "status": "pending", "message": "Getting text"},
-            "titles_task": {"number": 3, "status": "pending", "message": "Getting titles"},
-            "translations_task": {"number": 4, "status": "pending", "message": "Getting translations"},
-            "download_stats": {"number": 5, "status": "pending", "message": "Downloading files"},
-            "inject_task": {"number": 6, "status": "pending", "message": "Injecting translations"},
-            "upload_task": {"number": 7, "status": "pending", "message": "Uploading files"},
+            "initialize": {
+                "number": 1,
+                "sub_name": "",
+                "status": "Running",
+                "message": "Starting workflow"
+            },
+            "get_text": {
+                "sub_name": "",
+                "number": 2,
+                "status": "pending",
+                "message": "Getting text"
+            },
+            "titles_task": {
+                "sub_name": "",
+                "number": 3,
+                "status": "pending",
+                "message": "Getting titles"
+            },
+            "translations_task": {
+                "sub_name": "",
+                "number": 4,
+                "status": "pending",
+                "message": "Getting translations"
+            },
+            "download_stats": {
+                "sub_name": "",
+                "number": 5,
+                "status": "pending",
+                "message": "Downloading files"
+            },
+            "inject_task": {
+                "sub_name": "",
+                "number": 6,
+                "status": "pending",
+                "message": "Injecting translations"
+            },
+            "upload_task": {
+                "sub_name": "",
+                "number": 7,
+                "status": "pending",
+                "message": "Uploading files"
+            },
         }
     }
     # ---
@@ -50,7 +106,10 @@ def _run_task(task_id: str, title: str):
     # ---
     text, stages_list["get_text"] = text_task(stages_list["get_text"], title)
     # ---
-    main_title, titles, stages_list["titles_task"] = titles_task(stages_list["titles_task"], text, titles_limit=1000)
+    if not text:
+        return
+    # ---
+    main_title, titles, stages_list["titles_task"] = titles_task(stages_list["titles_task"], text, titles_limit=args.titles_limit)
     # ---
     if not titles:
         return
@@ -68,7 +127,7 @@ def _run_task(task_id: str, title: str):
     if not files:
         return
     # ---
-    injects_result, stages_list["inject_task"] = inject_task(stages_list["inject_task"], files, translations, output_dir=output_dir, overwrite=False)
+    injects_result, stages_list["inject_task"] = inject_task(stages_list["inject_task"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
     # ---
     if injects_result.get('saved_done', 0) == 0:
         logger.error("inject result saved 0 files")
@@ -90,9 +149,7 @@ def _run_task(task_id: str, title: str):
     # ---
     save_files_stats(data, output_dir)
     # ---
-    do_upload = "up" in sys.argv  # "noup" not in sys.argv
-    # ---
-    upload_result, stages_list["upload_task"] = upload_task(stages_list["upload_task"], files_to_upload, main_title, do_upload)
+    upload_result, stages_list["upload_task"] = upload_task(stages_list["upload_task"], files_to_upload, main_title, args.upload)
     # ---
     with TASKS_LOCK:
         # ---
@@ -115,7 +172,7 @@ def create_app() -> Flask:
 
         if not task:
             task = {"error": "not-found"}
-        return render_template("index.html", task_id=task_id, task=task)
+        return render_template("index.html", task_id=task_id, task=task, title=task.get("title", ""))
 
     @app.post("/")
     def start():
@@ -127,7 +184,9 @@ def create_app() -> Flask:
         with TASKS_LOCK:
             TASKS[task_id] = {"status": "pending", "data": None, "title": title}
 
-        t = threading.Thread(target=_run_task, args=(task_id, title), daemon=True)
+        args = prase_args(request.form)
+        # ---
+        t = threading.Thread(target=_run_task, args=(task_id, title, args), daemon=True)
         t.start()
 
         return redirect(url_for("index", task_id=task_id))
@@ -142,7 +201,7 @@ def create_app() -> Flask:
 
         if not task:
             task = {"error": "not-found"}
-        return render_template("index2.html", task_id=task_id, task=task)
+        return render_template("index2.html", task_id=task_id, task=task, title=task.get("title", ""))
 
     @app.get("/status/<task_id>")
     def status(task_id: str):
