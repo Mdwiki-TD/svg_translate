@@ -3,7 +3,8 @@ name: Test
 on:
   push:
     branches:
-      - main
+      # - main
+      - "webservice-sql"
 jobs:
   update:
     runs-on: ubuntu-latest
