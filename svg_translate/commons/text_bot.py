@@ -26,17 +26,18 @@ def get_wikitext(title, project="commons.m.wikimedia.org"):
         "format": "json",
         "titles": title,
     }
-
+    data = {}
     try:
         response = session.get(api_url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
-        pages = data.get("query", {}).get("pages", {})
-        for page in pages.values():
-            revs = page.get("revisions")
-            if revs:
-                return revs[0].get("*") or revs[0].get("slots", {}).get("main", {}).get("*")
     except Exception as e:
-        logger.error("Error: get_wikitext :", e)
+        logger.error(f"Error: get_wikitext : {e}")
+
+    pages = data.get("query", {}).get("pages", {})
+    for page in pages.values():
+        revs = page.get("revisions")
+        if revs:
+            return revs[0].get("*") or revs[0].get("slots", {}).get("main", {}).get("*")
 
     return None
