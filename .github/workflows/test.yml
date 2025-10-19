@@ -13,8 +13,7 @@ jobs:
 
       - name: Test workspace
         run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" # /home/runner/work/svg_translate/svg_translate
-          ls -al
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" # /home/runner/work/svg_translate/svg_translate # ls -al
 
       - name: Copy files to server
         uses: appleboy/scp-action@v0.1.4
@@ -37,8 +36,7 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             become copy-svg-langs bash -lc "
-              rm -rf ~/svg_tr_repo_backup &&
-              mv ~/svg_tr_repo ~/svg_tr_repo_backup || true &&
+              rm -rf ~/svg_tr_repo &&
               cp -r /mnt/nfs/labstore-secondary-tools-home/${{ secrets.USERNAME }}/svg_tr_repo_tmp ~/svg_tr_repo &&
               chmod -R 770 ~/svg_tr_repo &&
               echo 'done..'
