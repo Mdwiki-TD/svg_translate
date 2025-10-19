@@ -1,14 +1,21 @@
-
 import json
 import html
 from urllib.parse import quote
 
-from svg_translate import download_commons_svgs, get_files, get_wikitext, start_injects, extract, logger, start_upload
-from user_info import username, password
+from svg_translate import download_commons_svgs, get_files, get_wikitext, start_injects, extract, logger
 
 
 def json_save(path, data):
 
+    """
+    Save Python data to a file as pretty-printed UTF-8 JSON.
+    
+    If `data` is None or empty, the function logs an error and returns without writing. Errors encountered while opening or writing the file are logged and not propagated.
+    
+    Parameters:
+        path (str | os.PathLike): Destination file path where JSON will be written.
+        data: JSON-serializable Python object to persist (e.g., dict, list).
+    """
     logger.info(f"Saving json to: {path}")
 
     if not data or data is None:
@@ -102,6 +109,17 @@ def titles_task(stages, text, titles_limit=None):
 
 def translations_task(stages, main_title, output_dir_main):
     # ---
+    """
+    Load SVG translations from a Wikimedia Commons main file, save them as translations.json next to the provided output path, and update the given stages status mapping.
+    
+    Parameters:
+        stages (dict): Mutable mapping updated with progress keys such as "sub_name", "message", and "status".
+        main_title (str): Commons file title (e.g., "Example.svg") to download and extract translations from.
+        output_dir_main (pathlib.Path): Directory where the downloaded main file is placed; the function writes translations.json to output_dir_main.parent.
+    
+    Returns:
+        tuple: (translations, stages) where `translations` is a dict of extracted translations (empty if none were found or download failed) and `stages` is the same stages mapping updated to reflect the final status and messages.
+    """
     stages["sub_name"] = commons_link(f'File:{main_title}')
     # ---
     stages["message"] = "Load translations from main file"
@@ -133,23 +151,26 @@ def translations_task(stages, main_title, output_dir_main):
     return translations, stages
 
 
-def download_task(stages, output_dir_main, titles):
-    # ---
-    stages["message"] = f"Downloading 0/{len(titles):,}"
-    stages["status"] = "Running"
-    # ---
-    files = download_commons_svgs(titles, out_dir=output_dir_main)
-    # ---
-    logger.info(f"files: {len(files)}")
-    # ---
-    stages["message"] = f"Downloaded {len(titles):,}/{len(titles):,}"
-    stages["status"] = "Completed"
-    # ---
-    return files, stages
-
-
 def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
+    """
+    Perform translation injection on a list of files and write translated outputs under output_dir/translated.
+    
+    Parameters:
+        stages (dict): Mutable status object updated in-place with keys like "status", "message", and "sub_name".
+        files (Sequence[pathlib.Path] or list): Iterable of file paths to process.
+        translations (dict): Mapping of translation data used for injections.
+        output_dir (pathlib.Path): Directory where a "translated" subdirectory will be created to store outputs.
+        overwrite (bool): If true, existing translated files may be overwritten.
+    
+    Returns:
+        tuple: (injects_result, stages)
+            injects_result (dict): Summary of injection outcomes containing at least:
+                - "saved_done" (int): number of files written.
+                - "no_save" (int): number of files skipped.
+                - "nested_files" (int): number of nested files encountered.
+            stages (dict): The same stages object passed in, updated with final status and message.
+    """
     if output_dir is None:
         stages["status"] = "Failed"
         stages["message"] = "inject task requires output_dir"
@@ -169,38 +190,3 @@ def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
     return injects_result, stages
 
-
-def upload_task(stages, files_to_upload, main_title, do_upload=None):
-    # ---
-    stages["status"] = "Running"
-    # ---
-    stages["message"] = f"Uploading files 0/{len(files_to_upload):,}"
-    # ---
-    if not do_upload:
-        stages["status"] = "Skipped"
-        stages["message"] += " (Upload disabled)"
-        return {"done": 0, "not_done": len(files_to_upload), "skipped": True, "reason": "disabled"}, stages
-    # ---
-    if not files_to_upload:
-        stages["status"] = "Skipped"
-        stages["message"] += " (No files to upload)"
-        return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
-    # ---
-    main_title_link = f"[[:File:{main_title}]]"
-    # ---
-    if not username or not password:
-        stages["status"] = "Failed"
-        stages["message"] += " (Missing credentials)"
-        return {"done": 0, "not_done": len(files_to_upload), "skipped": True, "reason": "missing-creds"}, stages
-    # ---
-    upload_result = start_upload(files_to_upload, main_title_link, username, password)
-    # ---
-    stages["message"] = (
-        f"Total Files: {len(files_to_upload):,}, "
-        f"Files uploaded {upload_result['done']:,}, "
-        f"Files not uploaded: {upload_result['not_done']:,}"
-    )
-    # ---
-    stages["status"] = "Completed"
-    # ---
-    return upload_result, stages

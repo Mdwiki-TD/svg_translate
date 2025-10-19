@@ -1,5 +1,5 @@
 #
-import os
+# import os
 import re
 # import logging
 from pathlib import Path
@@ -10,15 +10,16 @@ from web.start_bot import (
     text_task,
     titles_task,
     translations_task,
-    download_task,
     inject_task,
-    upload_task,
     make_results_summary
 )
+from web.download_task import download_task
+from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
 from svg_translate import logger
-from web.task_store import TaskStore
+# from web.task_store import TaskStore
+from web.task_store_pymysql import TaskStorePyMysql
 
 # logger = logging.getLogger(__name__)
 
@@ -38,6 +39,17 @@ def _compute_output_dir(title: str) -> Path:
 
 
 def make_stages():
+    """
+    Create an initial stages dictionary describing progress metadata for the workflow.
+    
+    Returns:
+        dict: Mapping of stage names ('initialize', 'text', 'titles', 'translations', 'download', 'inject', 'upload')
+        to metadata objects with the keys:
+          - 'number' (int): stage order,
+          - 'sub_name' (str): optional sub-stage name,
+          - 'status' (str): current stage status (e.g., "Running", "Pending"),
+          - 'message' (str): human-readable status message.
+    """
     return {
         "initialize": {
             "number": 1,
@@ -84,8 +96,16 @@ def make_stages():
     }
 
 
-def fail_task(store: TaskStore, task_id: str, snapshot: Dict[str, Any], msg: str | None = None):
-    """Mark task as failed and log reason."""
+def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], msg: str | None = None):
+    """
+    Mark the task as failed in the provided TaskStore and log an optional error message.
+    
+    This sets the `"initialize"` stage status to `"Completed"`, persists the updated snapshot via the store, and marks the task status as `"Failed"`.
+    
+    Parameters:
+        snapshot (Dict[str, Any]): Current task snapshot; must contain a `"stages"` mapping.
+        msg (str | None): Optional error message to log.
+    """
     stages = snapshot["stages"]
     stages["initialize"]["status"] = "Completed"
     store.update_data(task_id, snapshot)
@@ -96,8 +116,28 @@ def fail_task(store: TaskStore, task_id: str, snapshot: Dict[str, Any], msg: str
 
 
 # --- main pipeline --------------------------------------------
-def run_task(store: TaskStore, task_id: str, title: str, args: Any) -> None:
+def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> None:
 
+    """
+    Execute the end-to-end SVG processing workflow for a task, persisting progress and final results to the provided TaskStore.
+    
+    Runs a sequence of stages (text extraction, title extraction, translations, download, injection, upload, and finalization), updating the task's snapshot and status in `store` after each stage, creating output directories and files under a computed project directory, saving file statistics, and writing a results summary. If a critical stage produces no usable output, the task is marked failed and processing stops.
+    
+    Parameters:
+        store (TaskStorePyMysql): Persistent task store used to read/write task snapshots, statuses, and results.
+        task_id (str): Identifier of the task being processed; used as the key for store updates.
+        title (str): Project title or source path used to compute the output directory for generated files.
+        args (Any): Object containing runtime options consumed by the workflow. Expected attributes:
+            - titles_limit (int): Limit passed to the titles extraction stage.
+            - overwrite (bool): Whether injection should overwrite existing files.
+            - upload (bool): Whether upload stage should actually perform uploads.
+    
+    Side effects:
+        - Creates output directories on disk.
+        - Writes task snapshot updates, status changes, and final results into `store`.
+        - Writes files produced by download and injection stages.
+        - May mark the task as Failed via fail_task when critical outputs are missing.
+    """
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,
@@ -141,7 +181,13 @@ def run_task(store: TaskStore, task_id: str, title: str, args: Any) -> None:
         return fail_task(store, task_id, task_snapshot, "No translations available")
 
     # Stage 4: download SVG files
-    files, stages_list["download"] = download_task(stages_list["download"], output_dir_main, titles)
+    download_progress = lambda: store.update_data(task_id, task_snapshot)
+    files, stages_list["download"] = download_task(
+        stages_list["download"],
+        output_dir_main,
+        titles,
+        progress_updater=download_progress,
+    )
     store.update_data(task_id, task_snapshot)
 
     if not files:
@@ -161,7 +207,14 @@ def run_task(store: TaskStore, task_id: str, title: str, args: Any) -> None:
     no_file_path = len(inject_files) - len(files_to_upload)
 
     # Stage 6: upload results
-    upload_result, stages_list["upload"] = upload_task(stages_list["upload"], files_to_upload, main_title, do_upload=args.upload)
+    upload_progress = lambda: store.update_data(task_id, task_snapshot)
+    upload_result, stages_list["upload"] = upload_task(
+        stages_list["upload"],
+        files_to_upload,
+        main_title,
+        do_upload=args.upload,
+        progress_updater=upload_progress,
+    )
     store.update_data(task_id, task_snapshot)
 
     # Stage 7: save stats and mark done
