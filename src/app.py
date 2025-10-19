@@ -19,7 +19,7 @@ from web.web_run_task import run_task
 # logger = logging.getLogger(__name__)
 
 from svg_translate import logger, config_logger
-from web.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
+from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from svg_config import SECRET_KEY
 
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL

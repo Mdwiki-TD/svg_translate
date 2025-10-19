@@ -8,7 +8,7 @@ import datetime
 from svg_translate import logger
 
 from svg_config import db_data
-from .db import Database
+from .db_class import Database
 
 db = Database(db_data)
 
