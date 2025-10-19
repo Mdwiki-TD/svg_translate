@@ -1,5 +1,7 @@
 $(document).ready(function() {
     $("#title").autocomplete({
+            delay: 300,
+            minLength: 2,
             source: function(request, response) {
                 // make AJAX request to Wikipedia API
                 $.ajax({
