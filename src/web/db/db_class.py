@@ -34,7 +34,8 @@ class Database:
                     result = cursor.fetchall()
                     return result
                 else:
-                    return {}
+                    self.connection.commit()
+                    return cursor.rowcount
 
         except pymysql.MySQLError as e:
             print(f"SQL error: {e}<br>{sql_query}")

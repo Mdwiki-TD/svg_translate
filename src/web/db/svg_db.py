@@ -36,7 +36,8 @@ class Database:
                 result = cursor.fetchall()
                 return result
             else:
-                return {}
+                self.connection.commit()
+                return cursor.rowcount
 
     def fetch_query(self, sql_query, params=None):
         with self.connection.cursor() as cursor:
