@@ -30,6 +30,22 @@ app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = SECRET_KEY
 
 
+def parse_args(request_form):
+    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    # ---
+    upload = bool(request_form.get("upload"))
+    # ---
+    upload = False
+    # ---
+    result = Args(
+        titles_limit=request_form.get("titles_limit", 1000, type=int),
+        overwrite=bool(request_form.get("overwrite")),
+        upload=upload
+    )
+    # ---
+    return result
+
+
 def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     """
     Format a timestamp value for user display and provide a sortable ISO-style key.
@@ -95,22 +111,6 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
             ordered.append((name, data))
     ordered.sort(key=lambda item: item[1].get("number", 0))
     return ordered
-
-
-def parse_args(request_form):
-    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
-    # ---
-    upload = bool(request_form.get("upload"))
-    # ---
-    upload = False
-    # ---
-    result = Args(
-        titles_limit=request_form.get("titles_limit", 1000, type=int),
-        overwrite=bool(request_form.get("overwrite")),
-        upload=upload
-    )
-    # ---
-    return result
 
 
 @app.get("/")
@@ -217,7 +217,6 @@ def start():
 
     task_id = uuid.uuid4().hex
 
-    # ---
     try:
         TASK_STORE.create_task(
             task_id,
