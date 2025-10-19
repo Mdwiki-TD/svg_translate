@@ -64,6 +64,9 @@
         <div id="task-meta" class="mb-2 text-muted">
             <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
         </div>
+        <span id="task-title" class="fw-bold">
+            {{ title if title else (task.title if task and task.title else '') }}
+        </span>
         <div class="small text-muted" id="last-update"></div>
     </div>
     <div class="progress mb-3" style="height:8px;">

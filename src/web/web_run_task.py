@@ -147,7 +147,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
 
     stages = make_stages()
 
-    store.replace_stages(task_id, stages)
+    # store.replace_stages(task_id, stages)
 
     store.update_data(task_id, task_snapshot)
     store.update_status(task_id, "Running")
