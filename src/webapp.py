@@ -85,6 +85,9 @@ def create_app() -> Flask:
         except TaskAlreadyExistsError as exc:
             existing = exc.task
             return redirect(url_for("index", task_id=existing["id"], error="task-active"))
+        except Exception as exc:
+            logger.exception(f"Failed to create task: {exc}")
+            return redirect(url_for("index", error="task-create-failed"))
 
         args = parse_args(request.form)
         # ---
