@@ -67,12 +67,11 @@
     </form>
 
     {% if not task_id %}
-        <div class="alert alert-secondary" role="alert">
-            This tool automates translating and preparing Wikimedia Commons SVG graphics: given a template
-            title, it fetches the template’s wikitext, identifies the referenced SVG files, downloads the main
-            graphic, extracts its translatable text, applies those translations to the related SVGs, saves the
-            updated files locally, and produces stats that make the translated assets ready to upload back to
-            Commons.
+        <div class="alert alert-info" role="alert">
+            This tool automates the translation and preparation of Wikimedia Commons SVG graphics.
+            Given a template title, it fetches the template's wikitext and identifies the SVG files.
+            It then downloads the main graphic, extracts its text, and applies translations to related SVGs.
+            Finally, it saves the updated files and produces stats to help with uploading the translated assets back to Commons.
         </div>
     {% endif %}
 
