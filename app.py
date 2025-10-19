@@ -18,7 +18,7 @@ from svg_translate import logger, config_logger
 from web.task_store import TaskAlreadyExistsError, TaskStore
 from svg_config import TASK_DB_PATH, SECRET_KEY
 
-config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
+config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
 TASK_STORE = TaskStore(TASK_DB_PATH)
 

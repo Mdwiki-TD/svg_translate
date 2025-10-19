@@ -8,6 +8,8 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from svg_translate import logger
+
 
 TERMINAL_STATUSES = ("Completed", "Failed")
 
@@ -153,13 +155,21 @@ class TaskStore:
                     ),
 
                 )
-            except sqlite3.IntegrityError:
+            except sqlite3.IntegrityError as e:
                 # Unique active-title constraint hit: fetch existing and raise
                 row = cursor.execute(
                     "SELECT * FROM tasks WHERE normalized_title = ? AND status NOT IN (?, ?) ORDER BY created_at DESC LIMIT 1",
                     (normalized_title, *TERMINAL_STATUSES)
                 ).fetchone()
-                raise TaskAlreadyExistsError(self._row_to_task(row) if row else {"id": None, "title": title})
+                if row:
+                    raise TaskAlreadyExistsError(self._row_to_task(row) if row else {"id": None, "title": title})
+                else:
+                    logger.error(f"Failed to insert new task, Error: {e}")
+                    raise
+
+            except Exception as e:
+                logger.error(f"Failed to insert task, Error: {e}")
+                raise
 
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:
@@ -197,40 +207,42 @@ class TaskStore:
         data: Optional[Dict[str, Any]] = None,
         results: Optional[Dict[str, Any]] = None,
     ) -> None:
-        fields: Dict[str, Any] = {}
 
-        if title is not None:
-            fields["title"] = title
-            fields["normalized_title"] = _normalize_title(title)
+        # Prepare JSON fields
+        form_json = _serialize(form) if form is not None else None
+        data_json = _serialize(data) if data is not None else None
+        results_json = _serialize(results) if results is not None else None
+        # Compute normalized title only when title is provided
+        norm_title = _normalize_title(title) if title is not None else None
 
-        if status is not None:
-            fields["status"] = status
-
-        if form is not None:
-            fields["form_json"] = _serialize(form)
-
-        if data is not None:
-            fields["data_json"] = _serialize(data)
-
-        if results is not None:
-            fields["results_json"] = _serialize(results)
-
-        if not fields:
+        # Early exit if nothing to update
+        if all(v is None for v in (title, status, form, data, results)):
             return
-
-        set_clause = ", ".join(f"{column} = ?" for column in fields)
-        params = list(fields.values())
-        params.append(self._current_ts())
-        params.append(task_id)
 
         with self._write_transaction() as cursor:
             cursor.execute(
-                f"""
+                """
                 UPDATE tasks
-                SET {set_clause}, updated_at = ?
+                SET
+                  title = COALESCE(?, title),
+                  normalized_title = COALESCE(?, normalized_title),
+                  status = COALESCE(?, status),
+                  form_json = COALESCE(?, form_json),
+                  data_json = COALESCE(?, data_json),
+                  results_json = COALESCE(?, results_json),
+                  updated_at = ?
                 WHERE id = ?
                 """,
-                params,
+                [
+                    title,
+                    norm_title,
+                    status,
+                    form_json,
+                    data_json,
+                    results_json,
+                    self._current_ts(),
+                    task_id,
+                ],
             )
 
     def update_status(self, task_id: str, status: str) -> None:

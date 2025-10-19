@@ -34,12 +34,15 @@ if [ -d "$TARGET_DIR" ]; then
     echo "Backing up current source to: $backup_dir"
     mv "$TARGET_DIR" "$backup_dir"
 fi
+CLONE_DIR_SRC = "$CLONE_DIR";
+if [ -d "$CLONE_DIR/src" ]; then
+    CLONE_DIR_SRC = "$CLONE_DIR/src";
+fi
 
 # Move the new source into the target directory
-if [ -d "$CLONE_DIR/src" ]; then
-    mv "$CLONE_DIR/src" "$TARGET_DIR"
-else
-    mv "$CLONE_DIR" "$TARGET_DIR"
+if ! mv "$CLONE_DIR_SRC" "$TARGET_DIR"; then
+    echo "Failed to move cloned source to target directory" >&2
+    exit 1
 fi
 
 # Remove unused template file
