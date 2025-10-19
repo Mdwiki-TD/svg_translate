@@ -13,6 +13,10 @@ from svg_translate import logger
 
 TERMINAL_STATUSES = ("Completed", "Failed")
 
+from .db import execute_query, fetch_query
+# data = fetch_query(sql_query, params)
+# execute_query(sql_query, params)
+
 
 class TaskAlreadyExistsError(Exception):
     """Raised when attempting to create a duplicate active task."""
@@ -48,14 +52,6 @@ class TaskStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.isolation_level = None
         self._lock = threading.Lock()
-
-        try:
-            # Improve concurrency characteristics
-            self._conn.execute("PRAGMA journal_mode=WAL")
-            self._conn.execute("PRAGMA synchronous=NORMAL")
-            self._conn.execute("PRAGMA busy_timeout=5000")
-        except sqlite3.OperationalError as e:
-            logger.warning("Failed to configure SQLite: %s", e)
 
         self._init_schema()
 
@@ -124,20 +120,6 @@ class TaskStore:
 
         with self._write_transaction() as cursor:
             normalized_title = _normalize_title(title)
-            # ---
-            '''
-            existing = cursor.execute(
-                """
-                SELECT * FROM tasks
-                WHERE normalized_title = ? AND status NOT IN (?, ?)
-                LIMIT 1
-                """,
-                (normalized_title, *TERMINAL_STATUSES)
-            ).fetchone()
-            # ---
-            if existing:
-                raise TaskAlreadyExistsError(self._row_to_task(existing))
-            '''
             # ---
             try:
                 cursor.execute(
