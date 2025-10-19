@@ -40,7 +40,7 @@ def parse_args(request_form):
 
 
 def create_app() -> Flask:
-    app = Flask(__name__, template_folder="web/templates")
+    app = Flask(__name__, template_folder="templates")
     app.config["SECRET_KEY"] = SECRET_KEY
 
     @app.get("/")

@@ -6,6 +6,9 @@ from logging import debug
 import sys
 import threading
 import uuid
+from collections import namedtuple
+from datetime import datetime
+from typing import Any, Dict, List
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 # from asgiref.wsgi import WsgiToAsgi
@@ -65,10 +68,13 @@ def index():
     if error_code == "task-active":
         error_message = "A task for this title is already in progress."
 
+    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
+
     return render_template(
         "index.html",
         task_id=task_id,
         task=task,
+        stages=stages,
         form=task.get("form", {}),
         error_message=error_message,
     )
@@ -137,10 +143,13 @@ def index2():
     if error_code == "task-active":
         error_message = "A task for this title is already in progress."
 
+    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
+
     return render_template(
         "index2.html",
         task_id=task_id,
         task=task,
+        stages=stages,
         form=task.get("form", {}),
         error_message=error_message,
     )
@@ -200,6 +209,17 @@ def _format_task_for_view(task: dict) -> dict:
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
     }
+
+
+def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, Any]]]:
+    if not stages:
+        return []
+    ordered: List[tuple[str, Dict[str, Any]]] = []
+    for name, data in stages.items():
+        if isinstance(data, dict):
+            ordered.append((name, data))
+    ordered.sort(key=lambda item: item[1].get("number", 0))
+    return ordered
 
 
 @app.get("/tasks")

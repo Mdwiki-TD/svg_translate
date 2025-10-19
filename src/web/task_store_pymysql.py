@@ -17,7 +17,7 @@ class TaskAlreadyExistsError(Exception):
     def __init__(self, task: Dict[str, Any]):
         """
         Initialize the exception with the conflicting task.
-        
+
         Parameters:
             task (Dict[str, Any]): The existing active task that caused the conflict; stored on the exception as the `task` attribute.
         """
@@ -28,10 +28,10 @@ class TaskAlreadyExistsError(Exception):
 def _serialize(value: Any) -> Optional[str]:
     """
     Serialize a Python value to a JSON string suitable for storage, or return None for missing values.
-    
+
     Parameters:
         value (Any): The Python value to serialize; if `None`, no serialization is performed.
-    
+
     Returns:
         Optional[str]: JSON string of `value` with Unicode preserved (`ensure_ascii=False`), or `None` if `value` is `None`.
     """
@@ -43,7 +43,7 @@ def _serialize(value: Any) -> Optional[str]:
 def _normalize_title(title: str) -> str:
     """
     Normalize a title for duplicate detection.
-    
+
     Returns:
         normalized (str): The title with surrounding whitespace removed and casefold applied.
     """
@@ -53,10 +53,10 @@ def _normalize_title(title: str) -> str:
 def _deserialize(value: Optional[str]) -> Any:
     """
     Deserialize a JSON-formatted string into a Python object.
-    
+
     Parameters:
         value (Optional[str]): A JSON-formatted string, or None.
-    
+
     Returns:
         The Python object produced by parsing `value`, or `None` if `value` is `None`.
     """
@@ -73,7 +73,7 @@ class TaskStorePyMysql:
         # self._lock = threading.Lock()
         """
         Initialize the task store and ensure the required database schema exists.
-        
+
         Calls internal schema initialization to create the tasks table and any necessary indexes.
         """
         self._init_schema()
@@ -81,7 +81,7 @@ class TaskStorePyMysql:
     def _init_schema(self) -> None:
         """
         Ensure the tasks table and its indexes exist in the MySQL database.
-        
+
         Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and ensures indexes on normalized_title, status, and created_at are present. Index creation is guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS. Logs a warning if schema initialization fails.
         """
         # Use TEXT for JSON fields for wider MySQL compatibility.
@@ -100,14 +100,26 @@ class TaskStorePyMysql:
                 updated_at DATETIME NOT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """,
-            "CREATE INDEX IF NOT EXISTS idx_tasks_norm ON tasks(normalized_title)",
-            "CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)",
-            "CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)"
+            """
+            CREATE TABLE IF NOT EXISTS task_stages (
+                stage_id VARCHAR(255) PRIMARY KEY,
+                task_id VARCHAR(128) NOT NULL,
+                stage_name VARCHAR(255) NOT NULL,
+                stage_number INT NOT NULL,
+                stage_status VARCHAR(64) NOT NULL,
+                stage_sub_name LONGTEXT NULL,
+                stage_message LONGTEXT NULL,
+                updated_at DATETIME NOT NULL,
+                CONSTRAINT fk_task_stage_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                CONSTRAINT uq_task_stage UNIQUE (task_id, stage_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """,
         ]
         # MySQL before 8.0 does not accept "IF NOT EXISTS" on CREATE INDEX.
         # So we guard by checking INFORMATION_SCHEMA and creating conditionally.
         try:
             execute_query(ddl[0])
+            execute_query(ddl[1])
             # Conditionally create indexes for maximum compatibility
             existing = fetch_query(
                 """
@@ -122,6 +134,15 @@ class TaskStorePyMysql:
                 execute_query("CREATE INDEX idx_tasks_status ON tasks(status)")
             if "idx_tasks_created" not in existing_idx:
                 execute_query("CREATE INDEX idx_tasks_created ON tasks(created_at)")
+            existing_stage_idx = fetch_query(
+                """
+                SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task_stages'
+                """
+            )
+            existing_stage_idx_names = {row["INDEX_NAME"] for row in existing_stage_idx}
+            if "idx_task_stages_task" not in existing_stage_idx_names:
+                execute_query("CREATE INDEX idx_task_stages_task ON task_stages(task_id, stage_number)")
         except Exception as e:
             logger.warning("Failed to initialize schema: %s", e)
 
@@ -129,7 +150,7 @@ class TaskStorePyMysql:
         # Store in UTC. MySQL DATETIME has no TZ; keep application-level UTC.
         """
         Return the current UTC timestamp formatted for MySQL DATETIME.
-        
+
         Returns:
             A string of the current UTC time in the format "YYYY-MM-DD HH:MM:SS".
         """
@@ -151,13 +172,13 @@ class TaskStorePyMysql:
     ) -> None:
         """
         Create a new task row in the database while enforcing that at most one non-terminal task exists for the same normalized title.
-        
+
         Parameters:
             task_id (str): Unique identifier for the task.
             title (str): Human-readable title; a normalized form (trimmed, casefolded) is used to detect duplicates.
             status (str): Initial task status (default "Pending").
             form (Optional[Dict[str, Any]]): Optional form payload to store as JSON.
-        
+
         Raises:
             TaskAlreadyExistsError: If an existing non-terminal task with the same normalized title is found.
             Exception: Propagates any underlying database or execution errors encountered during insert.
@@ -210,10 +231,10 @@ class TaskStorePyMysql:
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve a task by its identifier.
-        
+
         Parameters:
             task_id (str): The task's unique identifier.
-        
+
         Returns:
             A dictionary representing the task with deserialized JSON fields and ISO-formatted timestamps, or `None` if the task does not exist or an error occurred while fetching it.
         """
@@ -229,10 +250,10 @@ class TaskStorePyMysql:
     def get_active_task_by_title(self, title: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve the most recent active task whose title matches the given title after trimming and casefold normalization.
-        
+
         Parameters:
             title (str): Title to match; whitespace is stripped and casefolded before lookup.
-        
+
         Returns:
             dict: Task dictionary with deserialized JSON fields and ISO-formatted timestamps, or `None` if no active task is found or an error occurs.
         """
@@ -267,9 +288,9 @@ class TaskStorePyMysql:
         # Prepare JSON and normalized title only when provided
         """
         Update fields of an existing task, applying only the provided values and leaving other columns unchanged.
-        
+
         Only parameters passed as non-None are applied. JSON-like payloads (form, data, results) are serialized before storage. The task's updated_at timestamp is set to the current UTC time.
-        
+
         Parameters:
             task_id (str): Identifier of the task to update.
             title (Optional[str]): New title for the task; when provided, a normalized_title is also stored.
@@ -279,6 +300,9 @@ class TaskStorePyMysql:
             results (Optional[Dict[str, Any]]): New results payload to store (will be JSON-serialized).
         """
         form_json = _serialize(form) if form is not None else None
+        if data is not None and isinstance(data, dict) and "stages" in data:
+            data = dict(data)
+            data.pop("stages", None)
         data_json = _serialize(data) if data is not None else None
         results_json = _serialize(results) if results is not None else None
         norm_title = _normalize_title(title) if title is not None else None
@@ -319,7 +343,7 @@ class TaskStorePyMysql:
     def update_status(self, task_id: str, status: str) -> None:
         """
         Set the status of the task identified by task_id.
-        
+
         Parameters:
             task_id (str): The unique identifier of the task to update.
             status (str): The new status value to assign to the task.
@@ -329,7 +353,7 @@ class TaskStorePyMysql:
     def update_data(self, task_id: str, data: Dict[str, Any]) -> None:
         """
         Set the task's data payload to the provided dictionary.
-        
+
         Parameters:
             task_id (str): ID of the task to update.
             data (Dict[str, Any]): JSON-serializable payload to store in the task's data field.
@@ -339,23 +363,128 @@ class TaskStorePyMysql:
     def update_results(self, task_id: str, results: Dict[str, Any]) -> None:
         """
         Set the results payload for an existing task.
-        
+
         Updates the task identified by `task_id` to store the provided `results` payload.
-        
+
         Parameters:
             task_id (str): Identifier of the task to update.
             results (Dict[str, Any]): Results payload to store for the task.
         """
         self.update_task(task_id, results=results)
 
+    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
+        now = self._current_ts()
+        try:
+            execute_query("DELETE FROM task_stages WHERE task_id = %s", [task_id])
+            for stage_name, stage_data in stages.items():
+                execute_query(
+                    """
+                    INSERT INTO task_stages (
+                        stage_id,
+                        task_id,
+                        stage_name,
+                        stage_number,
+                        stage_status,
+                        stage_sub_name,
+                        stage_message,
+                        updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        stage_number = VALUES(stage_number),
+                        stage_status = VALUES(stage_status),
+                        stage_sub_name = VALUES(stage_sub_name),
+                        stage_message = VALUES(stage_message),
+                        updated_at = VALUES(updated_at)
+                    """,
+                    [
+                        f"{task_id}:{stage_name}",
+                        task_id,
+                        stage_name,
+                        stage_data.get("number", 0),
+                        stage_data.get("status", "Pending"),
+                        stage_data.get("sub_name"),
+                        stage_data.get("message"),
+                        now,
+                    ],
+                )
+        except Exception as exc:
+            logger.error("Failed to replace task stages: %s", exc)
+
+    def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
+        now = self._current_ts()
+        try:
+            execute_query(
+                """
+                INSERT INTO task_stages (
+                    stage_id,
+                    task_id,
+                    stage_name,
+                    stage_number,
+                    stage_status,
+                    stage_sub_name,
+                    stage_message,
+                    updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    stage_number = COALESCE(VALUES(stage_number), stage_number),
+                    stage_status = COALESCE(VALUES(stage_status), stage_status),
+                    stage_sub_name = COALESCE(VALUES(stage_sub_name), stage_sub_name),
+                    stage_message = COALESCE(VALUES(stage_message), stage_message),
+                    updated_at = VALUES(updated_at)
+                """,
+                [
+                    f"{task_id}:{stage_name}",
+                    task_id,
+                    stage_name,
+                    stage_data.get("number"),
+                    stage_data.get("status"),
+                    stage_data.get("sub_name"),
+                    stage_data.get("message"),
+                    now,
+                ],
+            )
+        except Exception as exc:
+            logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
+
+    def _fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
+        try:
+            rows = fetch_query(
+                """
+                SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
+                FROM task_stages
+                WHERE task_id = %s
+                ORDER BY stage_number
+                """,
+                [task_id],
+            )
+        except Exception as exc:
+            logger.error("Failed to fetch stages for task %s: %s", task_id, exc)
+            return {}
+
+        stages: Dict[str, Dict[str, Any]] = {}
+        for row in rows:
+            updated_at = row["updated_at"]
+            if hasattr(updated_at, "isoformat"):
+                updated_str = updated_at.isoformat()
+            else:
+                updated_str = str(updated_at) if updated_at is not None else None
+            stages[row["stage_name"]] = {
+                "number": row["stage_number"],
+                "status": row["stage_status"],
+                "sub_name": row.get("stage_sub_name"),
+                "message": row.get("stage_message"),
+                "updated_at": updated_str,
+            }
+        return stages
+
     def _row_to_task(self, row: Dict[str, Any]) -> Dict[str, Any]:
         # row is a dict from pymysql DictCursor via fetch_query()
         """
         Convert a database row dictionary into a task dictionary suitable for application use.
-        
+
         Parameters:
             row (Dict[str, Any]): A row returned from the database (pymysql DictCursor).
-        
+
         Returns:
             Dict[str, Any]: Task dictionary with keys:
                 - id: task identifier
@@ -378,6 +507,7 @@ class TaskStorePyMysql:
             "results": _deserialize(row.get("results_json")),
             "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
             "updated_at": row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
+            "stages": self._fetch_stages(row["id"]),
         }
 
     def list_tasks(
@@ -392,7 +522,7 @@ class TaskStorePyMysql:
     ) -> List[Dict[str, Any]]:
         """
         List tasks from the store with optional filtering, ordering, and pagination.
-        
+
         Parameters:
             status (Optional[str]): A single status to filter by.
             statuses (Optional[Iterable[str]]): An iterable of statuses to filter by; combined with `status` when both are provided.
@@ -400,7 +530,7 @@ class TaskStorePyMysql:
             descending (bool): If True, sort in descending order; otherwise sort ascending.
             limit (Optional[int]): Maximum number of rows to return.
             offset (Optional[int]): Number of rows to skip before returning results. If `offset` is provided without `limit`, an implementation-wide large limit is applied to allow offsetting.
-        
+
         Returns:
             List[Dict[str, Any]]: A list of task dictionaries (as produced by `_row_to_task`) matching the query; returns an empty list on query failure.
         """

@@ -96,7 +96,12 @@ def make_stages():
     }
 
 
-def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], msg: str | None = None):
+def fail_task(
+    store: TaskStorePyMysql,
+    task_id: str,
+    stages: Dict[str, Dict[str, Any]],
+    msg: str | None = None,
+):
     """
     Mark the task as failed in the provided TaskStore and log an optional error message.
 
@@ -106,9 +111,8 @@ def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], m
         snapshot (Dict[str, Any]): Current task snapshot; must contain a `"stages"` mapping.
         msg (str | None): Optional error message to log.
     """
-    stages = snapshot["stages"]
     stages["initialize"]["status"] = "Completed"
-    store.update_data(task_id, snapshot)
+    store.update_stage(task_id, "initialize", stages["initialize"])
     store.update_status(task_id, "Failed")
     if msg:
         logger.error(msg)
@@ -140,64 +144,71 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,
-        "stages": make_stages(),
     }
-    # TODO:
-    """
-        After each processing stage, the entire task_snapshot is serialized to JSON and written to the database. This is inefficient and results in many database writes. For better performance, consider introducing more granular update methods in TaskStore to update only the parts of the task data that have changed, such as the status of a specific stage. This would reduce I/O and JSON serialization overhead.
-
-        For example, you could add a method update_stage(task_id, stage_name, stage_data) to TaskStore and call it after each step instead of update_data.
-
-        store.update_data(task_id, task_snapshot)
-    """
+    stages = make_stages()
+    store.replace_stages(task_id, stages)
     store.update_data(task_id, task_snapshot)
     store.update_status(task_id, "Running")
 
-    stages_list = task_snapshot["stages"]
+    def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
+        state = stage_state if stage_state is not None else stages[stage_name]
+        store.update_stage(task_id, stage_name, state)
 
     # Stage 1: extract text
-    text, stages_list["text"] = text_task(stages_list["text"], title)
-    store.update_data(task_id, task_snapshot)
+    text, stages["text"] = text_task(stages["text"], title)
+    push_stage("text")
     if not text:
-        return fail_task(store, task_id, task_snapshot, "No text extracted")
+        return fail_task(store, task_id, stages, "No text extracted")
 
     # Stage 2: extract titles
-    titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
-    store.update_data(task_id, task_snapshot)
+    titles_result, stages["titles"] = titles_task(
+        stages["titles"], text, titles_limit=args.titles_limit
+    )
+    push_stage("titles")
 
     main_title, titles = titles_result["main_title"], titles_result["titles"]
     if not titles:
-        return fail_task(store, task_id, task_snapshot, "No titles found")
+        return fail_task(store, task_id, stages, "No titles found")
 
     # Stage 3: get translations
     output_dir_main = output_dir / "files"
     output_dir_main.mkdir(parents=True, exist_ok=True)
 
-    translations, stages_list["translations"] = translations_task(stages_list["translations"], main_title, output_dir_main)
-    store.update_data(task_id, task_snapshot)
+    translations, stages["translations"] = translations_task(
+        stages["translations"], main_title, output_dir_main
+    )
+    push_stage("translations")
 
     if not translations:
-        return fail_task(store, task_id, task_snapshot, "No translations available")
+        return fail_task(store, task_id, stages, "No translations available")
 
     # Stage 4: download SVG files
-    def download_progress(): return store.update_data(task_id, task_snapshot)
-    files, stages_list["download"] = download_task(
-        stages_list["download"],
+    def download_progress(stage_state: Dict[str, Any]) -> None:
+        push_stage("download", stage_state)
+
+    files, stages["download"] = download_task(
+        stages["download"],
         output_dir_main,
         titles,
         progress_updater=download_progress,
     )
-    store.update_data(task_id, task_snapshot)
+    push_stage("download")
 
     if not files:
-        return fail_task(store, task_id, task_snapshot, "No files downloaded")
+        return fail_task(store, task_id, stages, "No files downloaded")
 
     # Stage 5: inject translations
-    injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
-    store.update_data(task_id, task_snapshot)
+    injects_result, stages["inject"] = inject_task(
+        stages["inject"],
+        files,
+        translations,
+        output_dir=output_dir,
+        overwrite=args.overwrite,
+    )
+    push_stage("inject")
 
     if not injects_result or injects_result.get("saved_done", 0) == 0:
-        return fail_task(store, task_id, task_snapshot, "Injection saved 0 files")
+        return fail_task(store, task_id, stages, "Injection saved 0 files")
 
     inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
@@ -206,15 +217,17 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     no_file_path = len(inject_files) - len(files_to_upload)
 
     # Stage 6: upload results
-    def upload_progress(): return store.update_data(task_id, task_snapshot)
-    upload_result, stages_list["upload"] = upload_task(
-        stages_list["upload"],
+    def upload_progress(stage_state: Dict[str, Any]) -> None:
+        push_stage("upload", stage_state)
+
+    upload_result, stages["upload"] = upload_task(
+        stages["upload"],
         files_to_upload,
         main_title,
         do_upload=args.upload,
         progress_updater=upload_progress,
     )
-    store.update_data(task_id, task_snapshot)
+    push_stage("upload")
 
     # Stage 7: save stats and mark done
     data = {
@@ -239,8 +252,8 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
 
     store.update_results(task_id, results)
 
-    final_status = "Failed" if any(s.get("status") == "Failed" for s in stages_list.values()) else "Completed"
-    stages_list["initialize"]["status"] = "Completed"
+    final_status = "Failed" if any(s.get("status") == "Failed" for s in stages.values()) else "Completed"
+    stages["initialize"]["status"] = "Completed"
+    push_stage("initialize")
 
-    store.update_data(task_id, task_snapshot)
     store.update_status(task_id, final_status)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 from urllib.parse import quote
 
 import requests
@@ -12,7 +12,7 @@ from tqdm import tqdm
 from svg_translate import logger
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
-ProgressUpdater = Optional[Callable[[], None]]
+ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
 
 def _safe_invoke_callback(
@@ -124,7 +124,7 @@ def download_commons_svgs(
 
 
 def download_task(
-    stages: Dict[str, str],
+    stages: Dict[str, Any],
     output_dir_main: Path,
     titles: Iterable[str],
     progress_updater: ProgressUpdater = None,
@@ -146,6 +146,12 @@ def download_task(
 
     stages["message"] = f"Downloading 0/{total:,}"
     stages["status"] = "Running"
+
+    if progress_updater:
+        try:
+            progress_updater(stages)
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception("Error while executing progress updater")
 
     counts = {"success": 0, "skipped": 0, "failed": 0}
 
@@ -178,7 +184,7 @@ def download_task(
 
         if progress_updater:
             try:
-                progress_updater()
+                progress_updater(stages)
             except Exception:  # pragma: no cover - defensive logging
                 logger.exception("Error while executing progress updater")
 
@@ -202,7 +208,7 @@ def download_task(
 
     if progress_updater:
         try:
-            progress_updater()
+            progress_updater(stages)
         except Exception:  # pragma: no cover - defensive logging
             logger.exception("Error while executing progress updater")
 
