@@ -353,9 +353,6 @@ class TaskStorePyMysql(StageStoreProtocol):
             return None
         if not rows:
             return None
-
-        print(rows)
-
         return self._row_to_task(rows[0])
 
     def get_active_task_by_title(self, title: str) -> Optional[Dict[str, Any]]:

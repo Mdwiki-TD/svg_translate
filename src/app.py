@@ -123,25 +123,21 @@ def index():
     Returns:
         Rendered HTML response for the index page containing the task data, the task's form values (if any), and an optional error message.
     """
-    stages = {}
-    task = {}
-
     task_id = request.args.get("task_id")
     title = request.args.get("title")
+    task = TASK_STORE.get_task(task_id) if task_id else None
 
-    if task_id:
-        task = TASK_STORE.get_task(task_id)
-        if not task:
-            task = {"error": "not-found"}
-            logger.debug(f"Task {task_id} not found!!")
-        else:
-            stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
+    if not task:
+        task = {"error": "not-found"}
+        logger.debug(f"Task {task_id} not found!!")
 
     error_code = request.args.get("error")
 
     error_message = None
     if error_code == "task-active":
         error_message = "A task for this title is already in progress."
+
+    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
     return render_template(
         "index.html",
@@ -164,25 +160,21 @@ def index2():
     @returns:
         Flask response containing the rendered "index2.html" page populated with `task_id`, `task`, `form`, and `error_message`.
     """
-    stages = {}
-    task = {}
-
     task_id = request.args.get("task_id")
     title = request.args.get("title")
+    task = TASK_STORE.get_task(task_id) if task_id else None
 
-    if task_id:
-        task = TASK_STORE.get_task(task_id)
-        if not task:
-            task = {"error": "not-found"}
-            logger.debug(f"Task {task_id} not found!!")
-        else:
-            stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
+    if not task:
+        task = {"error": "not-found"}
+        logger.debug(f"Task {task_id} not found")
 
     error_code = request.args.get("error")
 
     error_message = None
     if error_code == "task-active":
         error_message = "A task for this title is already in progress."
+
+    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
     return render_template(
         "index2.html",
