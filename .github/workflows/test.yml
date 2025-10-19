@@ -39,7 +39,7 @@ jobs:
             become copy-svg-langs sh -c "
               rm -rf ~/svg_tr_repo_backup &&
               mv ~/svg_tr_repo ~/svg_tr_repo_backup || true &&
-              cp /mnt/nfs/labstore-secondary-tools-home/${{ secrets.USERNAME }}/svg_tr_repo_tmp ~/svg_tr_repo &&
+              cp -r /mnt/nfs/labstore-secondary-tools-home/${{ secrets.USERNAME }}/svg_tr_repo_tmp ~/svg_tr_repo &&
               chmod -R 6770 ~/svg_tr_repo &&
               echo 'done..'
             "
