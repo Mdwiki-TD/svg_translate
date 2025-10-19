@@ -45,6 +45,14 @@ def parse_args(request_form):
 
 @app.get("/")
 def index():
+    """
+    Render the index page for a task, showing task details and an optional error message.
+    
+    Reads the `task_id` and `error` query parameters from the request. If `task_id` is provided, attempts to fetch the corresponding task from the task store; if no task is found, supplies a placeholder task with an `"error": "not-found"` value. Maps the `"task-active"` error code to a human-facing message.
+    
+    Returns:
+        Rendered HTML response for the index page containing the task data, the task's form values (if any), and an optional error message.
+    """
     task_id = request.args.get("task_id")
     task = TASK_STORE_New.get_task(task_id) if task_id else None
 
@@ -68,6 +76,14 @@ def index():
 
 @app.post("/")
 def start():
+    """
+    Create a new task from the submitted form, start its background worker, and redirect to the task page.
+    
+    If the form's title is empty the request is redirected back to the index. On task creation conflict redirects to the existing task with error "task-active". On other creation failures redirects to the index with error "task-create-failed". When creation succeeds a daemon thread is started to run the task and the user is redirected to the new task's index page.
+    
+    Returns:
+        A Flask redirect response to the index view for the created task, or to the index view with an error code if creation failed or the task already exists.
+    """
     title = request.form.get("title", "").strip()
     if not title:
         return redirect(url_for("index"))
@@ -101,6 +117,14 @@ def start():
 
 @app.get("/index2")
 def index2():
+    """
+    Render the index2 page for a task identified by the `task_id` query parameter.
+    
+    Fetches the task specified by the `task_id` query parameter and renders the "index2.html" template with the task data, form data (empty dict if absent), and an optional human-readable error message. If no matching task is found, a placeholder task with an error code is used. The query parameter `error=task-active` maps to a user-facing message indicating a task with the same title is already in progress.
+    
+    @returns:
+        Flask response containing the rendered "index2.html" page populated with `task_id`, `task`, `form`, and `error_message`.
+    """
     task_id = request.args.get("task_id")
     task = TASK_STORE_New.get_task(task_id) if task_id else None
 
@@ -123,6 +147,17 @@ def index2():
 
 
 def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
+    """
+    Format a timestamp value for user display and provide a sortable ISO-style key.
+    
+    Parameters:
+        value (datetime | str | None): The timestamp to format. May be a datetime, a string (ISO format or "%Y-%m-%d %H:%M:%S"), or None.
+    
+    Returns:
+        tuple[str, str]: A pair (display, sort_key).
+            - display: human-readable timestamp in "YYYY-MM-DD HH:MM:SS", an empty string if `value` is None, or the original string if it could not be parsed.
+            - sort_key: an ISO-format timestamp suitable for sorting, an empty string if `value` is None, or the original string if it could not be parsed.
+    """
     if not value:
         return "", ""
     dt = None
@@ -146,6 +181,14 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
 
 @app.get("/tasks")
 def tasks():
+    """
+    Render the task listing page with formatted task metadata and available status filters.
+    
+    Retrieve tasks from the global task store, optionally filter by status, and produce a list of task dictionaries with selected fields and display/sortable timestamp values. Also collect the distinct task statuses found and pass the tasks, the current status filter, and the sorted available statuses to the "tasks.html" template.
+    
+    Returns:
+        A Flask response object rendering "tasks.html" with the context keys `tasks`, `status_filter`, and `available_statuses`.
+    """
     status_filter = request.args.get("status")
     tasks = TASK_STORE_New.list_tasks(status=status_filter, order_by="created_at", descending=True)
 
@@ -187,6 +230,15 @@ def tasks():
 
 @app.get("/status/<task_id>")
 def status(task_id: str):
+    """
+    Return the JSON representation of the task identified by `task_id`.
+    
+    Parameters:
+        task_id (str): Identifier of the task to retrieve.
+    
+    Returns:
+        A JSON response containing the task data when found. If no task exists for `task_id`, a JSON error `{"error": "not-found"}` is returned with HTTP status 404.
+    """
     task = TASK_STORE_New.get_task(task_id)
     if not task:
         logger.debug(f"Task {task_id} not found")

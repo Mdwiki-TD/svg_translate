@@ -23,6 +23,22 @@ else:  # pragma: no cover - executed when pymysql is available
 
 @pytest.fixture
 def db_factory(monkeypatch):
+    """
+    Create a factory fixture that produces a Database instance backed by a mocked pymysql connection.
+    
+    The returned factory, when called with a module path, does the following:
+    - Creates a mock cursor with context-manager support, an empty default fetch result, and a rowcount of 0.
+    - Creates a mock connection whose cursor() returns the mock cursor and whose commit() is a mock.
+    - Patches `pymysql.connect` to return that mock connection.
+    - Imports the given module and instantiates its `Database` class with default connection parameters.
+    - Returns a tuple `(db, connection, cursor)` where `db` is the Database instance, and `connection`/`cursor` are the mocks.
+    
+    Parameters:
+        monkeypatch: pytest fixture used to apply the `pymysql.connect` patch.
+    
+    Returns:
+        factory (callable): A function that accepts `module_name: str` and returns `(db, connection, cursor)`.
+    """
     def _factory(module_name: str):
         cursor = MagicMock()
         cursor.__enter__.return_value = cursor
