@@ -37,8 +37,10 @@ svg_data_dir.mkdir(parents=True, exist_ok=True)
 config = ConfigParser()
 config.read(f"{project}/confs/db.ini")
 
-DEFAULT = config['client']
+DEFAULT = config['DEFAULT']
 
+if not DEFAULT:
+    DEFAULT = config['client']
 db_data = {
     "host": DEFAULT.get('host', ""),
     "user": DEFAULT.get('user', ""),
