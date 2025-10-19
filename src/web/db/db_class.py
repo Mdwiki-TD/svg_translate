@@ -75,3 +75,45 @@ class Database:
         except pymysql.MySQLError as e:
             print(f"SQL error: {e}<br>{sql_query}")
             return []
+
+    def execute_many(self, sql_query: str, params_seq, batch_size: int = 1000):
+        """
+        Bulk-execute a single SQL statement with many parameter sets.
+
+        Args:
+            sql_query: Single SQL statement (no multiple statements).
+            params_seq: Iterable of tuple/dict parameters (e.g., list[tuple]).
+            batch_size: How many rows per batch for executemany.
+
+        Returns:
+            int: Total affected rows across all batches. On SQL error, returns 0.
+        """
+        if not params_seq:
+            return 0
+
+        total = 0
+        try:
+            with self.connection.cursor() as cursor:
+                # Process in batches to avoid packet/lock issues
+                batch = []
+                for p in params_seq:
+                    batch.append(p)
+                    if len(batch) >= batch_size:
+                        cursor.executemany(sql_query, batch)
+                        total += cursor.rowcount
+                        batch.clear()
+                if batch:
+                    cursor.executemany(sql_query, batch)
+                    total += cursor.rowcount
+
+            self.connection.commit()
+            return total
+
+        except pymysql.MySQLError as e:
+            # Roll back the whole unit of work to keep atomicity
+            try:
+                self.connection.rollback()
+            except Exception:
+                pass
+            print(f"SQL error: {e}<br>{sql_query}")
+            return 0
