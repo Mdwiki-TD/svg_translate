@@ -1,6 +1,6 @@
 import pymysql
 
-# from svg_config import db_data
+# from db_class import Database
 
 
 class Database:
@@ -8,7 +8,7 @@ class Database:
 
         """
         Initialize the Database instance and establish a MySQL connection using credentials from db_data.
-        
+
         Parameters:
             db_data (dict): Dictionary containing connection credentials with keys
                 'host', 'user', 'dbname', and 'password'. On successful connection,
@@ -36,11 +36,11 @@ class Database:
     def execute_query(self, sql_query, params=None):
         """
         Execute a SQL query and return fetched rows for SELECT statements or the number of affected rows for other statements.
-        
+
         Parameters:
             sql_query (str): SQL statement to execute.
             params (tuple|dict|None): Optional parameters to bind into the query.
-        
+
         Returns:
             list[dict] | int: For SELECT queries, a list of result rows (each row as a dict). For non-SELECT queries, the number of affected rows. On SQL error, returns an empty list.
         """
@@ -63,11 +63,11 @@ class Database:
     def fetch_query(self, sql_query, params=None):
         """
         Execute a SQL query and return all fetched rows.
-        
+
         Parameters:
             sql_query (str): The SQL statement to execute.
             params (tuple|dict|None): Optional parameters for a parameterized query.
-        
+
         Returns:
             list: A list of rows (dictionaries when using a DictCursor). Returns an empty list if a SQL error occurs.
         """
