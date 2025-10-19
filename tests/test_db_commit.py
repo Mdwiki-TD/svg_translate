@@ -91,7 +91,7 @@ def test_execute_query_skips_commit_for_select(db_factory, module_name):
 def test_database_initialization(db_factory, module_name):
     """Test that Database initializes with correct configuration."""
     db, _connection, _cursor = db_factory(module_name)
-    
+
     assert db.host == "localhost"
     assert db.user == "user"
     assert db.dbname == "database"
@@ -106,9 +106,9 @@ def test_execute_query_with_params(db_factory, module_name):
     """Test execute_query with parameterized queries."""
     db, _connection, cursor = db_factory(module_name)
     cursor.rowcount = 1
-    
+
     result = db.execute_query("INSERT INTO users VALUES (%s, %s)", ("john", "doe"))
-    
+
     cursor.execute.assert_called_once()
     assert result == 1
 
@@ -121,9 +121,9 @@ def test_execute_query_update_commits(db_factory, module_name):
     """Test that UPDATE queries commit changes."""
     db, connection, cursor = db_factory(module_name)
     cursor.rowcount = 2
-    
+
     result = db.execute_query("UPDATE users SET name='Jane' WHERE id=1")
-    
+
     connection.commit.assert_called_once()
     assert result == 2
 
@@ -136,9 +136,9 @@ def test_execute_query_delete_commits(db_factory, module_name):
     """Test that DELETE queries commit changes."""
     db, connection, cursor = db_factory(module_name)
     cursor.rowcount = 5
-    
+
     result = db.execute_query("DELETE FROM users WHERE active=0")
-    
+
     connection.commit.assert_called_once()
     assert result == 5
 
@@ -150,9 +150,9 @@ def test_execute_query_handles_errors(db_factory, module_name):
     """Test that execute_query handles MySQL errors gracefully."""
     db, _connection, cursor = db_factory(module_name)
     cursor.execute.side_effect = pymysql.MySQLError("Connection lost")
-    
+
     result = db.execute_query("SELECT * FROM users")
-    
+
     # Should return empty list on error
     assert result == []
 
@@ -166,9 +166,9 @@ def test_fetch_query_returns_results(db_factory, module_name):
     db, connection, cursor = db_factory(module_name)
     expected = [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
     cursor.fetchall.return_value = expected
-    
+
     result = db.fetch_query("SELECT * FROM users")
-    
+
     assert result == expected
     connection.commit.assert_not_called()
 
@@ -182,9 +182,9 @@ def test_fetch_query_with_params(db_factory, module_name):
     db, _connection, cursor = db_factory(module_name)
     expected = [{"id": 1, "name": "Alice"}]
     cursor.fetchall.return_value = expected
-    
+
     result = db.fetch_query("SELECT * FROM users WHERE id = %s", [1])
-    
+
     cursor.execute.assert_called_once()
     assert result == expected
 
@@ -196,9 +196,9 @@ def test_fetch_query_handles_errors(db_factory, module_name):
     """Test that fetch_query handles MySQL errors gracefully."""
     db, _connection, cursor = db_factory(module_name)
     cursor.execute.side_effect = pymysql.MySQLError("Table not found")
-    
+
     result = db.fetch_query("SELECT * FROM nonexistent")
-    
+
     assert result == []
 
 
@@ -211,9 +211,9 @@ def test_execute_query_select_case_insensitive(db_factory, module_name):
     db, connection, cursor = db_factory(module_name)
     expected = [{"count": 42}]
     cursor.fetchall.return_value = expected
-    
+
     result = db.execute_query("  select count(*) from users")
-    
+
     connection.commit.assert_not_called()
     assert result == expected
 
@@ -226,9 +226,9 @@ def test_execute_query_whitespace_handling(db_factory, module_name):
     """Test execute_query handles queries with leading whitespace."""
     db, connection, cursor = db_factory(module_name)
     cursor.rowcount = 1
-    
+
     result = db.execute_query("\n\t  INSERT INTO logs VALUES (1)")
-    
+
     connection.commit.assert_called_once()
     assert result == 1
 
@@ -239,13 +239,13 @@ def test_svg_db_execute_query_helper(monkeypatch):
     cursor.__enter__.return_value = cursor
     cursor.__exit__.return_value = False
     cursor.rowcount = 3
-    
+
     connection = MagicMock()
     connection.cursor.return_value = cursor
     connection.commit = MagicMock()
-    
+
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
-    
+
     from src.web.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
@@ -253,9 +253,9 @@ def test_svg_db_execute_query_helper(monkeypatch):
         "dbname": "test",
         "password": "pass",
     })
-    
+
     result = svg_db.execute_query("INSERT INTO test VALUES (1)")
-    
+
     assert result == 3
 
 
@@ -265,12 +265,12 @@ def test_svg_db_execute_query_helper_with_params(monkeypatch):
     cursor.__enter__.return_value = cursor
     cursor.__exit__.return_value = False
     cursor.rowcount = 1
-    
+
     connection = MagicMock()
     connection.cursor.return_value = cursor
-    
+
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
-    
+
     from src.web.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
@@ -278,9 +278,9 @@ def test_svg_db_execute_query_helper_with_params(monkeypatch):
         "dbname": "test",
         "password": "pass",
     })
-    
+
     result = svg_db.execute_query("INSERT INTO test VALUES (%s)", ["value"])
-    
+
     assert result == 1
 
 
@@ -291,12 +291,12 @@ def test_svg_db_fetch_query_helper(monkeypatch):
     cursor.__exit__.return_value = False
     expected = [{"id": 1}]
     cursor.fetchall.return_value = expected
-    
+
     connection = MagicMock()
     connection.cursor.return_value = cursor
-    
+
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
-    
+
     from src.web.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
@@ -304,9 +304,9 @@ def test_svg_db_fetch_query_helper(monkeypatch):
         "dbname": "test",
         "password": "pass",
     })
-    
+
     result = svg_db.fetch_query("SELECT * FROM test")
-    
+
     assert result == expected
 
 
@@ -317,12 +317,12 @@ def test_svg_db_fetch_query_helper_with_params(monkeypatch):
     cursor.__exit__.return_value = False
     expected = [{"id": 1, "name": "test"}]
     cursor.fetchall.return_value = expected
-    
+
     connection = MagicMock()
     connection.cursor.return_value = cursor
-    
+
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
-    
+
     from src.web.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
@@ -330,18 +330,18 @@ def test_svg_db_fetch_query_helper_with_params(monkeypatch):
         "dbname": "test",
         "password": "pass",
     })
-    
+
     result = svg_db.fetch_query("SELECT * FROM test WHERE id = %s", [1])
-    
+
     assert result == expected
 
 
 def test_database_connection_error_exits(monkeypatch):
     """Test that Database initialization exits on connection error."""
     monkeypatch.setattr(pymysql, "connect", MagicMock(side_effect=pymysql.MySQLError("Connection refused")))
-    
+
     from src.web.db import db_class
-    
+
     with pytest.raises(SystemExit):
         db_class.Database({
             "host": "badhost",
