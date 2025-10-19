@@ -4,10 +4,6 @@
 
 {% block extra_css %}
 <style>
-    a {
-        text-decoration: none;
-    }
-
     .list-group-item.running {
         border-left: 4px solid var(--bs-primary);
     }
@@ -31,6 +27,7 @@
 <div class="alert alert-info" role="alert">{{ error_message }}</div>
 {% endif %}
 
+{% if not task_id %}
 <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
     <div class="col-12 col-md-6">
         <label for="title" class="form-label">Template Title</label>
@@ -64,7 +61,6 @@
         </div>
     </div>
 </form>
-{% if not task_id %}
 <div class="alert alert-info" role="alert">
     This tool automates the translation and preparation of Wikimedia Commons SVG graphics.
     Given a template title, it fetches the template's wikitext and identifies the SVG files.
@@ -91,12 +87,12 @@
     <div class="col-12" id="alert_div">
     </div>
     {% set stage_colors = {
-                'Completed': 'success',
-                'Failed': 'danger',
-                'Skipped': 'warning',
-                'Running': 'primary',
-                'Pending': 'secondary'
-            } %}
+        'Completed': 'success',
+        'Failed': 'danger',
+        'Skipped': 'warning',
+        'Running': 'primary',
+        'Pending': 'secondary'
+    } %}
     <ul id="stagesnew" class="list-group">
         {% for name, st in stages %}
         {% set status = st.status or 'Pending' %}

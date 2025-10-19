@@ -52,7 +52,8 @@ class Database:
                 return cursor.rowcount
 
         except pymysql.MySQLError as e:
-            print(f"SQL error: {e}<br>{sql_query}")
+            print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            print(params)
             return []
 
     def fetch_query(self, sql_query, params=None):
@@ -73,7 +74,8 @@ class Database:
                 result = cursor.fetchall()
                 return result
         except pymysql.MySQLError as e:
-            print(f"SQL error: {e}<br>{sql_query}")
+            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            print(params)
             return []
 
     def execute_many(self, sql_query: str, params_seq, batch_size: int = 1000):
@@ -115,5 +117,5 @@ class Database:
                 self.connection.rollback()
             except Exception:
                 pass
-            print(f"SQL error: {e}<br>{sql_query}")
+            print(f"execute_many - SQL error: {e}<br>{sql_query}")
             return 0

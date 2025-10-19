@@ -54,6 +54,7 @@ def _normalize_title(title: str) -> str:
     Returns:
         normalized (str): The title with surrounding whitespace removed and casefold applied.
     """
+    title = title.replace("_", " ")
     return title.strip().casefold()
 
 
