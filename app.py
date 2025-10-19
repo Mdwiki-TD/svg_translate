@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import namedtuple
-# import sys
+from logging import debug
+import sys
 import threading
 import uuid
 
@@ -14,10 +15,10 @@ from web.web_run_task import run_task
 # logger = logging.getLogger(__name__)
 
 from svg_translate import logger, config_logger
-from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
+from web.task_store import TaskAlreadyExistsError, TaskStore
 from svg_config import TASK_DB_PATH, SECRET_KEY
 
-config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
+config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
 TASK_STORE = TaskStore(TASK_DB_PATH)
 
@@ -129,4 +130,5 @@ def status(task_id: str):
 
 
 if __name__ == "__main__":
-    app.run()
+    debug = "debug" in sys.argv
+    app.run(debug=debug)

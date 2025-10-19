@@ -41,7 +41,7 @@ def download_commons_svgs(titles, out_dir):
 
         # Skip if already exists
         if out_path.exists():
-            logger.debug(f"[{i}] Skipped existing: {title}")
+            logger.info(f"[{i}] Skipped existing: {title}")
             existing += 1
             files.append(str(out_path))
             continue
@@ -56,7 +56,7 @@ def download_commons_svgs(titles, out_dir):
         # if r.status_code == 200 and 'image/svg+xml' in r.headers.get('Content-Type', ''):
 
         if r.status_code == 200:  # v and r.content.startswith(b"<?xml")
-            logger.debug(f"[{i}] Downloaded: {title}")
+            logger.info(f"[{i}] Downloaded: {title}")
             out_path.write_bytes(r.content)
             success += 1
             files.append(str(out_path))

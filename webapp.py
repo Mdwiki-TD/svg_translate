@@ -15,7 +15,7 @@ from web.web_run_task import run_task
 # logger = logging.getLogger(__name__)
 
 from svg_translate import logger, config_logger
-from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
+from web.task_store import TaskAlreadyExistsError, TaskStore
 from svg_config import TASK_DB_PATH, SECRET_KEY
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL

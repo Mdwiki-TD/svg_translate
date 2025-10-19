@@ -46,6 +46,11 @@ class TaskStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.isolation_level = None
         self._lock = threading.Lock()
+        # Improve concurrency characteristics
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA synchronous=NORMAL")
+        self._conn.execute("PRAGMA busy_timeout=5000")
+
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -63,6 +68,12 @@ class TaskStore:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
+                """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_tasks_active_lookup
+                ON tasks (normalized_title, status)
                 """
             )
 
@@ -97,6 +108,10 @@ class TaskStore:
         results: Optional[Dict[str, Any]] = None,
     ) -> None:
         now = self._current_ts()
+
+        # TODO:
+        # The duplicate-title check in create_task is performed with a plain SELECT followed by an insert. Because there is no unique index or locking that spans processes, two concurrent web workers can both execute this block at the same time, each seeing no active task and then inserting their own row. The end result is multiple "Pending" tasks for the same normalized title, even though the route is supposed to enforce one active task at a time. Consider enforcing uniqueness at the database level (e.g. a unique partial index on normalized_title for non-terminal statuses or using BEGIN IMMEDIATE/INSERT … ON CONFLICT) so that duplicate submissions are rejected even under concurrent requests.
+
         with self._write_transaction() as cursor:
             normalized_title = _normalize_title(title)
             existing = cursor.execute(
@@ -164,14 +179,20 @@ class TaskStore:
         results: Optional[Dict[str, Any]] = None,
     ) -> None:
         fields: Dict[str, Any] = {}
+
         if title is not None:
             fields["title"] = title
+            fields["normalized_title"] = _normalize_title(title)
+
         if status is not None:
             fields["status"] = status
+
         if form is not None:
             fields["form_json"] = _serialize(form)
+
         if data is not None:
             fields["data_json"] = _serialize(data)
+
         if results is not None:
             fields["results_json"] = _serialize(results)
 

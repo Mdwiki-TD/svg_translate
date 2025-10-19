@@ -23,7 +23,7 @@ from svg_translate import logger
 
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
-    slug = Path(title).parent  # title.split("/")[-1]
+    slug = Path(title).name  # title.split("/")[-1]
     # ---
     base = svg_data_dir
     # ---

@@ -17,14 +17,14 @@ from web.start_bot import (
 
 from svg_config import svg_data_dir
 from svg_translate import logger
-from svg_translate.task_store import TaskStore
+from web.task_store import TaskStore
 
 # logger = logging.getLogger(__name__)
 
 
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
-    slug = Path(title).parent  # title.split("/")[-1]
+    slug = Path(title).name  # title.split("/")[-1]
     # ---
     base = svg_data_dir
     # ---
@@ -99,6 +99,14 @@ def run_task(store: TaskStore, task_id: str, title: str, args: Any) -> None:
         "title": title,
         "stages": make_stages(),
     }
+    # TODO:
+    """
+        After each processing stage, the entire task_snapshot is serialized to JSON and written to the database. This is inefficient and results in many database writes. For better performance, consider introducing more granular update methods in TaskStore to update only the parts of the task data that have changed, such as the status of a specific stage. This would reduce I/O and JSON serialization overhead.
+
+        For example, you could add a method update_stage(task_id, stage_name, stage_data) to TaskStore and call it after each step instead of update_data.
+
+        store.update_data(task_id, task_snapshot)
+    """
     store.update_data(task_id, task_snapshot)
     store.update_status(task_id, "Running")
 
