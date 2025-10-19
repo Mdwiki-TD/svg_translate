@@ -25,4 +25,4 @@ web_sh/new_update.sh
 *.sqlite3-shm
 *.sqlite3-wal
 /confs
-src/old/webapp_xx.py
+**/old/**

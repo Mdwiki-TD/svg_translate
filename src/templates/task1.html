@@ -2,6 +2,24 @@
 
 {% block title %}SVG Translate Bot{% endblock %}
 
+{% block extra_css %}
+<style>
+    .list-group-item.running {
+        border-left: 4px solid var(--bs-primary);
+    }
+
+    @media (max-width: 576px) {
+        .list-group-item {
+            font-size: 0.9rem;
+        }
+
+        .progress {
+            height: 4px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1 class="mb-4">SVG Translate Bot</h1>
 
@@ -9,6 +27,7 @@
 <div class="alert alert-info" role="alert">{{ error_message }}</div>
 {% endif %}
 
+{% if not task_id %}
 <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
     <div class="col-12 col-md-6">
         <label for="title" class="form-label">Template Title</label>
@@ -48,4 +67,36 @@
     It then downloads the main graphic, extracts its text, and applies translations to related SVGs.
     Finally, it saves the updated files and produces stats to help with uploading the translated assets back to Commons.
 </div>
+{% endif %}
+{% if task_id %}
+<div id="progress-section" data-task-id="{{ task_id }}">
+    <h2 class="h5">
+        Task Status <span id="task_status">
+        </span>
+    </h2>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div id="task-meta" class="mb-2 text-muted">
+            <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
+        </div>
+        <span id="task-title" class="fw-bold">
+            {{ title if title else (task.title if task and task.title else '') }}
+        </span>
+        <div class="small text-muted" id="last-update"></div>
+    </div>
+    <div class="progress mb-3" style="height:8px;">
+        <div id="global-progress" class="progress-bar bg-primary" style="width:0%"></div>
+    </div>
+    <div class="col-12" id="alert_div">
+    </div>
+    <ul id="stagesnew" class="list-group">
+    </ul>
+    <div class="mt-4" id="results">
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/task.js') }}"></script>
 {% endblock %}

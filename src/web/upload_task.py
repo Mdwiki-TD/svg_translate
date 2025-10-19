@@ -25,7 +25,7 @@ def _safe_invoke_callback(
 ) -> None:
     """
     Invoke a per-file progress callback if one is provided, catching and logging any exceptions.
-    
+
     Parameters:
         callback (Optional[Callable[[int, int, Path, str], None]]): The per-file callback to invoke; may be None.
         index (int): 1-based index of the file within the total upload batch.
@@ -50,7 +50,7 @@ def start_upload(
 ):
     """
     Upload multiple files to Wikimedia Commons and invoke a per-file progress callback.
-    
+
     Parameters:
         files_to_upload (Dict[str, Dict[str, object]]): Mapping from target file name to metadata. Each value may include:
             - "file_path" (str): local path to the file to upload.
@@ -60,7 +60,7 @@ def start_upload(
         password_value (str): Wikimedia password used to authenticate the upload.
         per_file_callback (Optional[Callable[[int, int, Path, str], None]]): Optional callback invoked after each file with
             parameters (index, total, target_path, status) where status is "success" or "failed".
-    
+
     Returns:
         dict: Summary of the upload run with keys:
             - "done" (int): number of successfully uploaded files.
@@ -129,22 +129,22 @@ def upload_task(
 ):
     """
     Coordinate and run the file upload process, updating stage status and progress as files are processed.
-    
+
     Parameters:
-    	stages (Dict[str, str]): Mutable stage state; this function updates "status" and "message" to reflect progress and final outcome.
-    	files_to_upload (Dict[str, Dict[str, object]]): Mapping of filenames to their upload metadata; determines the total files to process.
-    	main_title (str): Title used to construct the main file link included in upload summaries.
-    	do_upload (Optional[bool]): Feature flag that enables or disables performing uploads; falsy values cause the task to skip uploading.
-    	progress_updater (Optional[Callable[[], None]]): Optional callback invoked after each per-file progress update and once at completion; exceptions from this callback are caught and logged.
-    
+        stages (Dict[str, str]): Mutable stage state; this function updates "status" and "message" to reflect progress and final outcome.
+        files_to_upload (Dict[str, Dict[str, object]]): Mapping of filenames to their upload metadata; determines the total files to process.
+        main_title (str): Title used to construct the main file link included in upload summaries.
+        do_upload (Optional[bool]): Feature flag that enables or disables performing uploads; falsy values cause the task to skip uploading.
+        progress_updater (Optional[Callable[[], None]]): Optional callback invoked after each per-file progress update and once at completion; exceptions from this callback are caught and logged.
+
     Returns:
-    	upload_result (Dict[str, object]), stages (Dict[str, str]):
-    		- upload_result: Summary of upload outcomes with keys:
-    			- "done" (int): number of successfully uploaded files.
-    			- "not_done" (int): number of files that were not uploaded.
-    			- "errors" (List[str], optional): collected error messages from failed uploads.
-    			- "skipped" (bool, optional): true when the upload was skipped and "reason" provides why.
-    		- stages: The final stage state dictionary (same object passed in) with updated "status" and "message".
+        upload_result (Dict[str, object]), stages (Dict[str, str]):
+                - upload_result: Summary of upload outcomes with keys:
+                        - "done" (int): number of successfully uploaded files.
+                        - "not_done" (int): number of files that were not uploaded.
+                        - "errors" (List[str], optional): collected error messages from failed uploads.
+                        - "skipped" (bool, optional): true when the upload was skipped and "reason" provides why.
+                - stages: The final stage state dictionary (same object passed in) with updated "status" and "message".
     """
     total = len(files_to_upload)
     stages["status"] = "Running"
@@ -177,13 +177,13 @@ def upload_task(
     def per_file_callback(index: int, total_items: int, _path: Path, status: str) -> None:
         """
         Update upload counters and the stage message for a single file, then invoke the progress updater if provided.
-        
+
         Parameters:
             index (int): 1-based index of the current file in the upload sequence.
             total_items (int): Total number of files being uploaded.
             _path (Path): Path of the file; accepted for callback signature compatibility and not used.
             status (str): Upload outcome for the file; expected values include "success" or other strings indicating failure.
-        
+
         Notes:
             - Increments the appropriate counter for success or failure and sets the stage message to reflect the current progress (for example, "Uploaded 3/10" or "Failed 2/10").
             - If a progress_updater is provided, it will be called; exceptions from the updater are caught and logged.
