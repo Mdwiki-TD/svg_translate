@@ -116,9 +116,6 @@ class TaskStore:
     ) -> None:
         now = self._current_ts()
 
-        # TODO:
-        # The duplicate-title check in create_task is performed with a plain SELECT followed by an insert. Because there is no unique index or locking that spans processes, two concurrent web workers can both execute this block at the same time, each seeing no active task and then inserting their own row. The end result is multiple "Pending" tasks for the same normalized title, even though the route is supposed to enforce one active task at a time. Consider enforcing uniqueness at the database level (e.g. a unique partial index on normalized_title for non-terminal statuses or using BEGIN IMMEDIATE/INSERT … ON CONFLICT) so that duplicate submissions are rejected even under concurrent requests.
-
         with self._write_transaction() as cursor:
             normalized_title = _normalize_title(title)
             # ---

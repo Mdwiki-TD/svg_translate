@@ -1,5 +1,6 @@
 #
 import os
+import re
 # import logging
 from pathlib import Path
 from typing import Any, Dict
@@ -24,13 +25,16 @@ from web.task_store import TaskStore
 
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
-    slug = Path(title).name  # title.split("/")[-1]
+    # Use last path segment and sanitize for filesystem safety
+    name = Path(title).name
     # ---
-    base = svg_data_dir
+    slug = re.sub(r'[^A-Za-z0-9._-]+', "_", name).strip("._") or "untitled"
     # ---
-    base.mkdir(parents=True, exist_ok=True)
+    out = svg_data_dir / slug
     # ---
-    return base / slug
+    out.mkdir(parents=True, exist_ok=True)
+    # ---
+    return out
 
 
 def make_stages():
