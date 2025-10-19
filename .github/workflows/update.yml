@@ -16,7 +16,7 @@ jobs:
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" # /home/runner/work/svg_translate/svg_translate
           ls -al
 
-      - name: Deploy to server
+      - name: Deploy on Toolforge
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -26,10 +26,10 @@ jobs:
           script_stop: true
           key: ${{ secrets.KEY }}
           script: |
-            become copy-svg-langs sh -c "
+            become copy-svg-langs bash -lc "
               rm -rf ~/svg_tr_repo &&
               git clone https://github.com/Mdwiki-TD/svg_translate.git svg_tr_repo &&
-              chmod -R 6770 ~/svg_tr_repo &&
+              chmod -R 770 ~/svg_tr_repo &&
               ~/svg_tr_repo/web_sh/update.sh &&
               rm -rf ~/svg_tr_repo &&
               toolforge-webservice python3.11 stop &&
