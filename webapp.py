@@ -16,10 +16,11 @@ from web.web_run_task import run_task
 
 from svg_translate import logger, config_logger
 from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
+from svg_config import TASK_DB_PATH, SECRET_KEY
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
-TASK_STORE = TaskStore(os.getenv("TASK_DB_PATH", "tasks.sqlite3"))
+TASK_STORE = TaskStore(TASK_DB_PATH)
 
 
 def parse_args(request_form):
@@ -40,7 +41,7 @@ def parse_args(request_form):
 
 def create_app() -> Flask:
     app = Flask(__name__, template_folder="web/templates")
-    app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
+    app.config["SECRET_KEY"] = SECRET_KEY
 
     @app.get("/")
     def index():

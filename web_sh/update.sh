@@ -60,4 +60,7 @@ fi
 # toolforge-webservice python3.11 shell
 # source "$HOME/www/python/venv/bin/activate"
 # pip install -r $HOME/www/python/src/requirements.txt
-# toolforge-jobs run updatex --image python3.11 --command "$HOME/web_sh/update.sh webservice-sql"
+
+
+# toolforge-jobs run updatex --image python3.11 --command "$HOME/web_sh/update.sh webservice-sql" --wait
+# toolforge-webservice python3.11 restart
