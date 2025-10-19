@@ -10,11 +10,11 @@ from pathlib import Path
 import sys
 
 
-from svg_translate import start_on_template_title, config_logger
-from svg_translate.upload_files import start_upload
+from src.svg_translate import start_on_template_title, config_logger
+from src.svg_translate.upload_files import start_upload
 
-from user_info import username, password
-from svg_config import svg_data_dir
+from src.user_info import username, password
+from src.svg_config import svg_data_dir
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
