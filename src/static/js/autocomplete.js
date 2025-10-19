@@ -1,4 +1,4 @@
-const WIKIMEDIA_API_URL = "https://commons.wikimedia.org/w/api.php";
+const WIKIMEDIA_API_URL = "https://commons.m.wikimedia.org/w/api.php";
 const API_USER_AGENT = "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)";
 
 $(document).ready(function() {

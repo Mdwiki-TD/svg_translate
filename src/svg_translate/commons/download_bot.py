@@ -34,7 +34,9 @@ def download_commons_svgs(titles, out_dir):
 
     for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
         # Construct full URL for direct file access
-        url = base + quote(title)
+        if not title:
+            continue
+        url = f"{base}{quote(title)}"
         out_path = out_dir / title
 
         # if i % 10: time.sleep(5)
