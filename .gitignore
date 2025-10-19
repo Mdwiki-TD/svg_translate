@@ -24,3 +24,4 @@ web_sh/new_update.sh
 /.github/workflows_disable
 *.sqlite3-shm
 *.sqlite3-wal
+/confs
