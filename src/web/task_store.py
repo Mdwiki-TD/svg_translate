@@ -48,6 +48,11 @@ class TaskStore:
         self._conn.isolation_level = None
         self._lock = threading.Lock()
 
+        try:
+            self._conn.execute("PRAGMA foreign_keys = ON")
+        except sqlite3.DatabaseError:
+            logger.debug("Foreign key pragma not supported or already enabled")
+
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -78,8 +83,39 @@ class TaskStore:
                     "ON tasks(normalized_title) "
                     "WHERE status NOT IN ('Completed','Failed')"
                 )
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS task_stages (
+                        stage_id TEXT PRIMARY KEY,
+                        task_id TEXT NOT NULL,
+                        stage_name TEXT NOT NULL,
+                        stage_number INTEGER NOT NULL,
+                        stage_status TEXT NOT NULL,
+                        stage_sub_name TEXT,
+                        stage_message TEXT,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                        UNIQUE (task_id, stage_name)
+                    )
+                    """
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_task_stages_task ON task_stages(task_id, stage_number)"
+                )
             except sqlite3.OperationalError as e:
                 logger.warning("Failed to initialize schema: %s", e)
+
+    def _stage_row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+        return {
+            "number": row["stage_number"],
+            "status": row["stage_status"],
+            "sub_name": row["stage_sub_name"],
+            "message": row["stage_message"],
+            "updated_at": row["updated_at"],
+        }
+
+    def _stage_identifier(self, task_id: str, stage_name: str) -> str:
+        return f"{task_id}:{stage_name}"
 
     @contextmanager
     def _write_transaction(self):
@@ -142,7 +178,9 @@ class TaskStore:
                     (normalized_title, *TERMINAL_STATUSES)
                 ).fetchone()
                 if row:
-                    raise TaskAlreadyExistsError(self._row_to_task(row) if row else {"id": None, "title": title})
+                    raise TaskAlreadyExistsError(
+                        self._row_to_task(row, cursor=cursor) if row else {"id": None, "title": title}
+                    )
                 else:
                     logger.error(f"Failed to insert new task, Error: {e}")
                     raise
@@ -200,6 +238,9 @@ class TaskStore:
 
         # Prepare JSON fields
         form_json = _serialize(form) if form is not None else None
+        if data is not None and isinstance(data, dict) and "stages" in data:
+            data = dict(data)
+            data.pop("stages", None)
         data_json = _serialize(data) if data is not None else None
         results_json = _serialize(results) if results is not None else None
         # Compute normalized title only when title is provided
@@ -247,7 +288,100 @@ class TaskStore:
     def update_results(self, task_id: str, results: Dict[str, Any]) -> None:
         self.update_task(task_id, results=results)
 
-    def _row_to_task(self, row: sqlite3.Row) -> Dict[str, Any]:
+    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
+        now = self._current_ts()
+        with self._write_transaction() as cursor:
+            cursor.execute("DELETE FROM task_stages WHERE task_id = ?", (task_id,))
+            for stage_name, stage_data in stages.items():
+                stage_id = self._stage_identifier(task_id, stage_name)
+                cursor.execute(
+                    """
+                    INSERT INTO task_stages (
+                        stage_id,
+                        task_id,
+                        stage_name,
+                        stage_number,
+                        stage_status,
+                        stage_sub_name,
+                        stage_message,
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(stage_id) DO UPDATE SET
+                        stage_number = excluded.stage_number,
+                        stage_status = excluded.stage_status,
+                        stage_sub_name = excluded.stage_sub_name,
+                        stage_message = excluded.stage_message,
+                        updated_at = excluded.updated_at
+                    """,
+                    (
+                        stage_id,
+                        task_id,
+                        stage_name,
+                        stage_data.get("number", 0),
+                        stage_data.get("status", "Pending"),
+                        stage_data.get("sub_name"),
+                        stage_data.get("message"),
+                        now,
+                    ),
+                )
+
+    def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
+        now = self._current_ts()
+        with self._write_transaction() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO task_stages (
+                    stage_id,
+                    task_id,
+                    stage_name,
+                    stage_number,
+                    stage_status,
+                    stage_sub_name,
+                    stage_message,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(stage_id) DO UPDATE SET
+                    stage_number = COALESCE(excluded.stage_number, stage_number),
+                    stage_status = COALESCE(excluded.stage_status, stage_status),
+                    stage_sub_name = COALESCE(excluded.stage_sub_name, stage_sub_name),
+                    stage_message = COALESCE(excluded.stage_message, stage_message),
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    self._stage_identifier(task_id, stage_name),
+                    task_id,
+                    stage_name,
+                    stage_data.get("number"),
+                    stage_data.get("status"),
+                    stage_data.get("sub_name"),
+                    stage_data.get("message"),
+                    now,
+                ),
+            )
+
+    def _fetch_stages(
+        self,
+        task_id: str,
+        *,
+        cursor: Optional[sqlite3.Cursor] = None,
+    ) -> Dict[str, Dict[str, Any]]:
+        query = (
+            "SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at "
+            "FROM task_stages WHERE task_id = ? ORDER BY stage_number"
+        )
+
+        if cursor is not None:
+            rows = cursor.execute(query, (task_id,)).fetchall()
+        else:
+            with self._lock:
+                rows = self._conn.execute(query, (task_id,)).fetchall()
+
+        stages: Dict[str, Dict[str, Any]] = {}
+        for row in rows:
+            stages[row["stage_name"]] = self._stage_row_to_dict(row)
+        return stages
+
+    def _row_to_task(self, row: sqlite3.Row, *, cursor: Optional[sqlite3.Cursor] = None) -> Dict[str, Any]:
         return {
             "id": row["id"],
             "title": row["title"],
@@ -258,4 +392,5 @@ class TaskStore:
             "results": _deserialize(row["results_json"]),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
+            "stages": self._fetch_stages(row["id"], cursor=cursor),
         }

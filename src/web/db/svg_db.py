@@ -87,10 +87,28 @@ def init_schema() -> None:
         """
     )
 
+    execute_query(
+        """
+        CREATE TABLE IF NOT EXISTS task_stages (
+            stage_id VARCHAR(255) PRIMARY KEY,
+            task_id VARCHAR(64) NOT NULL,
+            stage_name VARCHAR(255) NOT NULL,
+            stage_number INT NOT NULL,
+            stage_status VARCHAR(50) NOT NULL,
+            stage_sub_name TEXT NULL,
+            stage_message TEXT NULL,
+            updated_at DATETIME NOT NULL,
+            CONSTRAINT fk_task_stage_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+            CONSTRAINT uq_task_stage UNIQUE (task_id, stage_name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """
+    )
+
     # Lookup/sort indexes
     execute_query("CREATE INDEX IF NOT EXISTS idx_tasks_norm ON tasks(normalized_title)")
     execute_query("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
     execute_query("CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)")
+    execute_query("CREATE INDEX IF NOT EXISTS idx_task_stages_task ON task_stages(task_id, stage_number)")
 
     # Enforce at most one active task per normalized_title
     # MySQL does not support partial indexes directly; use a unique composite index with condition simulation.

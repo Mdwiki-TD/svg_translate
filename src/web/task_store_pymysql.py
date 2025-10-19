@@ -62,14 +62,26 @@ class TaskStorePyMysql:
                 updated_at DATETIME NOT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """,
-            "CREATE INDEX IF NOT EXISTS idx_tasks_norm ON tasks(normalized_title)",
-            "CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)",
-            "CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)"
+            """
+            CREATE TABLE IF NOT EXISTS task_stages (
+                stage_id VARCHAR(255) PRIMARY KEY,
+                task_id VARCHAR(128) NOT NULL,
+                stage_name VARCHAR(255) NOT NULL,
+                stage_number INT NOT NULL,
+                stage_status VARCHAR(64) NOT NULL,
+                stage_sub_name LONGTEXT NULL,
+                stage_message LONGTEXT NULL,
+                updated_at DATETIME NOT NULL,
+                CONSTRAINT fk_task_stage_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                CONSTRAINT uq_task_stage UNIQUE (task_id, stage_name)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """,
         ]
         # MySQL before 8.0 does not accept "IF NOT EXISTS" on CREATE INDEX.
         # So we guard by checking INFORMATION_SCHEMA and creating conditionally.
         try:
             execute_query(ddl[0])
+            execute_query(ddl[1])
             # Conditionally create indexes for maximum compatibility
             existing = fetch_query(
                 """
@@ -84,6 +96,15 @@ class TaskStorePyMysql:
                 execute_query("CREATE INDEX idx_tasks_status ON tasks(status)")
             if "idx_tasks_created" not in existing_idx:
                 execute_query("CREATE INDEX idx_tasks_created ON tasks(created_at)")
+            existing_stage_idx = fetch_query(
+                """
+                SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task_stages'
+                """
+            )
+            existing_stage_idx_names = {row["INDEX_NAME"] for row in existing_stage_idx}
+            if "idx_task_stages_task" not in existing_stage_idx_names:
+                execute_query("CREATE INDEX idx_task_stages_task ON task_stages(task_id, stage_number)")
         except Exception as e:
             logger.warning("Failed to initialize schema: %s", e)
 
@@ -188,6 +209,9 @@ class TaskStorePyMysql:
     ) -> None:
         # Prepare JSON and normalized title only when provided
         form_json = _serialize(form) if form is not None else None
+        if data is not None and isinstance(data, dict) and "stages" in data:
+            data = dict(data)
+            data.pop("stages", None)
         data_json = _serialize(data) if data is not None else None
         results_json = _serialize(results) if results is not None else None
         norm_title = _normalize_title(title) if title is not None else None
@@ -234,6 +258,111 @@ class TaskStorePyMysql:
     def update_results(self, task_id: str, results: Dict[str, Any]) -> None:
         self.update_task(task_id, results=results)
 
+    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
+        now = self._current_ts()
+        try:
+            execute_query("DELETE FROM task_stages WHERE task_id = %s", [task_id])
+            for stage_name, stage_data in stages.items():
+                execute_query(
+                    """
+                    INSERT INTO task_stages (
+                        stage_id,
+                        task_id,
+                        stage_name,
+                        stage_number,
+                        stage_status,
+                        stage_sub_name,
+                        stage_message,
+                        updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        stage_number = VALUES(stage_number),
+                        stage_status = VALUES(stage_status),
+                        stage_sub_name = VALUES(stage_sub_name),
+                        stage_message = VALUES(stage_message),
+                        updated_at = VALUES(updated_at)
+                    """,
+                    [
+                        f"{task_id}:{stage_name}",
+                        task_id,
+                        stage_name,
+                        stage_data.get("number", 0),
+                        stage_data.get("status", "Pending"),
+                        stage_data.get("sub_name"),
+                        stage_data.get("message"),
+                        now,
+                    ],
+                )
+        except Exception as exc:
+            logger.error("Failed to replace task stages: %s", exc)
+
+    def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
+        now = self._current_ts()
+        try:
+            execute_query(
+                """
+                INSERT INTO task_stages (
+                    stage_id,
+                    task_id,
+                    stage_name,
+                    stage_number,
+                    stage_status,
+                    stage_sub_name,
+                    stage_message,
+                    updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    stage_number = COALESCE(VALUES(stage_number), stage_number),
+                    stage_status = COALESCE(VALUES(stage_status), stage_status),
+                    stage_sub_name = COALESCE(VALUES(stage_sub_name), stage_sub_name),
+                    stage_message = COALESCE(VALUES(stage_message), stage_message),
+                    updated_at = VALUES(updated_at)
+                """,
+                [
+                    f"{task_id}:{stage_name}",
+                    task_id,
+                    stage_name,
+                    stage_data.get("number"),
+                    stage_data.get("status"),
+                    stage_data.get("sub_name"),
+                    stage_data.get("message"),
+                    now,
+                ],
+            )
+        except Exception as exc:
+            logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
+
+    def _fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
+        try:
+            rows = fetch_query(
+                """
+                SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
+                FROM task_stages
+                WHERE task_id = %s
+                ORDER BY stage_number
+                """,
+                [task_id],
+            )
+        except Exception as exc:
+            logger.error("Failed to fetch stages for task %s: %s", task_id, exc)
+            return {}
+
+        stages: Dict[str, Dict[str, Any]] = {}
+        for row in rows:
+            updated_at = row["updated_at"]
+            if hasattr(updated_at, "isoformat"):
+                updated_str = updated_at.isoformat()
+            else:
+                updated_str = str(updated_at) if updated_at is not None else None
+            stages[row["stage_name"]] = {
+                "number": row["stage_number"],
+                "status": row["stage_status"],
+                "sub_name": row.get("stage_sub_name"),
+                "message": row.get("stage_message"),
+                "updated_at": updated_str,
+            }
+        return stages
+
     def _row_to_task(self, row: Dict[str, Any]) -> Dict[str, Any]:
         # row is a dict from pymysql DictCursor via fetch_query()
         return {
@@ -246,6 +375,7 @@ class TaskStorePyMysql:
             "results": _deserialize(row.get("results_json")),
             "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
             "updated_at": row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
+            "stages": self._fetch_stages(row["id"]),
         }
 
     def list_tasks(

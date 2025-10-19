@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import mwclient
 from tqdm import tqdm
@@ -13,7 +13,7 @@ from svg_translate.commons.upload_bot import upload_file
 from user_info import username, password
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
-ProgressUpdater = Optional[Callable[[], None]]
+ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
 
 def _safe_invoke_callback(
@@ -92,7 +92,7 @@ def start_upload(
 
 
 def upload_task(
-    stages: Dict[str, str],
+    stages: Dict[str, Any],
     files_to_upload: Dict[str, Dict[str, object]],
     main_title: str,
     do_upload: Optional[bool] = None,
@@ -102,19 +102,40 @@ def upload_task(
     stages["status"] = "Running"
     stages["message"] = f"Uploading files 0/{total:,}"
 
+    if progress_updater:
+        try:
+            progress_updater(stages)
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception("Error while executing progress updater")
+
     if not do_upload:
         stages["status"] = "Skipped"
         stages["message"] += " (Upload disabled)"
+        if progress_updater:
+            try:
+                progress_updater(stages)
+            except Exception:  # pragma: no cover - defensive logging
+                logger.exception("Error while executing progress updater")
         return {"done": 0, "not_done": total, "skipped": True, "reason": "disabled"}, stages
 
     if not files_to_upload:
         stages["status"] = "Skipped"
         stages["message"] += " (No files to upload)"
+        if progress_updater:
+            try:
+                progress_updater(stages)
+            except Exception:  # pragma: no cover - defensive logging
+                logger.exception("Error while executing progress updater")
         return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
 
     if not username or not password:
         stages["status"] = "Failed"
         stages["message"] += " (Missing credentials)"
+        if progress_updater:
+            try:
+                progress_updater(stages)
+            except Exception:  # pragma: no cover - defensive logging
+                logger.exception("Error while executing progress updater")
         return {
             "done": 0,
             "not_done": total,
@@ -138,7 +159,7 @@ def upload_task(
 
         if progress_updater:
             try:
-                progress_updater()
+                progress_updater(stages)
             except Exception:  # pragma: no cover - defensive logging
                 logger.exception("Error while executing progress updater")
 
@@ -163,7 +184,7 @@ def upload_task(
 
     if progress_updater:
         try:
-            progress_updater()
+            progress_updater(stages)
         except Exception:  # pragma: no cover - defensive logging
             logger.exception("Error while executing progress updater")
 
