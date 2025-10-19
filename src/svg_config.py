@@ -22,7 +22,6 @@ SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 user_config_path = f"{project}/confs/user.ini"
 
-# data_path = Path(__file__).parent.parent / "svg_data"
 data_path = "I:/SVG/svg_data"
 
 if home_dir:
