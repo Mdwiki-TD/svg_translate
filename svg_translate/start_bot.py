@@ -9,8 +9,6 @@ from .injects_files import start_injects
 from .svgpy.bots.extract_bot import extract
 
 from .log import logger  # , config_logger
-from ..svg_config import svg_data_dir
-
 # config_logger("CRITICAL")
 
 
@@ -40,8 +38,6 @@ def start_on_template_title(title, output_dir=None, titles_limit=None, overwrite
     if not main_title:
         logger.error("No main SVG title found in the template")
         return data
-
-    output_dir = output_dir or svg_data_dir
 
     output_dir_main = output_dir / "files"
     output_dir_translated = output_dir / "translated"

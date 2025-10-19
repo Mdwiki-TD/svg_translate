@@ -20,6 +20,7 @@ config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):
+    output_dir = output_dir or svg_data_dir
 
     print("----"*15)
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
