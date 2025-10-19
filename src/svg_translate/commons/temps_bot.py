@@ -6,13 +6,8 @@ get all files names from owidslidersrcs
 
 """
 
-
-from pathlib import Path
 import wikitextparser as wtp
 import re
-
-
-Dir = Path(__file__).parent
 
 
 def get_files(text):
