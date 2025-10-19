@@ -49,40 +49,46 @@ class TaskStore:
         self._conn.isolation_level = None
         self._lock = threading.Lock()
 
-        # Improve concurrency characteristics
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA synchronous=NORMAL")
-        self._conn.execute("PRAGMA busy_timeout=5000")
+        try:
+            # Improve concurrency characteristics
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=NORMAL")
+            self._conn.execute("PRAGMA busy_timeout=5000")
+        except sqlite3.OperationalError as e:
+            logger.warning("Failed to configure SQLite: %s", e)
 
         self._init_schema()
 
     def _init_schema(self) -> None:
         with self._write_transaction() as cursor:
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS tasks (
-                    id TEXT PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    normalized_title TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    form_json TEXT,
-                    data_json TEXT,
-                    results_json TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+            try:
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS tasks (
+                        id TEXT PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        normalized_title TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        form_json TEXT,
+                        data_json TEXT,
+                        results_json TEXT,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            # Lookup/sort indexes
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_norm ON tasks(normalized_title)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)")
-            # Enforce at most one active task per normalized_title
-            cursor.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS uq_active_title "
-                "ON tasks(normalized_title) "
-                "WHERE status NOT IN ('Completed','Failed')"
-            )
+                # Lookup/sort indexes
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_norm ON tasks(normalized_title)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)")
+                # Enforce at most one active task per normalized_title
+                cursor.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_active_title "
+                    "ON tasks(normalized_title) "
+                    "WHERE status NOT IN ('Completed','Failed')"
+                )
+            except sqlite3.OperationalError as e:
+                logger.warning("Failed to initialize schema: %s", e)
 
     @contextmanager
     def _write_transaction(self):
@@ -169,11 +175,17 @@ class TaskStore:
                 raise
 
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        row = None
         with self._lock:
-            row = self._conn.execute(
-                "SELECT * FROM tasks WHERE id = ?",
-                (task_id,)
-            ).fetchone()
+            try:
+                row = self._conn.execute(
+                    "SELECT * FROM tasks WHERE id = ?",
+                    (task_id,)
+                ).fetchone()
+            except Exception as e:
+                logger.error(f"Failed to get task, Error: {e}")
+                return None
+
         if not row:
             return None
         return self._row_to_task(row)
@@ -181,15 +193,19 @@ class TaskStore:
     def get_active_task_by_title(self, title: str) -> Optional[Dict[str, Any]]:
         normalized_title = _normalize_title(title)
         with self._lock:
-            row = self._conn.execute(
-                """
-                SELECT * FROM tasks
-                WHERE normalized_title = ? AND status NOT IN (?, ?)
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                (normalized_title, *TERMINAL_STATUSES)
-            ).fetchone()
+            try:
+                row = self._conn.execute(
+                    """
+                    SELECT * FROM tasks
+                    WHERE normalized_title = ? AND status NOT IN (?, ?)
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                    (normalized_title, *TERMINAL_STATUSES)
+                ).fetchone()
+            except Exception as e:
+                logger.error(f"Failed to get task, Error: {e}")
+                return None
         if not row:
             return None
         return self._row_to_task(row)
@@ -217,30 +233,33 @@ class TaskStore:
             return
 
         with self._write_transaction() as cursor:
-            cursor.execute(
-                """
-                UPDATE tasks
-                SET
-                  title = COALESCE(?, title),
-                  normalized_title = COALESCE(?, normalized_title),
-                  status = COALESCE(?, status),
-                  form_json = COALESCE(?, form_json),
-                  data_json = COALESCE(?, data_json),
-                  results_json = COALESCE(?, results_json),
-                  updated_at = ?
-                WHERE id = ?
-                """,
-                [
-                    title,
-                    norm_title,
-                    status,
-                    form_json,
-                    data_json,
-                    results_json,
-                    self._current_ts(),
-                    task_id,
-                ],
-            )
+            try:
+                cursor.execute(
+                    """
+                    UPDATE tasks
+                    SET
+                    title = COALESCE(?, title),
+                    normalized_title = COALESCE(?, normalized_title),
+                    status = COALESCE(?, status),
+                    form_json = COALESCE(?, form_json),
+                    data_json = COALESCE(?, data_json),
+                    results_json = COALESCE(?, results_json),
+                    updated_at = ?
+                    WHERE id = ?
+                    """,
+                    [
+                        title,
+                        norm_title,
+                        status,
+                        form_json,
+                        data_json,
+                        results_json,
+                        self._current_ts(),
+                        task_id,
+                    ],
+                )
+            except Exception as e:
+                logger.error(f"Failed to update task, Error: {e}")
 
     def update_status(self, task_id: str, status: str) -> None:
         self.update_task(task_id, status=status)

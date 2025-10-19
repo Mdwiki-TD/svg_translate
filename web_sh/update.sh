@@ -34,9 +34,9 @@ if [ -d "$TARGET_DIR" ]; then
     echo "Backing up current source to: $backup_dir"
     mv "$TARGET_DIR" "$backup_dir"
 fi
-CLONE_DIR_SRC = "$CLONE_DIR";
+CLONE_DIR_SRC="$CLONE_DIR";
 if [ -d "$CLONE_DIR/src" ]; then
-    CLONE_DIR_SRC = "$CLONE_DIR/src";
+    CLONE_DIR_SRC="$CLONE_DIR/src";
 fi
 
 # Move the new source into the target directory
