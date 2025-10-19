@@ -4,8 +4,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+COMPAT = ROOT / "tests" / "compat"
+
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+if COMPAT.exists() and str(COMPAT) not in sys.path:
+    sys.path.insert(0, str(COMPAT))
 
 if "requests" not in sys.modules:
     requests_stub = types.ModuleType("requests")

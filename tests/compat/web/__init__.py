@@ -3,7 +3,8 @@
 from pathlib import Path
 
 _pkg_dir = Path(__file__).resolve().parent
-_src_dir = _pkg_dir.parent / "src" / "web"
+_root_dir = _pkg_dir.parents[2]
+_src_dir = _root_dir / "src" / "web"
 
 __path__ = [str(_pkg_dir)]
 if _src_dir.exists():
