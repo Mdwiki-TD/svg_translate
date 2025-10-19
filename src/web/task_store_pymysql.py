@@ -13,7 +13,9 @@ from .db import Database
 db = Database(db_data)
 
 execute_query = db.execute_query
+execute_query_safe = db.execute_query_safe
 fetch_query = db.fetch_query
+fetch_query_safe = db.fetch_query_safe
 
 TERMINAL_STATUSES = ("Completed", "Failed")
 
@@ -225,34 +227,37 @@ class TaskStorePyMysql(StageStoreProtocol):
         ]
         # MySQL before 8.0 does not accept "IF NOT EXISTS" on CREATE INDEX.
         # So we guard by checking INFORMATION_SCHEMA and creating conditionally.
-        try:
-            execute_query(ddl[0])
-            execute_query(ddl[1])
-            # Conditionally create indexes for maximum compatibility
-            existing = fetch_query(
-                """
-                SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
-                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
-                """
-            )
-            existing_idx = {row["INDEX_NAME"] for row in existing}
-            if "idx_tasks_norm" not in existing_idx:
-                execute_query("CREATE INDEX idx_tasks_norm ON tasks(normalized_title)")
-            if "idx_tasks_status" not in existing_idx:
-                execute_query("CREATE INDEX idx_tasks_status ON tasks(status)")
-            if "idx_tasks_created" not in existing_idx:
-                execute_query("CREATE INDEX idx_tasks_created ON tasks(created_at)")
-            existing_stage_idx = fetch_query(
-                """
-                SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
-                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task_stages'
-                """
-            )
-            existing_stage_idx_names = {row["INDEX_NAME"] for row in existing_stage_idx}
-            if "idx_task_stages_task" not in existing_stage_idx_names:
-                execute_query("CREATE INDEX idx_task_stages_task ON task_stages(task_id, stage_number)")
-        except Exception as e:
-            logger.warning("Failed to initialize schema: %s", e)
+        # ---
+        execute_query_safe(ddl[0])
+        execute_query_safe(ddl[1])
+        # ---
+        # Conditionally create indexes for maximum compatibility
+        existing = fetch_query_safe(
+            """
+            SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
+            """
+        )
+        existing_idx = {row["INDEX_NAME"] for row in existing}
+        if "idx_tasks_norm" not in existing_idx:
+            execute_query_safe("CREATE INDEX idx_tasks_norm ON tasks(normalized_title)")
+        # ---
+        if "idx_tasks_status" not in existing_idx:
+            execute_query_safe("CREATE INDEX idx_tasks_status ON tasks(status)")
+        # ---
+        if "idx_tasks_created" not in existing_idx:
+            execute_query_safe("CREATE INDEX idx_tasks_created ON tasks(created_at)")
+        # ---
+        existing_stage_idx = fetch_query_safe(
+            """
+            SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task_stages'
+            """
+        )
+        # ---
+        existing_stage_idx_names = {row["INDEX_NAME"] for row in existing_stage_idx}
+        if "idx_task_stages_task" not in existing_stage_idx_names:
+            execute_query_safe("CREATE INDEX idx_task_stages_task ON task_stages(task_id, stage_number)")
 
     def _current_ts(self) -> str:
         # Store in UTC. MySQL DATETIME has no TZ; keep application-level UTC.
@@ -346,12 +351,9 @@ class TaskStorePyMysql(StageStoreProtocol):
         Returns:
             A dictionary representing the task with deserialized JSON fields and ISO-formatted timestamps, or `None` if the task does not exist or an error occurred while fetching it.
         """
-        try:
-            rows = fetch_query("SELECT * FROM tasks WHERE id = %s", [task_id])
-        except Exception as e:
-            logger.error(f"Failed to get task, Error: {e}")
-            return None
+        rows = fetch_query_safe("SELECT * FROM tasks WHERE id = %s", [task_id])
         if not rows:
+            logger.error("Failed to get task")
             return None
         return self._row_to_task(rows[0])
 
@@ -366,20 +368,17 @@ class TaskStorePyMysql(StageStoreProtocol):
             dict: Task dictionary with deserialized JSON fields and ISO-formatted timestamps, or `None` if no active task is found or an error occurs.
         """
         normalized_title = _normalize_title(title)
-        try:
-            rows = fetch_query(
-                """
-                SELECT * FROM tasks
-                WHERE normalized_title = %s AND status NOT IN (%s, %s)
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                [normalized_title, *TERMINAL_STATUSES],
-            )
-        except Exception as e:
-            logger.error(f"Failed to get task, Error: {e}")
-            return None
+        rows = fetch_query_safe(
+            """
+            SELECT * FROM tasks
+            WHERE normalized_title = %s AND status NOT IN (%s, %s)
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            [normalized_title, *TERMINAL_STATUSES],
+        )
         if not rows:
+            logger.error("Failed to get task")
             return None
         return self._row_to_task(rows[0])
 
@@ -571,10 +570,10 @@ class TaskStorePyMysql(StageStoreProtocol):
             params.append(offset)
 
         sql = " ".join(query_parts)
-        try:
-            rows = fetch_query(sql, params)
-        except Exception as exc:
-            logger.error("Failed to list tasks, Error: %s", exc)
+        rows = fetch_query_safe(sql, params)
+
+        if not rows:
+            logger.error("Failed to list tasks")
             return []
 
         return [self._row_to_task(row) for row in rows]

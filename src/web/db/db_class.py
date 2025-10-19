@@ -43,17 +43,11 @@ class Database:
         Returns:
             list[dict] | int: For SELECT queries, a list of result rows (each row as a dict). For non-SELECT queries, the number of affected rows. On SQL error, returns an empty list.
         """
-        try:
-            with self.connection.cursor() as cursor:
-                cursor.execute(sql_query, params)
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql_query, params)
 
-                self.connection.commit()
-                return cursor.rowcount
-
-        except pymysql.MySQLError as e:
-            print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
-            return []
+            self.connection.commit()
+            return cursor.rowcount
 
     def fetch_query(self, sql_query, params=None):
         """
@@ -66,16 +60,11 @@ class Database:
         Returns:
             list: A list of rows (dictionaries when using a DictCursor). Returns an empty list if a SQL error occurs.
         """
-        try:
-            with self.connection.cursor() as cursor:
-                cursor.execute(sql_query, params)
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql_query, params)
 
-                result = cursor.fetchall()
-                return result
-        except pymysql.MySQLError as e:
-            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
-            return []
+            result = cursor.fetchall()
+            return result
 
     def execute_many(self, sql_query: str, params_seq, batch_size: int = 1000):
         """
@@ -118,3 +107,20 @@ class Database:
                 pass
             print(f"execute_many - SQL error: {e}<br>{sql_query}")
             return 0
+
+    def fetch_query_safe(self, sql_query, params=None):
+        try:
+            return self.fetch_query(sql_query, params)
+        except pymysql.MySQLError as e:
+            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            print(params)
+            return []
+
+    def execute_query_safe(self, sql_query, params=None):
+        try:
+            return self.execute_query(sql_query, params)
+
+        except pymysql.MySQLError as e:
+            print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            print(params)
+            return []
