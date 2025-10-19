@@ -23,3 +23,4 @@ web/templates/index_backup.html
 tasks.sqlite3
 .github/workflows/update2.yml
 web_sh/new_update.sh
+/.github/workflows_disable

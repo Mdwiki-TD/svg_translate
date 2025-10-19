@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "*"
-
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -14,5 +13,33 @@ jobs:
 
       - name: Test workspace
         run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-          ls ./*
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" # /home/runner/work/svg_translate/svg_translate
+          ls -al
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: 22
+          source: "./"
+          target: "~/svg_tr_repo_tmp"
+
+      - name: Deploy on Toolforge
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          port: 22
+          request_pty: true
+          script_stop: true
+          key: ${{ secrets.KEY }}
+          script: |
+            become copy-svg-langs sh -c "
+              rm -rf ~/svg_tr_repo_backup &&
+              mv ~/svg_tr_repo ~/svg_tr_repo_backup || true &&
+              mv ~/svg_tr_repo_tmp ~/svg_tr_repo &&
+              chmod -R 6770 ~/svg_tr_repo &&
+              echo 'done..'
+            "
