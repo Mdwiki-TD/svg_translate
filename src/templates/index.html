@@ -90,7 +90,40 @@
     </div>
     <div class="col-12" id="alert_div">
     </div>
-    <ul id="stagesnew" class="list-group"></ul>
+    {% set stage_colors = {
+                'Completed': 'success',
+                'Failed': 'danger',
+                'Skipped': 'warning',
+                'Running': 'primary',
+                'Pending': 'secondary'
+            } %}
+    <ul id="stagesnew" class="list-group">
+        {% for name, st in stages %}
+        {% set status = st.status or 'Pending' %}
+        {% set color = stage_colors.get(status, 'secondary') %}
+        {% if status == 'Completed' %}
+        {% set percent = 100 %}
+        {% elif status == 'Running' %}
+        {% set percent = 60 %}
+        {% elif status == 'Pending' %}
+        {% set percent = 10 %}
+        {% else %}
+        {% set percent = 0 %}
+        {% endif %}
+        {% set running_class = 'running' if status == 'Running' else '' %}
+        <li class="list-group-item {{ running_class }} border border-{{ color }}">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold">{{ name }}{% if st.sub_name %} <small
+                        class="text-muted">({{ st.sub_name|safe }})</small>{% endif %}</span>
+                <span class="badge text-bg-{{ color }} border border-{{ color }}">{{ status }}</span>
+            </div>
+            <div class="small text-muted">{{ st.message or '' }}</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-{{ color }}" style="width:{{ percent }}%"></div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
     <div class="mt-4" id="results">
     </div>
 </div>
@@ -169,9 +202,8 @@
                 }
 
                 const stagesContainerNew = document.getElementById('stagesnew');
-                if (taskData.data && taskData.data.stages) {
-                    let stages_obj = taskData.data.stages;
-                    stages_obj = Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number);
+                if (taskData.stages) {
+                    const stages_obj = Object.entries(taskData.stages).sort((a, b) => (a[1].number || 0) - (b[1].number || 0));
                     document.getElementById("global-progress").style.width = `${overall_progress(stages_obj)}%`;
                     stagesContainerNew.innerHTML = stages_obj.map(([name, st]) => stages_html_new(st, name)).join('');
                 }

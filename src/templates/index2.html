@@ -42,8 +42,8 @@
                 <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
             </div>
             <div id="stages" class="row g-3">
-                {% if task and task.data and task.data.stages %}
-                    {% for name, st in task.data.stages.items() %}
+                {% if stages %}
+                    {% for name, st in stages %}
                         <div class="col-12 col-md-6">
                             <div class="card">
                                 <div class="card-body">
@@ -133,10 +133,9 @@
                     }
 
                     const stagesContainer = document.getElementById('stages');
-                    if (taskData.data && taskData.data.stages && stagesContainer) {
-                        let stages_obj = taskData.data.stages;
-                        stages_obj = Object.fromEntries(Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number));
-                        stagesContainer.innerHTML = Object.entries(stages_obj).map(([name, st]) => stages_html(st, name)).join('');
+                    if (taskData.stages && stagesContainer) {
+                        const stages_obj = Object.entries(taskData.stages).sort((a, b) => (a[1].number || 0) - (b[1].number || 0));
+                        stagesContainer.innerHTML = stages_obj.map(([name, st]) => stages_html(st, name)).join('');
                     }
 
                     const results = document.getElementById('results');
