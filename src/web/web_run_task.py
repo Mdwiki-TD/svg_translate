@@ -13,7 +13,8 @@ from web.start_bot import (
     inject_task,
     make_results_summary
 )
-from web.download_task import download_task, upload_task
+from web.download_task import download_task
+from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
 from svg_translate import logger
