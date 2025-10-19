@@ -37,13 +37,11 @@ svg_data_dir.mkdir(parents=True, exist_ok=True)
 config = ConfigParser()
 config.read(f"{project}/confs/db.ini")
 
-DEFAULT = config['DEFAULT']
+db_config_section = config['client'] if 'client' in config else config['DEFAULT']
 
-if not DEFAULT:
-    DEFAULT = config['client']
 db_data = {
-    "host": DEFAULT.get('host', ""),
-    "user": DEFAULT.get('user', ""),
-    "dbname": DEFAULT.get('dbname', ""),
-    "password": DEFAULT.get('password', ""),
+    "host": db_config_section.get('host', ""),
+    "user": db_config_section.get('user', ""),
+    "dbname": db_config_section.get('dbname', ""),
+    "password": db_config_section.get('password', ""),
 }
