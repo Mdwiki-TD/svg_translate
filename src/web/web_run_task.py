@@ -1,5 +1,5 @@
 #
-import os
+# import os
 import re
 # import logging
 from pathlib import Path
@@ -18,7 +18,8 @@ from web.start_bot import (
 
 from svg_config import svg_data_dir
 from svg_translate import logger
-from web.task_store import TaskStore
+# from web.task_store import TaskStore
+from web.task_store_pymysql import TaskStorePyMysql
 
 # logger = logging.getLogger(__name__)
 
@@ -84,7 +85,7 @@ def make_stages():
     }
 
 
-def fail_task(store: TaskStore, task_id: str, snapshot: Dict[str, Any], msg: str | None = None):
+def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], msg: str | None = None):
     """Mark task as failed and log reason."""
     stages = snapshot["stages"]
     stages["initialize"]["status"] = "Completed"
@@ -96,7 +97,7 @@ def fail_task(store: TaskStore, task_id: str, snapshot: Dict[str, Any], msg: str
 
 
 # --- main pipeline --------------------------------------------
-def run_task(store: TaskStore, task_id: str, title: str, args: Any) -> None:
+def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> None:
 
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {

@@ -10,12 +10,7 @@ from typing import Any, Dict, Optional
 
 from svg_translate import logger
 
-
 TERMINAL_STATUSES = ("Completed", "Failed")
-
-from .db import execute_query, fetch_query
-# data = fetch_query(sql_query, params)
-# execute_query(sql_query, params)
 
 
 class TaskAlreadyExistsError(Exception):
@@ -29,7 +24,7 @@ class TaskAlreadyExistsError(Exception):
 def _serialize(value: Any) -> Optional[str]:
     if value is None:
         return None
-    return json.dumps(value)
+    return json.dumps(value, ensure_ascii=False)
 
 
 def _normalize_title(title: str) -> str:
