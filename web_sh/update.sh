@@ -34,6 +34,7 @@ if [ -d "$TARGET_DIR" ]; then
     echo "Backing up current source to: $backup_dir"
     mv "$TARGET_DIR" "$backup_dir"
 fi
+
 CLONE_DIR_SRC="$CLONE_DIR";
 if [ -d "$CLONE_DIR/src" ]; then
     CLONE_DIR_SRC="$CLONE_DIR/src";
@@ -42,6 +43,7 @@ fi
 # Move the new source into the target directory
 if ! mv "$CLONE_DIR_SRC" "$TARGET_DIR"; then
     echo "Failed to move cloned source to target directory" >&2
+    rm -rf "$CLONE_DIR"
     exit 1
 fi
 
@@ -49,6 +51,8 @@ fi
 rm -f "$TARGET_DIR/service.template"
 
 # Activate the virtual environment and install dependencies
+
+rm -rf "$CLONE_DIR"
 
 if source "$HOME/www/python/venv/bin/activate"; then
     pip install -r "$TARGET_DIR/requirements.txt"
