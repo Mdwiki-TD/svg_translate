@@ -10,11 +10,10 @@ from web.start_bot import (
     text_task,
     titles_task,
     translations_task,
-    download_task,
     inject_task,
-    upload_task,
     make_results_summary
 )
+from web.download_task import download_task, upload_task
 
 from svg_config import svg_data_dir
 from svg_translate import logger
@@ -142,7 +141,13 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
         return fail_task(store, task_id, task_snapshot, "No translations available")
 
     # Stage 4: download SVG files
-    files, stages_list["download"] = download_task(stages_list["download"], output_dir_main, titles)
+    download_progress = lambda: store.update_data(task_id, task_snapshot)
+    files, stages_list["download"] = download_task(
+        stages_list["download"],
+        output_dir_main,
+        titles,
+        progress_updater=download_progress,
+    )
     store.update_data(task_id, task_snapshot)
 
     if not files:
@@ -162,7 +167,14 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     no_file_path = len(inject_files) - len(files_to_upload)
 
     # Stage 6: upload results
-    upload_result, stages_list["upload"] = upload_task(stages_list["upload"], files_to_upload, main_title, do_upload=args.upload)
+    upload_progress = lambda: store.update_data(task_id, task_snapshot)
+    upload_result, stages_list["upload"] = upload_task(
+        stages_list["upload"],
+        files_to_upload,
+        main_title,
+        do_upload=args.upload,
+        progress_updater=upload_progress,
+    )
     store.update_data(task_id, task_snapshot)
 
     # Stage 7: save stats and mark done
