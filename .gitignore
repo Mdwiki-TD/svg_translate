@@ -21,3 +21,8 @@ tests/no_translations_raw.svg
 start_bot copy.py
 web/templates/index_backup.html
 tasks.sqlite3
+.github/workflows/update2.yml
+web_sh/new_update.sh
+/.github/workflows_disable
+*.sqlite3-shm
+*.sqlite3-wal

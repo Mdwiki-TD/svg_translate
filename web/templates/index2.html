@@ -17,6 +17,10 @@
     <div class="container py-4">
         <h1 class="mb-4">SVG Translate Bot</h1>
 
+        {% if error_message %}
+        <div class="alert alert-info" role="alert">{{ error_message }}</div>
+        {% endif %}
+
         <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
             <div class="col-sm-8">
                 <label for="title" class="form-label">Template Title</label>

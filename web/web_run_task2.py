@@ -1,5 +1,4 @@
 #
-import os
 import threading
 # import logging
 from pathlib import Path
@@ -16,6 +15,7 @@ from web.start_bot import (
     make_results_summary
 )
 
+from svg_config import svg_data_dir
 from svg_translate import logger
 
 # logger = logging.getLogger(__name__)
@@ -23,13 +23,12 @@ from svg_translate import logger
 
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
-    slug = title.split("/")[-1]
-    base = Path(__file__).parent.parent / "svg_data"
-
-    if not os.getenv("HOME"):
-        base = Path("I:/SVG/svg_data")
-
+    slug = Path(title).name  # title.split("/")[-1]
+    # ---
+    base = svg_data_dir
+    # ---
     base.mkdir(parents=True, exist_ok=True)
+    # ---
     return base / slug
 
 
@@ -162,12 +161,18 @@ def run_task(task_id: str, title: str, args: Any, tasks: MutableMapping[str, Any
         "files": files,
         "injects_result": injects_result,
     }
+
     save_files_stats(data, output_dir)
 
     with tasks_lock:
         tasks[task_id]["results"] = make_results_summary(
-            len(files), len(files_to_upload), no_file_path,
-            injects_result, translations, main_title, upload_result
+            len(files),
+            len(files_to_upload),
+            no_file_path,
+            injects_result,
+            translations,
+            main_title,
+            upload_result
         )
 
         # Consider any stage failure terminal

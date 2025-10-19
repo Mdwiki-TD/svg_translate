@@ -4,14 +4,19 @@
 from user_info import username, password
 
 """
+import sys
 import os
 import configparser
 
-home_dir = os.getenv("HOME")
-project = home_dir if home_dir else 'I:/core/bots/core1'
+from svg_config import user_config_path
 # ---
 config = configparser.ConfigParser()
-config.read(f"{project}/confs/user.ini")
-
-username = config['DEFAULT'].get('hiacc', "")
-password = config['DEFAULT'].get('hipass_upload', "")
+# ---
+username, password = "", ""
+# ---
+if os.path.exists(user_config_path):
+    config.read(user_config_path)
+    username = config['DEFAULT'].get('hiacc', "")
+    password = config['DEFAULT'].get('hipass_upload', "")
+else:
+    print(f"Warning: Configuration file not found at {user_config_path}", file=sys.stderr)

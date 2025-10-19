@@ -8,17 +8,19 @@ tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_t
 """
 from pathlib import Path
 import sys
-import os
+
 
 from svg_translate import start_on_template_title, config_logger
 from svg_translate.upload_files import start_upload
 
 from user_info import username, password
+from svg_config import svg_data_dir
 
-config_logger("ERROR") # DEBUG # ERROR # CRITICAL
+config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):
+    output_dir = output_dir or svg_data_dir
 
     print("----"*15)
     files_data = start_on_template_title(title, output_dir=output_dir, titles_limit=titles_limit, overwrite=overwrite)
@@ -71,11 +73,6 @@ def main():
     titles = [
         "Template:OWID/death rate from obesity",
     ]
-
-    svg_data_dir = Path(__file__).parent.parent / "svg_data"
-
-    if not os.getenv("HOME"):
-        svg_data_dir = Path("I:/SVG/svg_data")
 
     for title in titles:
         # output_dir = svg_data_dir / title.split("/")[1]
