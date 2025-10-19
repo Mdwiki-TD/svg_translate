@@ -186,10 +186,10 @@ def start():
 
     args = parse_args(request.form)
     # ---
-    # t = threading.Thread(target=run_task, args=(TASK_STORE, task_id, title, args), daemon=True)
-    # # # ---
-    # t.start()
-
+    t = threading.Thread(target=run_task, args=(TASK_STORE, task_id, title, args), daemon=True)
+    # ---
+    t.start()
+    # ---
     return redirect(url_for("index", task_id=task_id))
 
 
