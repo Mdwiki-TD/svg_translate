@@ -66,6 +66,16 @@
         </div>
     </form>
 
+    {% if not task_id %}
+        <div class="alert alert-secondary" role="alert">
+            This tool automates translating and preparing Wikimedia Commons SVG graphics: given a template
+            title, it fetches the template’s wikitext, identifies the referenced SVG files, downloads the main
+            graphic, extracts its translatable text, applies those translations to the related SVGs, saves the
+            updated files locally, and produces stats that make the translated assets ready to upload back to
+            Commons.
+        </div>
+    {% endif %}
+
     {% if task_id %}
         <div id="progress-section" data-task-id="{{ task_id }}">
             <h2 class="h5">
