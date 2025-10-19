@@ -36,7 +36,7 @@ jobs:
           script_stop: true
           key: ${{ secrets.KEY }}
           script: |
-            become copy-svg-langs sh -c "
+            become copy-svg-langs bash -lc "
               rm -rf ~/svg_tr_repo_backup &&
               mv ~/svg_tr_repo ~/svg_tr_repo_backup || true &&
               cp -r /mnt/nfs/labstore-secondary-tools-home/${{ secrets.USERNAME }}/svg_tr_repo_tmp ~/svg_tr_repo &&
