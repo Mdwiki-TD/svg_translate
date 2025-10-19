@@ -3,8 +3,7 @@ import json
 import html
 from urllib.parse import quote
 
-from svg_translate import download_commons_svgs, get_files, get_wikitext, start_injects, extract, logger, start_upload
-from user_info import username, password
+from svg_translate import download_commons_svgs, get_files, get_wikitext, start_injects, extract, logger
 
 
 def json_save(path, data):
@@ -133,21 +132,6 @@ def translations_task(stages, main_title, output_dir_main):
     return translations, stages
 
 
-def download_task(stages, output_dir_main, titles):
-    # ---
-    stages["message"] = f"Downloading 0/{len(titles):,}"
-    stages["status"] = "Running"
-    # ---
-    files = download_commons_svgs(titles, out_dir=output_dir_main)
-    # ---
-    logger.info(f"files: {len(files)}")
-    # ---
-    stages["message"] = f"Downloaded {len(titles):,}/{len(titles):,}"
-    stages["status"] = "Completed"
-    # ---
-    return files, stages
-
-
 def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
     if output_dir is None:
@@ -170,37 +154,3 @@ def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     return injects_result, stages
 
 
-def upload_task(stages, files_to_upload, main_title, do_upload=None):
-    # ---
-    stages["status"] = "Running"
-    # ---
-    stages["message"] = f"Uploading files 0/{len(files_to_upload):,}"
-    # ---
-    if not do_upload:
-        stages["status"] = "Skipped"
-        stages["message"] += " (Upload disabled)"
-        return {"done": 0, "not_done": len(files_to_upload), "skipped": True, "reason": "disabled"}, stages
-    # ---
-    if not files_to_upload:
-        stages["status"] = "Skipped"
-        stages["message"] += " (No files to upload)"
-        return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
-    # ---
-    main_title_link = f"[[:File:{main_title}]]"
-    # ---
-    if not username or not password:
-        stages["status"] = "Failed"
-        stages["message"] += " (Missing credentials)"
-        return {"done": 0, "not_done": len(files_to_upload), "skipped": True, "reason": "missing-creds"}, stages
-    # ---
-    upload_result = start_upload(files_to_upload, main_title_link, username, password)
-    # ---
-    stages["message"] = (
-        f"Total Files: {len(files_to_upload):,}, "
-        f"Files uploaded {upload_result['done']:,}, "
-        f"Files not uploaded: {upload_result['not_done']:,}"
-    )
-    # ---
-    stages["status"] = "Completed"
-    # ---
-    return upload_result, stages
