@@ -21,7 +21,7 @@ from svg_config import SECRET_KEY
 
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
-TASK_STORE_New = TaskStorePyMysql()
+TASK_STORE = TaskStorePyMysql()
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = SECRET_KEY
@@ -54,7 +54,7 @@ def index():
         Rendered HTML response for the index page containing the task data, the task's form values (if any), and an optional error message.
     """
     task_id = request.args.get("task_id")
-    task = TASK_STORE_New.get_task(task_id) if task_id else None
+    task = TASK_STORE.get_task(task_id) if task_id else None
 
     if not task:
         task = {"error": "not-found"}
@@ -88,13 +88,13 @@ def start():
     if not title:
         return redirect(url_for("index"))
 
-    # existing_task = TASK_STORE_New.get_active_task_by_title(title)
+    # existing_task = TASK_STORE.get_active_task_by_title(title)
     # if existing_task: return redirect(url_for("index", task_id=existing_task["id"], error="task-active"))
 
     task_id = uuid.uuid4().hex
 
     try:
-        TASK_STORE_New.create_task(
+        TASK_STORE.create_task(
             task_id,
             title,
             form={x: request.form.get(x) for x in request.form}
@@ -108,7 +108,7 @@ def start():
 
     args = parse_args(request.form)
     # ---
-    t = threading.Thread(target=run_task, args=(TASK_STORE_New, task_id, title, args), daemon=True)
+    t = threading.Thread(target=run_task, args=(TASK_STORE, task_id, title, args), daemon=True)
     # # ---
     t.start()
 
@@ -126,7 +126,7 @@ def index2():
         Flask response containing the rendered "index2.html" page populated with `task_id`, `task`, `form`, and `error_message`.
     """
     task_id = request.args.get("task_id")
-    task = TASK_STORE_New.get_task(task_id) if task_id else None
+    task = TASK_STORE.get_task(task_id) if task_id else None
 
     if not task:
         task = {"error": "not-found"}
@@ -179,6 +179,29 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     return display, sort_key
 
 
+def _format_task_for_view(task: dict) -> dict:
+    """Formats a task dictionary for the tasks list view."""
+    results = task.get("results") or {}
+    injects = results.get("injects_result") or {}
+
+    created_display, created_sort = _format_timestamp(task.get("created_at"))
+    updated_display, updated_sort = _format_timestamp(task.get("updated_at"))
+
+    return {
+        "id": task.get("id"),
+        "title": task.get("title"),
+        "status": task.get("status"),
+        "files_to_upload_count": results.get("files_to_upload_count", 0),
+        "new_translations_count": results.get("new_translations_count", 0),
+        "total_files": results.get("total_files", 0),
+        "nested_files": injects.get("nested_files", 0),
+        "created_at_display": created_display,
+        "created_at_sort": created_sort,
+        "updated_at_display": updated_display,
+        "updated_at_sort": updated_sort,
+    }
+
+
 @app.get("/tasks")
 def tasks():
     """
@@ -190,33 +213,10 @@ def tasks():
         A Flask response object rendering "tasks.html" with the context keys `tasks`, `status_filter`, and `available_statuses`.
     """
     status_filter = request.args.get("status")
-    tasks = TASK_STORE_New.list_tasks(status=status_filter, order_by="created_at", descending=True)
+    db_tasks = TASK_STORE.list_tasks(status=status_filter, order_by="created_at", descending=True)
 
-    formatted_tasks = []
-    status_values = set()
-    for task in tasks:
-        results = task.get("results") or {}
-        injects = results.get("injects_result") or {}
-
-        created_display, created_sort = _format_timestamp(task.get("created_at"))
-        updated_display, updated_sort = _format_timestamp(task.get("updated_at"))
-
-        if task.get("status"):
-            status_values.add(task.get("status"))
-
-        formatted_tasks.append({
-            "id": task.get("id"),
-            "title": task.get("title"),
-            "status": task.get("status"),
-            "files_to_upload_count": results.get("files_to_upload_count", 0),
-            "new_translations_count": results.get("new_translations_count", 0),
-            "total_files": results.get("total_files", 0),
-            "nested_files": injects.get("nested_files", 0),
-            "created_at_display": created_display,
-            "created_at_sort": created_sort,
-            "updated_at_display": updated_display,
-            "updated_at_sort": updated_sort,
-        })
+    formatted_tasks = [_format_task_for_view(task) for task in db_tasks]
+    status_values = {task.get("status") for task in db_tasks if task.get("status")}
 
     available_statuses = sorted(status_values)
 
@@ -239,7 +239,7 @@ def status(task_id: str):
     Returns:
         A JSON response containing the task data when found. If no task exists for `task_id`, a JSON error `{"error": "not-found"}` is returned with HTTP status 404.
     """
-    task = TASK_STORE_New.get_task(task_id)
+    task = TASK_STORE.get_task(task_id)
     if not task:
         logger.debug(f"Task {task_id} not found")
         return jsonify({"error": "not-found"}), 404
