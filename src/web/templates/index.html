@@ -1,11 +1,8 @@
-<!doctype html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SVG Translate Bot</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+{% block title %}SVG Translate Bot{% endblock %}
+
+{% block extra_css %}
     <style>
         a {
             text-decoration: none;
@@ -13,21 +10,6 @@
 
         .list-group-item.running {
             border-left: 4px solid var(--bs-primary);
-            /* animation: pulse 1.5s infinite; */
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-
-            100% {
-                opacity: 1;
-            }
         }
 
         @media (max-width: 576px) {
@@ -40,52 +22,51 @@
             }
         }
     </style>
-</head>
+{% endblock %}
 
-<body>
-    <div class="container py-4">
-        <h1 class="mb-4">SVG Translate Bot</h1>
+{% block content %}
+    <h1 class="mb-4">SVG Translate Bot</h1>
 
-        {% if error_message %}
+    {% if error_message %}
         <div class="alert alert-info" role="alert">{{ error_message }}</div>
-        {% endif %}
+    {% endif %}
 
-        <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
-            <div class="col-12 col-md-6">
-                <label for="title" class="form-label">Template Title</label>
-                <input type="text" class="form-control" id="title" name="title"
-                    value="{{ form.title if form and form.title else 'Template:OWID/death rate from obesity'}}"
-                    required>
+    <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
+        <div class="col-12 col-md-6">
+            <label for="title" class="form-label">Template Title</label>
+            <input type="text" class="form-control" id="title" name="title"
+                value="{{ form.title if form and form.title else 'Template:OWID/death rate from obesity'}}"
+                required>
+        </div>
+        <div class="col-6 col-md-3">
+            <label for="titles_limit" class="form-label">Titles Limit</label>
+            <input type="number" class="form-control" id="titles_limit" name="titles_limit" min="1"
+                value="{{ form.titles_limit if form and form.titles_limit else 1000 }}">
+        </div>
+        <div class="col-12 col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Start</button>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" value="z" id="overwrite" name="overwrite"
+                    {{ 'checked' if not form or form.overwrite == "z" else '' }}>
+                <label class="form-check-label" for="overwrite">
+                    Overwrite Existing translations
+                </label>
             </div>
-            <div class="col-6 col-md-3">
-                <label for="titles_limit" class="form-label">Titles Limit</label>
-                <input type="number" class="form-control" id="titles_limit" name="titles_limit" min="1"
-                    value="{{ form.titles_limit if form and form.titles_limit else 1000 }}">
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" value="1" id="upload" name="upload"
+                    {{ 'checked' if form and form.upload else '' }}>
+                <label class="form-check-label" for="upload">
+                    Upload New translations
+                </label>
             </div>
-            <div class="col-12 col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">Start</button>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" value="z" id="overwrite" name="overwrite"
-                        {{ 'checked' if not form or form.overwrite == "z" else '' }}>
-                    <label class="form-check-label" for="overwrite">
-                        Overwrite Existing translations
-                    </label>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" value="1" id="upload" name="upload"
-                        {{ 'checked' if form and form.upload else '' }}>
-                    <label class="form-check-label" for="upload">
-                        Upload New translations
-                    </label>
-                </div>
-            </div>
-        </form>
+        </div>
+    </form>
 
-        {% if task_id %}
+    {% if task_id %}
         <div id="progress-section" data-task-id="{{ task_id }}">
             <h2 class="h5">
                 Task Status <span id="task_status">
@@ -107,9 +88,10 @@
             <div class="mt-4" id="results">
             </div>
         </div>
-        {% endif %}
-    </div>
+    {% endif %}
+{% endblock %}
 
+{% block extra_js %}
     <script>
         (function () {
             const section = document.getElementById('progress-section');
@@ -168,7 +150,6 @@
                     const res = await fetch(`/status/${taskId}`, { cache: "no-store" });
                     const taskData = await res.json();
                     if (!res.ok) {
-                        // Stop polling on completion or error
                         if (taskData?.error === 'not-found') {
                             document.getElementById("task_status").innerText = " (Not Found)";
                             document.getElementById("alert_div").innerHTML = `
@@ -181,24 +162,15 @@
                         return;
                     }
 
-                    // Update stages
                     const stagesContainerNew = document.getElementById('stagesnew');
-                    // ---
                     if (taskData.data && taskData.data.stages) {
-                        // ---
                         let stages_obj = taskData.data.stages;
-                        // {"initialize":{"number": 1, "message":"Starting workflow","status":"Running"}, ... }
-                        // ---
-                        // sort stages_obj by number
                         stages_obj = Object.entries(stages_obj).sort((a, b) => a[1].number - b[1].number);
-                        // ---
                         document.getElementById("global-progress").style.width = `${overall_progress(stages_obj)}%`;
-                        // ---
                         stagesContainerNew.innerHTML = stages_obj.map(([name, st]) => stages_html_new(st, name)).join('');
                     }
 
-                    // Update results
-                    const results = document.getElementById('results_x');
+                    const results = document.getElementById('results');
                     if (taskData && taskData.results && results) {
                         const r = taskData.results;
                         results.innerHTML = result_html(r);
@@ -208,7 +180,6 @@
                         document.getElementById("task_status").innerText = ` (${taskData.status})`;
                     }
 
-                    // Stop polling on completion or error
                     if (['Completed', 'error', 'Failed'].includes(taskData.status)) {
                         clearInterval(timer);
                     }
@@ -222,6 +193,4 @@
             refresh();
         })();
     </script>
-</body>
-
-</html>
+{% endblock %}

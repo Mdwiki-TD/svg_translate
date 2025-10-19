@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
+from datetime import datetime
 from logging import debug
 import sys
 import threading
@@ -118,6 +119,69 @@ def index2():
         task=task,
         form=task.get("form", {}),
         error_message=error_message,
+    )
+
+
+def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
+    if not value:
+        return "", ""
+    dt = None
+    if isinstance(value, str):
+        for fmt in (None, "%Y-%m-%d %H:%M:%S"):
+            try:
+                dt = datetime.fromisoformat(value) if fmt is None else datetime.strptime(value, fmt)
+                break
+            except ValueError:
+                continue
+    elif isinstance(value, datetime):
+        dt = value
+
+    if not dt:
+        return str(value), str(value)
+
+    display = dt.strftime("%Y-%m-%d %H:%M:%S")
+    sort_key = dt.isoformat()
+    return display, sort_key
+
+
+@app.get("/tasks")
+def tasks():
+    status_filter = request.args.get("status")
+    tasks = TASK_STORE_New.list_tasks(status=status_filter, order_by="created_at", descending=True)
+
+    formatted_tasks = []
+    status_values = set()
+    for task in tasks:
+        results = task.get("results") or {}
+        injects = results.get("injects_result") or {}
+
+        created_display, created_sort = _format_timestamp(task.get("created_at"))
+        updated_display, updated_sort = _format_timestamp(task.get("updated_at"))
+
+        if task.get("status"):
+            status_values.add(task.get("status"))
+
+        formatted_tasks.append({
+            "id": task.get("id"),
+            "title": task.get("title"),
+            "status": task.get("status"),
+            "files_to_upload_count": results.get("files_to_upload_count", 0),
+            "new_translations_count": results.get("new_translations_count", 0),
+            "total_files": results.get("total_files", 0),
+            "nested_files": injects.get("nested_files", 0),
+            "created_at_display": created_display,
+            "created_at_sort": created_sort,
+            "updated_at_display": updated_display,
+            "updated_at_sort": updated_sort,
+        })
+
+    available_statuses = sorted(status_values)
+
+    return render_template(
+        "tasks.html",
+        tasks=formatted_tasks,
+        status_filter=status_filter,
+        available_statuses=available_statuses,
     )
 
 

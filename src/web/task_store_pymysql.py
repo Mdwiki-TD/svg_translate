@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 # import threading
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, List, Optional
 import datetime
 
 from svg_translate import logger
@@ -247,3 +247,55 @@ class TaskStorePyMysql:
             "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
             "updated_at": row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
         }
+
+    def list_tasks(
+        self,
+        *,
+        status: Optional[str] = None,
+        statuses: Optional[Iterable[str]] = None,
+        order_by: str = "created_at",
+        descending: bool = True,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        allowed_order_columns = {"created_at", "updated_at", "title", "status"}
+        order_column = order_by if order_by in allowed_order_columns else "created_at"
+
+        query_parts = ["SELECT * FROM tasks"]
+        where_clauses = []
+        params: List[Any] = []
+
+        filter_statuses: List[str] = []
+        if statuses:
+            filter_statuses.extend([s for s in statuses if s is not None])
+        if status:
+            filter_statuses.append(status)
+
+        if filter_statuses:
+            placeholders = ", ".join(["%s"] * len(filter_statuses))
+            where_clauses.append(f"status IN ({placeholders})")
+            params.extend(filter_statuses)
+
+        if where_clauses:
+            query_parts.append("WHERE " + " AND ".join(where_clauses))
+
+        direction = "DESC" if descending else "ASC"
+        query_parts.append(f"ORDER BY {order_column} {direction}")
+
+        if limit is not None:
+            query_parts.append("LIMIT %s")
+            params.append(limit)
+        if offset is not None:
+            if limit is None:
+                query_parts.append("LIMIT 18446744073709551615")
+            query_parts.append("OFFSET %s")
+            params.append(offset)
+
+        sql = " ".join(query_parts)
+        try:
+            rows = fetch_query(sql, params)
+        except Exception as exc:
+            logger.error("Failed to list tasks, Error: %s", exc)
+            return []
+
+        return [self._row_to_task(row) for row in rows]
