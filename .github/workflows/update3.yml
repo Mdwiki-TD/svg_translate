@@ -24,6 +24,7 @@ jobs:
           port: 22
           source: "./"
           target: "~/svg_tr_repo_tmp"
+          rm: true
 
       - name: Deploy on Toolforge
         uses: appleboy/ssh-action@v1.0.3
@@ -41,8 +42,9 @@ jobs:
               chmod -R 770 ~/svg_tr_repo &&
               ~/svg_tr_repo/web_sh/update.sh &&
               rm -rf ~/svg_tr_repo &&
+              echo \"Updated on: $(date '+%Y-%m-%d %H:%M:%S')\" > ~/update_from_github &&
+              toolforge-jobs run pipup --image python3.11 --command "~/web_sh/pip.sh" --wait &&
               toolforge-webservice python3.11 stop &&
               toolforge-webservice python3.11 start &&
-              echo 'done..'
             "
             rm -rf svg_tr_repo_tmp

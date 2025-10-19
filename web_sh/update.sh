@@ -55,4 +55,8 @@ fi
 
 # webservice python3.11 restart
 
-# toolforge-jobs run updatex --image python3.11 --command "$HOME/web_sh/update.sh webservice"
+
+# become copy-svg-langs
+# toolforge-webservice python3.11 shell
+# source "$HOME/www/python/venv/bin/activate"
+# pip install -r $HOME/www/python/src/requirements.txt
