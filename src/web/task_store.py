@@ -22,13 +22,27 @@ class TaskAlreadyExistsError(Exception):
 
 
 def _serialize(value: Any) -> Optional[str]:
+    """
+    Serialize a Python value to a JSON string or return None for a missing value.
+
+    Parameters:
+        value (Any): The value to serialize; if None, no serialization is performed.
+
+    Returns:
+        Optional[str]: JSON string representation of `value`, or `None` if `value` is None.
+    """
     if value is None:
         return None
     return json.dumps(value, ensure_ascii=False)
 
 
 def _normalize_title(title: str) -> str:
-    """Return a normalized form of a title for duplicate detection."""
+    """
+    Produce a canonical form of a title for duplicate detection.
+
+    Returns:
+        A string with surrounding whitespace removed and casefolded for case-insensitive comparison.
+    """
     return title.strip().casefold()
 
 
@@ -42,6 +56,14 @@ class TaskStore:
     """SQLite backed task store used by the web application."""
 
     def __init__(self, db_path: Path | str) -> None:
+        """
+        Initialize a TaskStore backed by the SQLite database at the given path.
+
+        Opens and configures a SQLite connection for use across threads, stores the filesystem path, creates a threading lock for write serialization, and ensures the database schema is initialized.
+
+        Parameters:
+            db_path (Path | str): Filesystem path to the SQLite database file.
+        """
         self._db_path = str(db_path)
         self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
@@ -56,6 +78,14 @@ class TaskStore:
         self._init_schema()
 
     def _init_schema(self) -> None:
+        """
+        Ensure the tasks table and required indexes exist in the SQLite database.
+
+        Creates the tasks table (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at),
+        adds indexes for normalized_title, status, and created_at, and creates a unique partial index that enforces at most one
+        non-terminal (status not in 'Completed' or 'Failed') task per normalized_title. If schema creation fails with an
+        sqlite3.OperationalError, a warning is logged.
+        """
         with self._write_transaction() as cursor:
             try:
                 cursor.execute(
@@ -147,6 +177,22 @@ class TaskStore:
         data: Optional[Dict[str, Any]] = None,
         results: Optional[Dict[str, Any]] = None,
     ) -> None:
+        """
+        Create a new task record in the store.
+
+        Inserts a task row with the given id, title, status, and optional JSON payloads (form, data, results). The title is normalized for duplicate detection and JSON fields are serialized before storage. If another non-terminal task exists with the same normalized title, raises TaskAlreadyExistsError containing the existing task.
+
+        Parameters:
+            task_id (str): Unique identifier for the task to create.
+            title (str): Human-readable task title; used to derive the normalized title for uniqueness checks.
+            status (str, optional): Initial task status. Defaults to "Pending".
+            form (dict | None, optional): Optional form payload to store; will be serialized to JSON.
+            data (dict | None, optional): Optional data payload to store; will be serialized to JSON.
+            results (dict | None, optional): Optional results payload to store; will be serialized to JSON.
+
+        Raises:
+            TaskAlreadyExistsError: If an active (non-terminal) task with the same normalized title already exists. The exception carries the existing task's data.
+        """
         now = self._current_ts()
 
         with self._write_transaction() as cursor:

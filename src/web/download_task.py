@@ -22,6 +22,20 @@ def _safe_invoke_callback(
     target_path: Path,
     status: str,
 ) -> None:
+    """
+    Safely invoke a per-file progress callback without allowing exceptions to propagate.
+
+    If `callback` is None this function returns immediately. When a callback is provided,
+    it is called with (index, total, target_path, status); any exception raised by the
+    callback is caught and logged so it does not affect the caller.
+
+    Parameters:
+        callback (PerFileCallback): Optional callable to report per-file progress.
+        index (int): 1-based index of the current file being processed.
+        total (int): Total number of files being processed.
+        target_path (Path): Destination path for the current file.
+        status (str): Status label for the current file (e.g., "success", "skipped", "failed").
+    """
     if not callback:
         return
     try:
@@ -35,7 +49,18 @@ def download_commons_svgs(
     out_dir: Path | str,
     per_file_callback: PerFileCallback = None,
 ):
-    """Download SVG files from Wikimedia Commons with progress reporting."""
+    """
+    Download the given Wikimedia Commons SVG titles into the specified output directory and report per-file progress via an optional callback.
+
+    Parameters:
+        titles (Iterable[str]): Iterable of file titles to download (e.g., "File:Example.svg").
+        out_dir (Path | str): Destination directory where files will be saved; it will be created if it does not exist.
+        per_file_callback (Optional[Callable[[int, int, Path, str], None]]): Optional callable invoked after each file attempt with
+            (index, total, target_path, status) where status is one of "success", "skipped", or "failed".
+
+    Returns:
+        files (List[str]): List of file paths (as strings) that were written or already existed in out_dir.
+    """
     out_dir = Path(str(out_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -56,7 +81,10 @@ def download_commons_svgs(
     success = 0
 
     for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
-        url = base + quote(title)
+        if not title:
+            continue
+        url = f"{base}{quote(title)}"
+        # url = f"{base}{title}"
         out_path = out_dir / title
 
         if out_path.exists():
@@ -101,6 +129,18 @@ def download_task(
     titles: Iterable[str],
     progress_updater: ProgressUpdater = None,
 ):
+    """
+    Orchestrates downloading a set of Wikimedia Commons SVGs while updating a mutable stages dict and an optional progress updater.
+
+    Parameters:
+        stages (Dict[str, str]): Mutable mapping that will be updated with "message" and "status" to reflect current progress and final outcome.
+        output_dir_main (Path): Directory where downloaded files will be saved.
+        titles (Iterable[str]): Iterable of file titles to download.
+        progress_updater (Optional[Callable[[], None]]): Optional callable invoked after each file update and once at the end to notify external progress observers.
+
+    Returns:
+        (files, stages) (Tuple[List[str], Dict[str, str]]): `files` is the list of downloaded file paths (as strings); `stages` is the same dict passed in, updated with a final "status" of "Completed" or "Failed" and a final "message" summarizing processed and failed counts.
+    """
     titles = list(titles)
     total = len(titles)
 
@@ -116,6 +156,20 @@ def download_task(
     counts = {"success": 0, "skipped": 0, "failed": 0}
 
     def per_file_callback(index: int, total_items: int, _path: Path, status: str) -> None:
+        """
+        Update aggregate download counts and the stages message for a single file, then invoke the optional progress updater.
+
+        Parameters:
+            index (int): 1-based position of the current file in the total sequence.
+            total_items (int): Total number of files being processed.
+            _path (Path): Path of the current file (not used by this callback).
+            status (str): Outcome for the file; expected values: "success", "skipped", or other values treated as failure.
+
+        Description:
+            Increments the appropriate counter in the enclosing `counts` dictionary based on `status`,
+            updates `stages["message"]` to a human-readable progress string like "Downloaded 3/10",
+            and calls `progress_updater()` if one is provided; exceptions from the updater are caught and logged.
+        """
         if status == "success":
             counts["success"] += 1
             prefix = "Downloaded"

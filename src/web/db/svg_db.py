@@ -1,54 +1,21 @@
 import pymysql
 from svg_config import db_data
 # from . import Database
+from .db_class import Database
 
-# from db import execute_query, fetch_query
-# data = fetch_query(sql_query, params)
-# execute_query(sql_query, params)
-
-
-class Database:
-    def __init__(self, db_data):
-
-        self.host = db_data['host']
-        self.user = db_data['user']
-        self.dbname = db_data['dbname']
-        self.password = db_data['password']
-
-        try:
-            self.connection = pymysql.connect(
-                host=self.host,
-                user=self.user,
-                password=self.password,
-                database=self.dbname,
-                cursorclass=pymysql.cursors.DictCursor
-            )
-        except pymysql.MySQLError as e:
-            print(f"Error connecting to the database: {e}")
-            exit()
-
-    def execute_query(self, sql_query, params=None):
-        with self.connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-
-            # Check if the query starts with "SELECT"
-            if sql_query.upper().strip().startswith('SELECT'):
-                result = cursor.fetchall()
-                return result
-            else:
-                self.connection.commit()
-                return cursor.rowcount
-
-    def fetch_query(self, sql_query, params=None):
-        with self.connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-
-            result = cursor.fetchall()
-            return result
-
+db = Database(db_data)
 
 def execute_query(sql_query: str, params: list = None):
-    db = Database(db_data)
+    """
+    Execute an SQL statement using the module-level database configuration and return its result.
+
+    Parameters:
+        sql_query (str): The SQL statement to execute.
+        params (list, optional): Positional parameters for parameterized SQL; pass None if there are no parameters.
+
+    Returns:
+        result: For SELECT queries, a list of row dictionaries; for non-SELECT queries, an integer count of affected rows.
+    """
 
     if params:
         results = db.execute_query(sql_query, params)
@@ -59,7 +26,16 @@ def execute_query(sql_query: str, params: list = None):
 
 
 def fetch_query(sql_query: str, params: list = None) -> list:
-    db = Database(db_data)
+    """
+    Execute a SQL query using the module-level database configuration and return all fetched rows.
+
+    Parameters:
+        sql_query (str): The SQL statement to execute.
+        params (list, optional): Sequence of parameters to bind into the query.
+
+    Returns:
+        list: All rows returned by the query as a list of dictionaries (empty list if no rows).
+    """
 
     if params:
         results = db.fetch_query(sql_query, params)

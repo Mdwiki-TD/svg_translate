@@ -102,7 +102,15 @@ def fail_task(
     stages: Dict[str, Dict[str, Any]],
     msg: str | None = None,
 ):
-    """Mark task as failed and log reason."""
+    """
+    Mark the task as failed in the provided TaskStore and log an optional error message.
+
+    This sets the `"initialize"` stage status to `"Completed"`, persists the updated snapshot via the store, and marks the task status as `"Failed"`.
+
+    Parameters:
+        snapshot (Dict[str, Any]): Current task snapshot; must contain a `"stages"` mapping.
+        msg (str | None): Optional error message to log.
+    """
     stages["initialize"]["status"] = "Completed"
     store.update_stage(task_id, "initialize", stages["initialize"])
     store.update_status(task_id, "Failed")
@@ -113,7 +121,26 @@ def fail_task(
 
 # --- main pipeline --------------------------------------------
 def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> None:
+    """
+    Execute the end-to-end SVG processing workflow for a task, persisting progress and final results to the provided TaskStore.
 
+    Runs a sequence of stages (text extraction, title extraction, translations, download, injection, upload, and finalization), updating the task's snapshot and status in `store` after each stage, creating output directories and files under a computed project directory, saving file statistics, and writing a results summary. If a critical stage produces no usable output, the task is marked failed and processing stops.
+
+    Parameters:
+        store (TaskStorePyMysql): Persistent task store used to read/write task snapshots, statuses, and results.
+        task_id (str): Identifier of the task being processed; used as the key for store updates.
+        title (str): Project title or source path used to compute the output directory for generated files.
+        args (Any): Object containing runtime options consumed by the workflow. Expected attributes:
+            - titles_limit (int): Limit passed to the titles extraction stage.
+            - overwrite (bool): Whether injection should overwrite existing files.
+            - upload (bool): Whether upload stage should actually perform uploads.
+
+    Side effects:
+        - Creates output directories on disk.
+        - Writes task snapshot updates, status changes, and final results into `store`.
+        - Writes files produced by download and injection stages.
+        - May mark the task as Failed via fail_task when critical outputs are missing.
+    """
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,

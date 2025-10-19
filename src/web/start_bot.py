@@ -7,7 +7,15 @@ from svg_translate import download_commons_svgs, get_files, get_wikitext, start_
 
 
 def json_save(path, data):
+    """
+    Save Python data to a file as pretty-printed UTF-8 JSON.
 
+    If `data` is None or empty, the function logs an error and returns without writing. Errors encountered while opening or writing the file are logged and not propagated.
+
+    Parameters:
+        path (str | os.PathLike): Destination file path where JSON will be written.
+        data: JSON-serializable Python object to persist (e.g., dict, list).
+    """
     logger.info(f"Saving json to: {path}")
 
     if not data or data is None:
@@ -101,6 +109,17 @@ def titles_task(stages, text, titles_limit=None):
 
 def translations_task(stages, main_title, output_dir_main):
     # ---
+    """
+    Load SVG translations from a Wikimedia Commons main file, save them as translations.json next to the provided output path, and update the given stages status mapping.
+
+    Parameters:
+        stages (dict): Mutable mapping updated with progress keys such as "sub_name", "message", and "status".
+        main_title (str): Commons file title (e.g., "Example.svg") to download and extract translations from.
+        output_dir_main (pathlib.Path): Directory where the downloaded main file is placed; the function writes translations.json to output_dir_main.parent.
+
+    Returns:
+        tuple: (translations, stages) where `translations` is a dict of extracted translations (empty if none were found or download failed) and `stages` is the same stages mapping updated to reflect the final status and messages.
+    """
     stages["sub_name"] = commons_link(f'File:{main_title}')
     # ---
     stages["message"] = "Load translations from main file"
@@ -134,6 +153,24 @@ def translations_task(stages, main_title, output_dir_main):
 
 def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     # ---
+    """
+    Perform translation injection on a list of files and write translated outputs under output_dir/translated.
+
+    Parameters:
+        stages (dict): Mutable status object updated in-place with keys like "status", "message", and "sub_name".
+        files (Sequence[pathlib.Path] or list): Iterable of file paths to process.
+        translations (dict): Mapping of translation data used for injections.
+        output_dir (pathlib.Path): Directory where a "translated" subdirectory will be created to store outputs.
+        overwrite (bool): If true, existing translated files may be overwritten.
+
+    Returns:
+        tuple: (injects_result, stages)
+            injects_result (dict): Summary of injection outcomes containing at least:
+                - "saved_done" (int): number of files written.
+                - "no_save" (int): number of files skipped.
+                - "nested_files" (int): number of nested files encountered.
+            stages (dict): The same stages object passed in, updated with final status and message.
+    """
     if output_dir is None:
         stages["status"] = "Failed"
         stages["message"] = "inject task requires output_dir"
@@ -152,5 +189,3 @@ def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     stages["status"] = "Completed"
     # ---
     return injects_result, stages
-
-
