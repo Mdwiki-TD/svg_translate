@@ -39,6 +39,17 @@ def _compute_output_dir(title: str) -> Path:
 
 
 def make_stages():
+    """
+    Create an initial stages dictionary describing progress metadata for the workflow.
+
+    Returns:
+        dict: Mapping of stage names ('initialize', 'text', 'titles', 'translations', 'download', 'inject', 'upload')
+        to metadata objects with the keys:
+          - 'number' (int): stage order,
+          - 'sub_name' (str): optional sub-stage name,
+          - 'status' (str): current stage status (e.g., "Running", "Pending"),
+          - 'message' (str): human-readable status message.
+    """
     return {
         "initialize": {
             "number": 1,
