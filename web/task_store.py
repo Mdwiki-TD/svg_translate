@@ -46,6 +46,7 @@ class TaskStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.isolation_level = None
         self._lock = threading.Lock()
+
         # Improve concurrency characteristics
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
@@ -70,11 +71,15 @@ class TaskStore:
                 )
                 """
             )
+            # Lookup/sort indexes
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_norm ON tasks(normalized_title)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at)")
+            # Enforce at most one active task per normalized_title
             cursor.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_tasks_active_lookup
-                ON tasks (normalized_title, status)
-                """
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_active_title "
+                "ON tasks(normalized_title) "
+                "WHERE status NOT IN ('Completed','Failed')"
             )
 
     @contextmanager
@@ -114,6 +119,8 @@ class TaskStore:
 
         with self._write_transaction() as cursor:
             normalized_title = _normalize_title(title)
+            # ---
+            '''
             existing = cursor.execute(
                 """
                 SELECT * FROM tasks
@@ -122,25 +129,37 @@ class TaskStore:
                 """,
                 (normalized_title, *TERMINAL_STATUSES)
             ).fetchone()
+            # ---
             if existing:
                 raise TaskAlreadyExistsError(self._row_to_task(existing))
-            cursor.execute(
-                """
-                INSERT INTO tasks (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    task_id,
-                    title,
-                    normalized_title,
-                    status,
-                    _serialize(form),
-                    _serialize(data),
-                    _serialize(results),
-                    now,
-                    now,
-                ),
-            )
+            '''
+            # ---
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO tasks (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        task_id,
+                        title,
+                        normalized_title,
+                        status,
+                        _serialize(form),
+                        _serialize(data),
+                        _serialize(results),
+                        now,
+                        now,
+                    ),
+
+                )
+            except sqlite3.IntegrityError:
+                # Unique active-title constraint hit: fetch existing and raise
+                row = cursor.execute(
+                    "SELECT * FROM tasks WHERE normalized_title = ? AND status NOT IN (?, ?) ORDER BY created_at DESC LIMIT 1",
+                    (normalized_title, *TERMINAL_STATUSES)
+                ).fetchone()
+                raise TaskAlreadyExistsError(self._row_to_task(row) if row else {"id": None, "title": title})
 
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:

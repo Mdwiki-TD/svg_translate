@@ -71,9 +71,8 @@ def start():
     if not title:
         return redirect(url_for("index"))
 
-    existing_task = TASK_STORE.get_active_task_by_title(title)
-    if existing_task:
-        return redirect(url_for("index", task_id=existing_task["id"], error="task-active"))
+    # existing_task = TASK_STORE.get_active_task_by_title(title)
+    # if existing_task: return redirect(url_for("index", task_id=existing_task["id"], error="task-active"))
 
     task_id = uuid.uuid4().hex
     try:
