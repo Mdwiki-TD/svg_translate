@@ -113,16 +113,45 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     return ordered
 
 
+@app.get("/task1")
+def task1():
+    task_id = request.args.get("task_id")
+    task = TASK_STORE.get_task(task_id) if task_id else None
+
+    if not task:
+        task = {"error": "not-found"}
+        logger.debug(f"Task {task_id} not found!!")
+
+    error_code = request.args.get("error")
+    error_message = None
+    if error_code == "task-active":
+        error_message = "A task for this title is already in progress."
+
+    return render_template(
+        "task1.html",
+        task_id=task_id,
+        task=task,
+        form=task.get("form", {}),
+        error_message=error_message,
+    )
+
+
 @app.get("/")
 def index():
-    """
-    Render the index page for a task, showing task details and an optional error message.
+    error_code = request.args.get("error")
+    error_message = None
+    if error_code == "task-active":
+        error_message = "A task for this title is already in progress."
 
-    Reads the `task_id` and `error` query parameters from the request. If `task_id` is provided, attempts to fetch the corresponding task from the task store; if no task is found, supplies a placeholder task with an `"error": "not-found"` value. Maps the `"task-active"` error code to a human-facing message.
+    return render_template(
+        "index.html",
+        form={},
+        error_message=error_message,
+    )
 
-    Returns:
-        Rendered HTML response for the index page containing the task data, the task's form values (if any), and an optional error message.
-    """
+
+@app.get("/task2")
+def task2():
     task_id = request.args.get("task_id")
     title = request.args.get("title")
     task = TASK_STORE.get_task(task_id) if task_id else None
@@ -132,7 +161,6 @@ def index():
         logger.debug(f"Task {task_id} not found!!")
 
     error_code = request.args.get("error")
-
     error_message = None
     if error_code == "task-active":
         error_message = "A task for this title is already in progress."
@@ -140,44 +168,7 @@ def index():
     stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
     return render_template(
-        "index.html",
-        task_id=task_id,
-        title=title or task.get("title", ""),
-        task=task,
-        stages=stages,
-        form=task.get("form", {}),
-        error_message=error_message,
-    )
-
-
-@app.get("/index2")
-def index2():
-    """
-    Render the index2 page for a task identified by the `task_id` query parameter.
-
-    Fetches the task specified by the `task_id` query parameter and renders the "index2.html" template with the task data, form data (empty dict if absent), and an optional human-readable error message. If no matching task is found, a placeholder task with an error code is used. The query parameter `error=task-active` maps to a user-facing message indicating a task with the same title is already in progress.
-
-    @returns:
-        Flask response containing the rendered "index2.html" page populated with `task_id`, `task`, `form`, and `error_message`.
-    """
-    task_id = request.args.get("task_id")
-    title = request.args.get("title")
-    task = TASK_STORE.get_task(task_id) if task_id else None
-
-    if not task:
-        task = {"error": "not-found"}
-        logger.debug(f"Task {task_id} not found")
-
-    error_code = request.args.get("error")
-
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
-
-    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
-
-    return render_template(
-        "index2.html",
+        "task2.html",
         task_id=task_id,
         title=title or task.get("title", ""),
         task=task,
@@ -189,14 +180,6 @@ def index2():
 
 @app.post("/")
 def start():
-    """
-    Create a new task from the submitted form, start its background worker, and redirect to the task page.
-
-    If the form's title is empty the request is redirected back to the index. On task creation conflict redirects to the existing task with error "task-active". On other creation failures redirects to the index with error "task-create-failed". When creation succeeds a daemon thread is started to run the task and the user is redirected to the new task's index page.
-
-    Returns:
-        A Flask redirect response to the index view for the created task, or to the index view with an error code if creation failed or the task already exists.
-    """
     title = request.form.get("title", "").strip()
     if not title:
         return redirect(url_for("index"))
@@ -205,7 +188,7 @@ def start():
 
     if existing_task:
         logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-        return redirect(url_for("index", task_id=existing_task["id"], title=title, error="task-active"))
+        return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
 
     task_id = uuid.uuid4().hex
 
@@ -217,7 +200,7 @@ def start():
         )
     except TaskAlreadyExistsError as exc:
         existing = exc.task
-        return redirect(url_for("index", task_id=existing["id"], title=title, error="task-active"))
+        return redirect(url_for("task1", task_id=existing["id"], title=title, error="task-active"))
     except Exception as exc:
         logger.exception(f"Failed to create task: {exc}")
         return redirect(url_for("index", title=title, error="task-create-failed"))
@@ -228,7 +211,7 @@ def start():
     # ---
     t.start()
     # ---
-    return redirect(url_for("index", title=title, task_id=task_id))
+    return redirect(url_for("task1", title=title, task_id=task_id))
 
 
 @app.get("/tasks")
