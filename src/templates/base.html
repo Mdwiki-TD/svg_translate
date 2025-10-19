@@ -22,12 +22,12 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
-                            {% if request.endpoint == 'index' %}aria-current="page"{% endif %}
+                            {% if request.endpoint == 'index' %}aria-current="page" {% endif %}
                             href="{{ url_for('index') }}">Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'tasks' %}active{% endif %}"
-                            {% if request.endpoint == 'tasks' %}aria-current="page"{% endif %}
+                            {% if request.endpoint == 'tasks' %}aria-current="page" {% endif %}
                             href="{{ url_for('tasks') }}">All Tasks</a>
                     </li>
                 </ul>
@@ -44,9 +44,9 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 
-<!-- Autocomplete script -->
-<script src="{{ url_for('static', filename='js/autocomplete.js') }}"></script>
-    
+    <!-- Autocomplete script -->
+    <script src="{{ url_for('static', filename='js/autocomplete.js') }}"></script>
+
     {% block extra_js %}{% endblock %}
 </body>
 
