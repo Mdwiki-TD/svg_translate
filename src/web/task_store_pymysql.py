@@ -6,7 +6,14 @@ from typing import Any, Dict, Iterable, List, Optional
 import datetime
 
 from svg_translate import logger
-from .db import execute_query, fetch_query
+
+from svg_config import db_data
+from .db import Database
+
+db = Database(db_data)
+
+execute_query = db.execute_query
+fetch_query = db.fetch_query
 
 TERMINAL_STATUSES = ("Completed", "Failed")
 
@@ -372,58 +379,16 @@ class TaskStorePyMysql:
         """
         self.update_task(task_id, results=results)
 
-    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
-        now = self._current_ts()
-        try:
-            execute_query("DELETE FROM task_stages WHERE task_id = %s", [task_id])
-            for stage_name, stage_data in stages.items():
-                execute_query(
-                    """
-                    INSERT INTO task_stages (
-                        stage_id,
-                        task_id,
-                        stage_name,
-                        stage_number,
-                        stage_status,
-                        stage_sub_name,
-                        stage_message,
-                        updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE
-                        stage_number = VALUES(stage_number),
-                        stage_status = VALUES(stage_status),
-                        stage_sub_name = VALUES(stage_sub_name),
-                        stage_message = VALUES(stage_message),
-                        updated_at = VALUES(updated_at)
-                    """,
-                    [
-                        f"{task_id}:{stage_name}",
-                        task_id,
-                        stage_name,
-                        stage_data.get("number", 0),
-                        stage_data.get("status", "Pending"),
-                        stage_data.get("sub_name"),
-                        stage_data.get("message"),
-                        now,
-                    ],
-                )
-        except Exception as exc:
-            logger.error("Failed to replace task stages: %s", exc)
-
     def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
         now = self._current_ts()
         try:
             execute_query(
                 """
                 INSERT INTO task_stages (
-                    stage_id,
-                    task_id,
-                    stage_name,
-                    stage_number,
-                    stage_status,
-                    stage_sub_name,
-                    stage_message,
-                    updated_at
+                    stage_id, task_id,
+                    stage_name, stage_number,
+                    stage_status, stage_sub_name,
+                    stage_message, updated_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                     stage_number = COALESCE(VALUES(stage_number), stage_number),
@@ -445,6 +410,40 @@ class TaskStorePyMysql:
             )
         except Exception as exc:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
+
+    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
+        now = self._current_ts()
+        try:
+            execute_query("DELETE FROM task_stages WHERE task_id = %s", [task_id])
+            for stage_name, stage_data in stages.items():
+                execute_query(
+                    """
+                INSERT INTO task_stages (
+                    stage_id, task_id,
+                    stage_name, stage_number,
+                    stage_status, stage_sub_name,
+                    stage_message, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    stage_number = VALUES(stage_number),
+                    stage_status = VALUES(stage_status),
+                    stage_sub_name = VALUES(stage_sub_name),
+                    stage_message = VALUES(stage_message),
+                    updated_at = VALUES(updated_at)
+                """,
+                    [
+                        f"{task_id}:{stage_name}",
+                        task_id,
+                        stage_name,
+                        stage_data.get("number", 0),
+                        stage_data.get("status", "Pending"),
+                        stage_data.get("sub_name"),
+                        stage_data.get("message"),
+                        now,
+                    ],
+                )
+        except Exception as exc:
+            logger.error("Failed to replace task stages: %s", exc)
 
     def _fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
         try:

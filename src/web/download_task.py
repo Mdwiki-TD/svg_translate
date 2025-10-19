@@ -44,7 +44,7 @@ def _safe_invoke_callback(
         logger.exception("Error while executing progress callback")
 
 
-def download_commons_svgs(
+def download_commons_new(
     titles: Iterable[str],
     out_dir: Path | str,
     per_file_callback: PerFileCallback = None,
@@ -188,7 +188,7 @@ def download_task(
             except Exception:  # pragma: no cover - defensive logging
                 logger.exception("Error while executing progress updater")
 
-    files = download_commons_svgs(
+    files = download_commons_new(
         titles,
         out_dir=output_dir_main,
         per_file_callback=per_file_callback,

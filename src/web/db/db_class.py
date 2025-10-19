@@ -6,7 +6,6 @@ import pymysql
 
 class Database:
     def __init__(self, db_data):
-
         """
         Initialize the Database instance and establish a MySQL connection using credentials from db_data.
 
@@ -49,13 +48,8 @@ class Database:
             with self.connection.cursor() as cursor:
                 cursor.execute(sql_query, params)
 
-                # Check if the query starts with "SELECT"
-                if sql_query.upper().strip().startswith('SELECT'):
-                    result = cursor.fetchall()
-                    return result
-                else:
-                    self.connection.commit()
-                    return cursor.rowcount
+                self.connection.commit()
+                return cursor.rowcount
 
         except pymysql.MySQLError as e:
             print(f"SQL error: {e}<br>{sql_query}")

@@ -144,8 +144,11 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     task_snapshot: Dict[str, Any] = {
         "title": title,
     }
+
     stages = make_stages()
+
     store.replace_stages(task_id, stages)
+
     store.update_data(task_id, task_snapshot)
     store.update_status(task_id, "Running")
 
@@ -153,12 +156,14 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
         state = stage_state if stage_state is not None else stages[stage_name]
         store.update_stage(task_id, stage_name, state)
 
+    # ----------------------------------------------
     # Stage 1: extract text
     text, stages["text"] = text_task(stages["text"], title)
     push_stage("text")
     if not text:
         return fail_task(store, task_id, stages, "No text extracted")
 
+    # ----------------------------------------------
     # Stage 2: extract titles
     titles_result, stages["titles"] = titles_task(
         stages["titles"], text, titles_limit=args.titles_limit
@@ -169,6 +174,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     if not titles:
         return fail_task(store, task_id, stages, "No titles found")
 
+    # ----------------------------------------------
     # Stage 3: get translations
     output_dir_main = output_dir / "files"
     output_dir_main.mkdir(parents=True, exist_ok=True)
@@ -181,9 +187,11 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     if not translations:
         return fail_task(store, task_id, stages, "No translations available")
 
+    # ----------------------------------------------
     # Stage 4: download SVG files
     def download_progress(stage_state: Dict[str, Any]) -> None:
-        push_stage("download", stage_state)
+        state = stage_state if stage_state is not None else stages["download"]
+        store.update_stage(task_id, "download", state)
 
     files, stages["download"] = download_task(
         stages["download"],
@@ -196,6 +204,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     if not files:
         return fail_task(store, task_id, stages, "No files downloaded")
 
+    # ----------------------------------------------
     # Stage 5: inject translations
     injects_result, stages["inject"] = inject_task(
         stages["inject"],
@@ -211,11 +220,12 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
 
     inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
+    # ----------------------------------------------
+    # Stage 6: upload results
     files_to_upload = {x: v for x, v in inject_files.items() if v.get("file_path")}
 
     no_file_path = len(inject_files) - len(files_to_upload)
 
-    # Stage 6: upload results
     def upload_progress(stage_state: Dict[str, Any]) -> None:
         push_stage("upload", stage_state)
 
@@ -228,6 +238,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     )
     push_stage("upload")
 
+    # ----------------------------------------------
     # Stage 7: save stats and mark done
     data = {
         "main_title": main_title,
