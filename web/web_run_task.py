@@ -24,7 +24,7 @@ from svg_translate.task_store import TaskStore
 
 def _compute_output_dir(title: str) -> Path:
     # Align with CLI behavior: store under repo svg_data/<slug>
-    slug = Path(title)  # title.split("/")[-1]
+    slug = Path(title).parent  # title.split("/")[-1]
     # ---
     base = svg_data_dir
     # ---

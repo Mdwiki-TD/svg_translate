@@ -17,7 +17,7 @@ project = home_dir if home_dir else 'I:/core/bots/core1'
 user_config_path = f"{project}/confs/user.ini"
 
 # data_path = Path(__file__).parent.parent / "svg_data"
-data_path = f"{home_dir}/I:/svg_data" if home_dir else "I:/SVG/svg_data"
+data_path = f"{home_dir}/svg_data" if home_dir else "I:/SVG/svg_data"
 
 svg_data_dir = Path(data_path)
 svg_data_dir.mkdir(parents=True, exist_ok=True)
