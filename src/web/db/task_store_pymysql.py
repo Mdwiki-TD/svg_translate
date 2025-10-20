@@ -94,7 +94,7 @@ class StageStoreProtocol(Protocol):
                 params_seq,
             )
             
-    def fetch_stages(self, task_id: str) -> Dict[str, ict[str, Any]]:
+    def fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
         rows = self.db.fetch_query_safe(
             """
                 SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
