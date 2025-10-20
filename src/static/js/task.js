@@ -71,7 +71,7 @@ function result_html(r) {
             }
 
             const stagesContainerNew = document.getElementById('stagesnew');
-            const stages = taskData.data.stages || taskData.stages || {};
+            const stages = (taskData.data?.stages) || taskData.stages || {};
             if (stages) {
                 const stages_obj = Object.entries(stages).sort((a, b) => (a[1].number || 0) - (b[1].number || 0));
                 document.getElementById("global-progress").style.width = `${overall_progress(stages_obj)}%`;

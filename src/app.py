@@ -185,6 +185,8 @@ def start():
     if not title:
         return redirect(url_for("index"))
 
+    task_id = uuid.uuid4().hex
+
     with TASKS_LOCK:
         existing_task = TASK_STORE.get_active_task_by_title(title)
 
@@ -192,25 +194,28 @@ def start():
             logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
             return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
 
-    task_id = uuid.uuid4().hex
-
-    with TASKS_LOCK:
         try:
             TASK_STORE.create_task(
                 task_id,
                 title,
-                form={x: request.form.get(x) for x in request.form}
+                # form={x: request.form.get(x) for x in request.form}
+                form=request.form.to_dict(flat=True)
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
             return redirect(url_for("task1", task_id=existing["id"], title=title, error="task-active"))
-        except Exception as exc:
-            logger.exception(f"Failed to create task: {exc}")
+        except Exception as exc:  # noqa: BLE001 — TaskStore may surface heterogeneous DB errors
+            logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("index", title=title, error="task-create-failed"))
 
     args = parse_args(request.form)
     # ---
-    t = threading.Thread(target=run_task, args=(TASK_STORE, task_id, title, args), daemon=True)
+    t = threading.Thread(
+        target=run_task,
+        args=(TASK_STORE, task_id, title, args),
+        name=f"task-runner-{task_id[:8]}",
+        daemon=True,
+    )
     # ---
     t.start()
     # ---

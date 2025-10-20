@@ -123,4 +123,4 @@ class Database:
         except pymysql.MySQLError as e:
             print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
             print(params)
-            return []
+            return 0

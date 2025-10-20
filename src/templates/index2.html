@@ -33,7 +33,7 @@
             <h2 class="h5">
                 Task Status <span id="task_status">
                     {% if task %}
-                    ({{ task.status if task.status else "Not Found" if task.error and task.error == 'not-found' }})
+                    ({{ task.status if task.status else ("Not Found" if task.error == 'not-found' else "") }})
                     {% endif %}
                 </span>
             </h2>
@@ -74,7 +74,7 @@
                         <li class="list-group-item">Total files: {{ task.results.total_files }}</li>
                         <li class="list-group-item">Ready to upload: {{ task.results.files_to_upload_count }}</li>
                         <li class="list-group-item">No file path: {{ task.results.no_file_path }}</li>
-                        <li class="list-group-item">Nested files: {{ task.results.injects_result.nested_files }}</li>
+                        <li class="list-group-item">Nested files: {{ (task.results or {}).get('injects_result', {}).get('nested_files', 0) }}</li>
                         <li class="list-group-item">New translations: {{ task.results.new_translations_count }}</li>
                     </ul>
                 {% endif %}
