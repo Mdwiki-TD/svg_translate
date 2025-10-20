@@ -15,35 +15,6 @@ PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
 
-def _safe_invoke_callback(
-    callback: PerFileCallback,
-    index: int,
-    total: int,
-    target_path: Path,
-    status: str,
-) -> None:
-    """
-    Safely invoke a per-file progress callback without allowing exceptions to propagate.
-
-    If `callback` is None this function returns immediately. When a callback is provided,
-    it is called with (index, total, target_path, status); any exception raised by the
-    callback is caught and logged so it does not affect the caller.
-
-    Parameters:
-        callback (PerFileCallback): Optional callable to report per-file progress.
-        index (int): 1-based index of the current file being processed.
-        total (int): Total number of files being processed.
-        target_path (Path): Destination path for the current file.
-        status (str): Status label for the current file (e.g., "success", "skipped", "failed").
-    """
-    if not callback:
-        return
-    try:
-        callback(index, total, target_path, status)
-    except Exception:  # pragma: no cover - defensive logging
-        logger.exception("Error while executing progress callback")
-
-
 def download_one_file(title: str, session: requests.Session, out_dir: Path | str, i: int):
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
@@ -137,7 +108,7 @@ def download_task(
         if result["path"]:
             files.append(result["path"])
 
-        if progress_updater:
+        if progress_updater and i % 10 == 0:
             progress_updater(stages)
 
     logger.info("files: %s", len(files))
