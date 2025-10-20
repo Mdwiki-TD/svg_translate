@@ -136,6 +136,19 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     return ordered
 
 
+def get_error_message(error_code):
+    if not error_code:
+        return ""
+    # ---
+    messages = {
+        "task-active": "A task for this title is already in progress.",
+        "not-found": "Task not found.",
+        "task-create-failed": "Task creation failed.",
+    }
+    # ---
+    return messages.get(error_code, error_code)
+
+
 @app.get("/task1")
 def task1() -> Response:
     """Render the task detail page for the first step of the workflow.
@@ -152,10 +165,7 @@ def task1() -> Response:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     return render_template(
         "task1.html",
@@ -175,10 +185,7 @@ def index() -> Response:
         with an error message when a duplicate task submission was attempted.
     """
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     return render_template(
         "index.html",
@@ -204,10 +211,7 @@ def task2() -> Response:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
