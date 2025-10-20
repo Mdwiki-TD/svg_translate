@@ -14,7 +14,7 @@ import sys
 from src.svg_translate import start_on_template_title, config_logger
 from src.svg_translate.upload_files import start_upload
 
-from src.app.db import get_user
+from src.app.users.store import get_user_token
 from src.svg_config import svg_data_dir
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
@@ -49,11 +49,11 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
         user_id = os.getenv("MW_DEFAULT_USER_ID")
         if not user_id:
             raise SystemExit("MW_DEFAULT_USER_ID environment variable is required for uploads")
-        user = get_user(int(user_id))
+        user = get_user_token(int(user_id))
         if not user:
             raise SystemExit(f"No OAuth credentials found for user id {user_id}")
 
-        upload_result = start_upload(files_to_upload, main_title_link, user["token_enc"])
+        upload_result = start_upload(files_to_upload, main_title_link, user)
         # {"done": done, "not_done": not_done, "errors": errors}
         print(f"upload_result: Done: {upload_result['done']:,}, Not done: {upload_result['not_done']:,}, Errors: {len(upload_result['errors']):,}")
 

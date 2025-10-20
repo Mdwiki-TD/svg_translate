@@ -1,10 +1,23 @@
 """Compatibility package that re-exports the runtime code from the src layout."""
 
+import base64
+import os
+import sys
 from importlib import import_module
 from pathlib import Path
 import json
 import shutil
 from typing import Iterable, Mapping, MutableMapping, Optional
+
+os.environ.setdefault("FLASK_SECRET_KEY", "test-secret")
+os.environ.setdefault("OAUTH_ENCRYPTION_KEY", base64.urlsafe_b64encode(b"0" * 32).decode())
+os.environ.setdefault("CONSUMER_KEY", "test-consumer-key")
+os.environ.setdefault("CONSUMER_SECRET", "test-consumer-secret")
+os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
+
+SRC_ROOT = Path(__file__).resolve().parents[3] / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 _pkg = import_module("src.svg_translate")
 
@@ -29,6 +42,13 @@ for name, value in _pkg.__dict__.items():
     if name.startswith("_") or name in globals():
         continue
     globals()[name] = value
+
+logger = globals().get("logger")
+if logger is not None and "logger" not in __all__:
+    __all__.append("logger")
+config_logger = globals().get("config_logger")
+if config_logger is not None and "config_logger" not in __all__:
+    __all__.append("config_logger")
 
 # ---------------------------------------------------------------------------
 # Test shims

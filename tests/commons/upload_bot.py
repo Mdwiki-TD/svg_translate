@@ -6,8 +6,8 @@ import random
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
-from src.app.db import get_user
-from src.app.wiki_client import build_oauth_site
+from src.app.users.store import get_user_token
+from src.app.wiki_client import build_site_for_user
 from svg_translate import upload_file
 
 files_stats_path = Path(__file__).parent.parent.parent / "svg_data/files_stats.json"
@@ -36,11 +36,11 @@ user_id = os.getenv("MW_DEFAULT_USER_ID")
 if not user_id:
     raise SystemExit("MW_DEFAULT_USER_ID environment variable is required for OAuth uploads")
 
-user = get_user(int(user_id))
+user = get_user_token(int(user_id))
 if not user:
     raise SystemExit(f"No OAuth credentials found for user id {user_id}")
 
-site = build_oauth_site(user["token_enc"])
+site = build_site_for_user(user)
 
 upload_file(file_name, file_path, site=site, summary=summary)
 # ---

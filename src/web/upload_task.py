@@ -7,12 +7,26 @@ from typing import Any, Callable, Dict, Optional
 
 from tqdm import tqdm
 
-from svg_translate import logger
+from src.svg_translate.log import logger
 from svg_translate.commons.upload_bot import upload_file
 from src.app.wiki_client import build_oauth_site
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
+
+
+def _coerce_encrypted(value: object) -> bytes | None:
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, bytearray):
+        return bytes(value)
+    if isinstance(value, memoryview):
+        return value.tobytes()
+    if isinstance(value, str):
+        return value.encode("utf-8")
+    return None
 
 
 def _safe_invoke_callback(
@@ -143,11 +157,12 @@ def upload_task(
         return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
 
     user = user or {}
-    token_enc = user.get("token_enc")
+    access_token_enc = _coerce_encrypted(user.get("access_token_enc"))
+    access_secret_enc = _coerce_encrypted(user.get("access_secret_enc"))
 
-    if not token_enc:
+    if not access_token_enc or not access_secret_enc:
         stages["status"] = "Failed"
-        stages["message"] += " (Missing OAuth token)"
+        stages["message"] += " (Missing OAuth credentials)"
         if progress_updater:
             progress_updater(stages)
         return {
@@ -158,7 +173,7 @@ def upload_task(
         }, stages
 
     try:
-        site = build_oauth_site(token_enc)
+        site = build_oauth_site(access_token_enc, access_secret_enc)
     except Exception as exc:  # pragma: no cover - network interaction
         logger.exception("Failed to build OAuth site", exc_info=exc)
         stages["status"] = "Failed"

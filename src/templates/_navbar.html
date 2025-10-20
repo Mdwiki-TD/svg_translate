@@ -16,8 +16,8 @@
       </ul>
       {% if USE_MW_OAUTH %}
         <div class="d-flex align-items-center">
-          {% if session.username %}
-            <span class="navbar-text me-3">Signed in: {{ session.username }}</span>
+          {% if username %}
+            <span class="navbar-text me-3">Signed in: {{ username }}</span>
             <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">Logout</a>
           {% else %}
             <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Login</a>

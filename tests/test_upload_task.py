@@ -9,7 +9,8 @@ from unittest.mock import MagicMock, patch
 from cryptography.fernet import Fernet
 import pytest
 
-os.environ.setdefault("FERNET_KEY", Fernet.generate_key().decode("utf-8"))
+os.environ.setdefault("FLASK_SECRET_KEY", "test-secret")
+os.environ.setdefault("OAUTH_ENCRYPTION_KEY", Fernet.generate_key().decode("utf-8"))
 os.environ.setdefault("CONSUMER_KEY", "test-consumer-key")
 os.environ.setdefault("CONSUMER_SECRET", "test-consumer-secret")
 os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
@@ -111,7 +112,11 @@ class TestUploadTask:
             sample_files_to_upload,
             "Main.svg",
             do_upload=True,
-            user={"token_enc": "token", "username": "user"},
+            user={
+                "access_token_enc": b"token",
+                "access_secret_enc": b"secret",
+                "username": "user",
+            },
         )
 
         assert result["done"] == 2
@@ -132,6 +137,7 @@ class TestUploadTask:
         assert result["skipped"] is True
         assert result["reason"] == "missing-token"
         assert updated_stages["status"] == "Failed"
+        assert "Missing OAuth credentials" in updated_stages["message"]
 
     @patch("src.web.upload_task.build_oauth_site", side_effect=RuntimeError("boom"))
     def test_upload_task_oauth_failure(self, mock_build_site, sample_files_to_upload):
@@ -141,7 +147,7 @@ class TestUploadTask:
             sample_files_to_upload,
             "Main.svg",
             do_upload=True,
-            user={"token_enc": "token"},
+            user={"access_token_enc": b"token", "access_secret_enc": b"secret"},
         )
 
         assert result["skipped"] is True
@@ -161,7 +167,7 @@ class TestUploadTask:
             sample_files_to_upload,
             "Main.svg",
             do_upload=True,
-            user={"token_enc": "token"},
+            user={"access_token_enc": b"token", "access_secret_enc": b"secret"},
         )
 
         assert result["not_done"] == 1
@@ -175,7 +181,7 @@ class TestUploadTask:
             sample_files_to_upload,
             "Main.svg",
             do_upload=False,
-            user={"token_enc": "token"},
+            user={"access_token_enc": b"token", "access_secret_enc": b"secret"},
         )
 
         assert result["skipped"] is True

@@ -2,41 +2,35 @@
 
 from __future__ import annotations
 
-import json
-from typing import Tuple
-
 import mwclient
 
-from .config import (
-    CONSUMER_KEY,
-    CONSUMER_SECRET,
-    OAUTH_API_HOST,
-    OAUTH_API_PATH,
-    OAUTH_USER_AGENT,
-)
-from .crypto import decrypt_text
+from .config import settings
+from .crypto import decrypt_value
+from .users.store import UserTokenRecord
 
 
-def _parse_token(token_enc: str) -> Tuple[str, str]:
-    token = json.loads(decrypt_text(token_enc))
-    if not isinstance(token, (list, tuple)) or len(token) < 2:
-        raise ValueError("Invalid OAuth access token")
-    return str(token[0]), str(token[1])
-
-
-def build_oauth_site(token_enc: str) -> mwclient.Site:
-    if not (CONSUMER_KEY and CONSUMER_SECRET):
+def _build_site(access_key: str, access_secret: str) -> mwclient.Site:
+    if not settings.oauth:
         raise RuntimeError("MediaWiki OAuth consumer not configured")
 
-    access_key, access_secret = _parse_token(token_enc)
-
     return mwclient.Site(
-        OAUTH_API_HOST or "commons.wikimedia.org",
-        path=OAUTH_API_PATH or "/w/",
+        settings.oauth.api_host,
+        path=settings.oauth.api_path,
         scheme="https",
-        clients_useragent=OAUTH_USER_AGENT,
-        consumer_token=CONSUMER_KEY,
-        consumer_secret=CONSUMER_SECRET,
+        clients_useragent=settings.oauth.user_agent,
+        consumer_token=settings.oauth.consumer_key,
+        consumer_secret=settings.oauth.consumer_secret,
         access_token=access_key,
         access_secret=access_secret,
     )
+
+
+def build_oauth_site(access_token_enc: bytes, access_secret_enc: bytes) -> mwclient.Site:
+    access_key = decrypt_value(access_token_enc)
+    access_secret = decrypt_value(access_secret_enc)
+    return _build_site(access_key, access_secret)
+
+
+def build_site_for_user(user: UserTokenRecord) -> mwclient.Site:
+    access_key, access_secret = user.decrypted()
+    return _build_site(access_key, access_secret)

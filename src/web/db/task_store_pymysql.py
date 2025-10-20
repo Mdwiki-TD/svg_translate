@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from svg_translate import logger
+from src.svg_translate.log import logger
 
 from .db_class import Database
 from .utils import _serialize, _normalize_title, _deserialize, _current_ts

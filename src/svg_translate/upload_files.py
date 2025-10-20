@@ -1,14 +1,32 @@
 """Standalone upload helpers for use outside of the Flask web app."""
 
+from __future__ import annotations
+
+from typing import Mapping
+
 from tqdm import tqdm
 
 from .commons.upload_bot import upload_file
-from src.app.wiki_client import build_oauth_site
+from src.app.users.store import UserTokenRecord
+from src.app.wiki_client import build_oauth_site, build_site_for_user
 
 
-def start_upload(files_to_upload, main_title_link, token_enc):
+def _resolve_site(token_source: UserTokenRecord | Mapping[str, object]):
+    if isinstance(token_source, UserTokenRecord):
+        return build_site_for_user(token_source)
 
-    site = build_oauth_site(token_enc)
+    access_token_enc = token_source.get("access_token_enc") if isinstance(token_source, Mapping) else None
+    access_secret_enc = token_source.get("access_secret_enc") if isinstance(token_source, Mapping) else None
+    if not isinstance(access_token_enc, (bytes, bytearray, memoryview)) or not isinstance(
+        access_secret_enc, (bytes, bytearray, memoryview)
+    ):
+        raise ValueError("OAuth credentials are missing or invalid")
+    return build_oauth_site(bytes(access_token_enc), bytes(access_secret_enc))
+
+
+def start_upload(files_to_upload, main_title_link, token_source):
+
+    site = _resolve_site(token_source)
 
     if getattr(site, "logged_in", False):
         username = getattr(site, "username", "")

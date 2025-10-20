@@ -1,28 +1,31 @@
-"""Symmetric encryption helpers for storing sensitive tokens."""
+"""Symmetric encryption helpers for storing OAuth secrets."""
 
 from __future__ import annotations
 
 from cryptography.fernet import Fernet, InvalidToken
 
-from .config import FERNET_KEY
+from .config import settings
 
 
-if not FERNET_KEY:
-    raise RuntimeError("FERNET_KEY is not configured")
+if not settings.oauth_encryption_key:
+    raise RuntimeError(
+        "OAUTH_ENCRYPTION_KEY must be configured before using the crypto helpers"
+    )
 
-_fernet = Fernet(FERNET_KEY)
-
-
-def encrypt_text(plaintext: str) -> str:
-    """Encrypt a UTF-8 string into a URL-safe token."""
-    token = _fernet.encrypt(plaintext.encode("utf-8"))
-    return token.decode("utf-8")
+_fernet = Fernet(settings.oauth_encryption_key)
 
 
-def decrypt_text(token: str) -> str:
-    """Decrypt a previously encrypted token back to a UTF-8 string."""
+def encrypt_value(value: str) -> bytes:
+    """Encrypt a UTF-8 string and return the raw Fernet token bytes."""
+
+    return _fernet.encrypt(value.encode("utf-8"))
+
+
+def decrypt_value(token: bytes) -> str:
+    """Decrypt a Fernet token and return the UTF-8 string contents."""
+
     try:
-        plaintext = _fernet.decrypt(token.encode("utf-8"))
-    except InvalidToken as exc:  # pragma: no cover - defensive guard
-        raise ValueError("Invalid encrypted token") from exc
-    return plaintext.decode("utf-8")
+        decrypted = _fernet.decrypt(token)
+    except InvalidToken as exc:
+        raise ValueError("Unable to decrypt stored token") from exc
+    return decrypted.decode("utf-8")
