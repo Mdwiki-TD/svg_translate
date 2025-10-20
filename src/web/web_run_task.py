@@ -115,32 +115,15 @@ def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], m
 
 
 # --- main pipeline --------------------------------------------
-def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> None:
-    """
-    Execute the end-to-end SVG processing workflow for a task, persisting progress and final results to the provided TaskStore.
-
-    Runs a sequence of stages (text extraction, title extraction, translations, download, injection, upload, and finalization), updating the task's snapshot and status in `store` after each stage, creating output directories and files under a computed project directory, saving file statistics, and writing a results summary. If a critical stage produces no usable output, the task is marked failed and processing stops.
-
-    Parameters:
-        store (TaskStorePyMysql): Persistent task store used to read/write task snapshots, statuses, and results.
-        task_id (str): Identifier of the task being processed; used as the key for store updates.
-        title (str): Project title or source path used to compute the output directory for generated files.
-        args (Any): Object containing runtime options consumed by the workflow. Expected attributes:
-            - titles_limit (int): Limit passed to the titles extraction stage.
-            - overwrite (bool): Whether injection should overwrite existing files.
-            - upload (bool): Whether upload stage should actually perform uploads.
-
-    Side effects:
-        - Creates output directories on disk.
-        - Writes task snapshot updates, status changes, and final results into `store`.
-        - Writes files produced by download and injection stages.
-        - May mark the task as Failed via fail_task when critical outputs are missing.
-    """
+def run_task(db_data, task_id: str, title: str, args: Any) -> None:
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,
         "stages": make_stages(),
     }
+
+    store = TaskStorePyMysql(db_data)
+
     # TODO:
     """
         After each processing stage, the entire task_snapshot is serialized to JSON and written to the database. This is inefficient and results in many database writes. For better performance, consider introducing more granular update methods in TaskStore to update only the parts of the task data that have changed, such as the status of a specific stage. This would reduce I/O and JSON serialization overhead.

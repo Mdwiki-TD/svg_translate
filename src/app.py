@@ -20,7 +20,7 @@ from web.web_run_task import run_task
 
 from svg_translate import logger, config_logger
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from svg_config import SECRET_KEY
+from svg_config import SECRET_KEY, db_data
 
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
@@ -211,9 +211,9 @@ def start():
     # ---
     t = threading.Thread(
         target=run_task,
-        args=(TASK_STORE, task_id, title, args),
+        args=(db_data, task_id, title, args),
         name=f"task-runner-{task_id[:8]}",
-        daemon=True,
+        daemon=True
     )
     # ---
     t.start()
