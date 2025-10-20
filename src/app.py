@@ -6,8 +6,6 @@ from logging import debug
 import sys
 import threading
 import uuid
-from collections import namedtuple
-from datetime import datetime
 from typing import Any, Dict, List
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify
