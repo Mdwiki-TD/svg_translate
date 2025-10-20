@@ -6,6 +6,7 @@ python3 start_bot.py
 tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_translate/start_bot.py noup"
 
 """
+import os
 from pathlib import Path
 import sys
 
@@ -13,7 +14,7 @@ import sys
 from src.svg_translate import start_on_template_title, config_logger
 from src.svg_translate.upload_files import start_upload
 
-from src.user_info import username, password
+from src.app.db import get_user
 from src.svg_config import svg_data_dir
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
@@ -45,7 +46,14 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
     no_file_path = len(files_data["files"]) - len(files_to_upload)
 
     if files_to_upload and "noup" not in sys.argv:
-        upload_result = start_upload(files_to_upload, main_title_link, username, password)
+        user_id = os.getenv("MW_DEFAULT_USER_ID")
+        if not user_id:
+            raise SystemExit("MW_DEFAULT_USER_ID environment variable is required for uploads")
+        user = get_user(int(user_id))
+        if not user:
+            raise SystemExit(f"No OAuth credentials found for user id {user_id}")
+
+        upload_result = start_upload(files_to_upload, main_title_link, user["token_enc"])
         # {"done": done, "not_done": not_done, "errors": errors}
         print(f"upload_result: Done: {upload_result['done']:,}, Not done: {upload_result['not_done']:,}, Errors: {len(upload_result['errors']):,}")
 
