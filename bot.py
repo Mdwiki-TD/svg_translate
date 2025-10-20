@@ -7,14 +7,18 @@ tfj run svgbot --image python3.9 --command "$HOME/local/bin/python3 ~/bots/svg_t
 
 """
 from pathlib import Path
+import os
 import sys
 
 
 from src.svg_translate import start_on_template_title, config_logger
 from src.svg_translate.upload_files import start_upload
 
-from src.user_info import username, password
-from src.svg_config import svg_data_dir
+from src.svg_config import (
+    OAUTH_CONSUMER_KEY,
+    OAUTH_CONSUMER_SECRET,
+    svg_data_dir,
+)
 
 config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
@@ -45,7 +49,19 @@ def one_title(title, output_dir, titles_limit=None, overwrite=False):
     no_file_path = len(files_data["files"]) - len(files_to_upload)
 
     if files_to_upload and "noup" not in sys.argv:
-        upload_result = start_upload(files_to_upload, main_title_link, username, password)
+        access_token = os.getenv("OAUTH_ACCESS_TOKEN")
+        access_secret = os.getenv("OAUTH_ACCESS_SECRET")
+        if not (OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET and access_token and access_secret):
+            raise RuntimeError("OAuth credentials must be provided via environment variables for CLI uploads")
+
+        oauth_credentials = {
+            "consumer_key": OAUTH_CONSUMER_KEY,
+            "consumer_secret": OAUTH_CONSUMER_SECRET,
+            "access_token": access_token,
+            "access_secret": access_secret,
+        }
+
+        upload_result = start_upload(files_to_upload, main_title_link, oauth_credentials)
         # {"done": done, "not_done": not_done, "errors": errors}
         print(f"upload_result: Done: {upload_result['done']:,}, Not done: {upload_result['not_done']:,}, Errors: {len(upload_result['errors']):,}")
 

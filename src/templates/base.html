@@ -30,6 +30,16 @@
                             {% if request.endpoint == 'tasks' %}aria-current="page" {% endif %}
                             href="{{ url_for('tasks') }}">All Tasks</a>
                     </li>
+                    <li class="nav-item ms-lg-3 d-flex align-items-center">
+                        {% if is_authenticated %}
+                        <span class="navbar-text text-white-50 me-2">
+                            {{ current_user.username or 'Logged in' }}
+                        </span>
+                        <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Log out</a>
+                        {% else %}
+                        <a class="btn btn-success btn-sm" href="{{ url_for('login') }}">Log in</a>
+                        {% endif %}
+                    </li>
                 </ul>
             </div>
         </div>

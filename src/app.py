@@ -6,9 +6,21 @@ from logging import debug
 import sys
 import threading
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from types import SimpleNamespace
+from http.cookies import SimpleCookie
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import (
+    Flask,
+    jsonify,
+    g,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask.testing import FlaskClient
 # from asgiref.wsgi import WsgiToAsgi
 
 from web.web_run_task import run_task
@@ -16,19 +28,208 @@ from web.web_run_task import run_task
 # import logging
 # logger = logging.getLogger(__name__)
 
-from svg_translate import logger, config_logger
+from itsdangerous import BadSignature, URLSafeTimedSerializer
+
+try:
+    import mwoauth
+except ModuleNotFoundError:  # pragma: no cover - optional dependency in tests
+    mwoauth = None  # type: ignore[assignment]
+
+try:  # pragma: no cover - maintain compatibility with both package layouts
+    from svg_translate.log import config_logger, logger
+except ImportError:  # pragma: no cover
+    from src.svg_translate.log import config_logger, logger  # type: ignore[no-redef]
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from svg_config import SECRET_KEY, db_data
-from user_info import username, password
+from web.db.user_store import UserTokenStore
+from svg_config import (
+    OAUTH_CONSUMER_KEY,
+    OAUTH_CONSUMER_SECRET,
+    OAUTH_ENCRYPTION_KEY,
+    OAUTH_MWURI,
+    SECRET_KEY,
+    db_data,
+)
 
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
 TASK_STORE = TaskStorePyMysql(db_data)
 TASKS_LOCK = threading.Lock()
 
+class CookieHeaderClient(FlaskClient):
+    """Test client that accepts raw ``Cookie`` headers for compatibility."""
+
+    def open(self, *args, **kwargs):  # type: ignore[override]
+        headers = kwargs.get("headers")
+        raw_cookie = None
+
+        if headers:
+            if isinstance(headers, dict):
+                headers = dict(headers)
+                raw_cookie = headers.pop("Cookie", headers.pop("cookie", None))
+                kwargs["headers"] = headers
+            else:
+                new_headers = []
+                for name, value in headers:
+                    if name.lower() == "cookie":
+                        raw_cookie = value
+                    else:
+                        new_headers.append((name, value))
+                kwargs["headers"] = new_headers
+
+        if raw_cookie:
+            parsed = SimpleCookie()
+            parsed.load(raw_cookie)
+            server_name = self.application.config.get("SERVER_NAME")
+            for key, morsel in parsed.items():
+                if server_name:
+                    super().set_cookie(key, morsel.value, domain=server_name)
+                else:
+                    super().set_cookie(key, morsel.value)
+
+        return super().open(*args, **kwargs)
+
+
 app = Flask(__name__, template_folder="templates")
+app.test_client_class = CookieHeaderClient
 app.config["SECRET_KEY"] = SECRET_KEY
-user_data = {"username": username, "password": password}
+
+AUTH_COOKIE_NAME = "svg_translate_user"
+AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 days
+REQUEST_TOKEN_SESSION_KEY = "oauth_request_token"
+_cookie_serializer = URLSafeTimedSerializer(SECRET_KEY, salt="svg-translate-user")
+
+USER_STORE: Optional[UserTokenStore] = None
+HANDSHAKER: Optional[object] = None
+
+
+def get_user_store() -> Optional[UserTokenStore]:
+    """Return a cached :class:`UserTokenStore` instance when configuration allows."""
+
+    global USER_STORE
+    if USER_STORE is not None:
+        return USER_STORE
+
+    if not OAUTH_ENCRYPTION_KEY:
+        logger.warning("OAUTH_ENCRYPTION_KEY is not configured; OAuth logins disabled")
+        return None
+
+    try:
+        USER_STORE = UserTokenStore(db_data, OAUTH_ENCRYPTION_KEY)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.exception("Failed to initialise user token store", exc_info=exc)
+        USER_STORE = None
+    return USER_STORE
+
+
+def get_handshaker() -> Optional[object]:
+    """Return a cached mwoauth Handshaker when OAuth is configured."""
+
+    global HANDSHAKER
+    if HANDSHAKER is not None:
+        return HANDSHAKER
+
+    if mwoauth is None:
+        logger.warning("mwoauth library is not available; OAuth login disabled")
+        return None
+
+    if not (OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET and OAUTH_MWURI):
+        logger.warning("OAuth consumer details are incomplete; OAuth login disabled")
+        return None
+
+    try:
+        consumer_token = mwoauth.ConsumerToken(OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET)
+        HANDSHAKER = mwoauth.Handshaker(OAUTH_MWURI, consumer_token=consumer_token)
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.exception("Failed to initialise OAuth handshaker", exc_info=exc)
+        HANDSHAKER = None
+    return HANDSHAKER
+
+
+def _user_context(user_id: str, username: str) -> SimpleNamespace:
+    return SimpleNamespace(user_id=str(user_id), username=str(username))
+
+
+def _encode_user_cookie(user_id: str) -> str:
+    return _cookie_serializer.dumps({"user_id": user_id})
+
+
+def _decode_user_cookie(raw: str) -> Optional[str]:
+    try:
+        data = _cookie_serializer.loads(raw, max_age=AUTH_COOKIE_MAX_AGE)
+    except BadSignature:
+        return None
+    if not isinstance(data, dict):
+        return None
+    user_id = data.get("user_id")
+    return str(user_id) if user_id else None
+
+
+def _build_request_token(data: Any) -> Any:
+    if mwoauth and hasattr(mwoauth, "RequestToken"):
+        try:
+            return mwoauth.RequestToken(*data)
+        except Exception:  # pragma: no cover - compatibility shim
+            return data
+    return data
+
+
+def _extract_token_pair(token: Any) -> tuple[str, str]:
+    if isinstance(token, (tuple, list)) and len(token) >= 2:
+        return str(token[0]), str(token[1])
+    key = getattr(token, "key", None)
+    secret = getattr(token, "secret", None)
+    if key and secret:
+        return str(key), str(secret)
+    raise ValueError("OAuth access token does not provide key/secret")
+
+
+@app.before_request
+def load_authenticated_user() -> None:
+    """Populate :mod:`flask.g` with the authenticated user and OAuth tokens."""
+
+    g.current_user = None
+    g.oauth_credentials = None
+    g.is_authenticated = False
+    g.authenticated_user_id = None
+
+    cookie_value = request.cookies.get(AUTH_COOKIE_NAME)
+    if not cookie_value:
+        raw_cookie = request.headers.get("Cookie")
+        if raw_cookie:
+            parsed = SimpleCookie()
+            parsed.load(raw_cookie)
+            morsel = parsed.get(AUTH_COOKIE_NAME)
+            if morsel:
+                cookie_value = morsel.value
+    if not cookie_value:
+        return
+
+    user_id = _decode_user_cookie(cookie_value)
+    if not user_id:
+        return
+
+    store = get_user_store()
+    if not store:
+        return
+
+    user = store.get_user(user_id)
+    if not user:
+        return
+
+    g.authenticated_user_id = user.user_id
+    g.current_user = SimpleNamespace(**user.as_dict())
+    g.oauth_credentials = user.as_dict(include_secrets=True)
+    g.is_authenticated = True
+
+
+@app.context_processor
+def inject_user_context() -> Dict[str, object]:
+    """Expose authentication helpers to all templates."""
+
+    return {
+        "current_user": getattr(g, "current_user", None),
+        "is_authenticated": getattr(g, "is_authenticated", False),
+    }
 
 
 def parse_args(request_form):
@@ -55,6 +256,120 @@ def parse_args(request_form):
     )
     # ---
     return result
+
+
+@app.get("/login")
+def login() -> Any:
+    """Initiate the OAuth handshake against MediaWiki."""
+
+    handshaker = get_handshaker()
+    if not handshaker:
+        return redirect(url_for("index", error="oauth-disabled"))
+
+    try:
+        redirect_url, request_token = handshaker.initiate()
+    except Exception as exc:  # pragma: no cover - network interaction
+        logger.exception("Failed to initiate OAuth handshake", exc_info=exc)
+        return redirect(url_for("index", error="oauth-init-failed"))
+
+    session[REQUEST_TOKEN_SESSION_KEY] = (
+        getattr(request_token, "key", None),
+        getattr(request_token, "secret", None),
+    )
+    return redirect(redirect_url)
+
+
+@app.get("/callback")
+def callback() -> Any:
+    """Handle the OAuth callback and persist the access tokens."""
+
+    handshaker = get_handshaker()
+    if not handshaker:
+        return redirect(url_for("index", error="oauth-disabled"))
+
+    token_data = session.pop(REQUEST_TOKEN_SESSION_KEY, None)
+    if not token_data or not all(token_data):
+        return redirect(url_for("index", error="oauth-missing-state"))
+
+    request_token = _build_request_token(token_data)
+
+    try:
+        access_token = handshaker.complete(request_token, request.args)
+    except Exception as exc:  # pragma: no cover - network interaction
+        logger.exception("OAuth callback completion failed", exc_info=exc)
+        return redirect(url_for("index", error="oauth-complete-failed"))
+
+    try:
+        identity = handshaker.identify(access_token)
+    except Exception as exc:  # pragma: no cover - network interaction
+        logger.exception("Failed to fetch OAuth identity", exc_info=exc)
+        return redirect(url_for("index", error="oauth-identify-failed"))
+
+    user_id = identity.get("sub") or identity.get("id") or identity.get("username")
+    if not user_id:
+        return redirect(url_for("index", error="oauth-missing-identity"))
+
+    username = identity.get("username") or identity.get("name") or str(user_id)
+
+    try:
+        access_key, access_secret = _extract_token_pair(access_token)
+    except ValueError:
+        return redirect(url_for("index", error="oauth-missing-token"))
+
+    store = get_user_store()
+    if not store:
+        return redirect(url_for("index", error="oauth-storage-unavailable"))
+
+    store.upsert_credentials(str(user_id), str(username), access_key, access_secret)
+
+    response = redirect(url_for("index"))
+    response.set_cookie(
+        AUTH_COOKIE_NAME,
+        _encode_user_cookie(str(user_id)),
+        max_age=AUTH_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=request.is_secure,
+        samesite="Lax",
+    )
+
+    g.authenticated_user_id = str(user_id)
+    g.current_user = _user_context(user_id, username)
+    g.oauth_credentials = {
+        "user_id": str(user_id),
+        "username": str(username),
+        "access_token": access_key,
+        "access_secret": access_secret,
+    }
+    g.is_authenticated = True
+
+    return response
+
+
+@app.get("/logout")
+def logout() -> Any:
+    """Remove persisted credentials and clear the authentication cookie."""
+
+    response = redirect(url_for("index"))
+    session.pop(REQUEST_TOKEN_SESSION_KEY, None)
+
+    user_id = getattr(g, "authenticated_user_id", None)
+    if not user_id:
+        cookie_value = request.cookies.get(AUTH_COOKIE_NAME)
+        if cookie_value:
+            user_id = _decode_user_cookie(cookie_value)
+
+    store = get_user_store()
+    if store and user_id:
+        store.delete_user(str(user_id))
+
+    response.delete_cookie(AUTH_COOKIE_NAME)
+
+    g.current_user = None
+    g.oauth_credentials = None
+    g.is_authenticated = False
+    g.authenticated_user_id = None
+
+    return response
 
 
 def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
@@ -260,11 +575,33 @@ def start():
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("index", title=title, error="task-create-failed"))
 
+    if not getattr(g, "is_authenticated", False):
+        return redirect(url_for("index", error="auth-required"))
+
+    oauth_tokens = getattr(g, "oauth_credentials", None) or {}
+    if not oauth_tokens.get("access_token") or not oauth_tokens.get("access_secret"):
+        return redirect(url_for("index", error="oauth-missing-token"))
+
+    if not (OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET):
+        return redirect(url_for("index", error="oauth-consumer-missing"))
+
+    auth_payload = {
+        "consumer_key": OAUTH_CONSUMER_KEY,
+        "consumer_secret": OAUTH_CONSUMER_SECRET,
+        "access_token": oauth_tokens.get("access_token"),
+        "access_secret": oauth_tokens.get("access_secret"),
+        "username": (
+            oauth_tokens.get("username")
+            or getattr(getattr(g, "current_user", None), "username", None)
+        ),
+        "user_id": oauth_tokens.get("user_id"),
+    }
+
     args = parse_args(request.form)
     # ---
     t = threading.Thread(
         target=run_task,
-        args=(db_data, task_id, title, args, user_data),
+        args=(db_data, task_id, title, args, auth_payload),
         name=f"task-runner-{task_id[:8]}",
         daemon=True
     )

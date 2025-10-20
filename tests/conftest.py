@@ -17,13 +17,35 @@ if "requests" not in sys.modules:
     exceptions_stub = types.ModuleType("requests.exceptions")
     exceptions_stub.RequestException = Exception
     requests_stub.exceptions = types.SimpleNamespace(RequestException=Exception)
+
+    class _StubSession:
+        def __init__(self, *_, **__):
+            self.headers = {}
+
+        def get(self, *args, **kwargs):  # pragma: no cover - patched in tests
+            return types.SimpleNamespace(status_code=200, content=b"")
+
+    requests_stub.Session = _StubSession
+    requests_stub.RequestException = exceptions_stub.RequestException
     sys.modules["requests.exceptions"] = exceptions_stub
     sys.modules["requests"] = requests_stub
 
 if "mwclient" not in sys.modules:
     mwclient_stub = types.ModuleType("mwclient")
+    auth_stub = types.ModuleType("mwclient.auth")
+
+    class _OAuthAuth:
+        def __init__(self, consumer_key, consumer_secret, access_token, access_secret):
+            self.consumer_key = consumer_key
+            self.consumer_secret = consumer_secret
+            self.access_token = access_token
+            self.access_secret = access_secret
+
+    auth_stub.OAuthAuthentication = _OAuthAuth
+    mwclient_stub.auth = auth_stub  # type: ignore[attr-defined]
     mwclient_stub.Site = object  # type: ignore[attr-defined]
     sys.modules["mwclient"] = mwclient_stub
+    sys.modules["mwclient.auth"] = auth_stub
 
 if "tqdm" not in sys.modules:
     tqdm_stub = types.ModuleType("tqdm")
@@ -33,5 +55,64 @@ if "tqdm" not in sys.modules:
 if "wikitextparser" not in sys.modules:
     wtp_stub = types.ModuleType("wikitextparser")
     sys.modules["wikitextparser"] = wtp_stub
+
+if "cryptography" not in sys.modules:
+    cryptography_stub = types.ModuleType("cryptography")
+    fernet_stub = types.ModuleType("cryptography.fernet")
+
+    class _StubFernet:
+        def __init__(self, key):  # pragma: no cover - stub for tests
+            self._key = key
+
+        def encrypt(self, data):
+            payload = data if isinstance(data, bytes) else data.encode()
+            return b"stub:" + payload
+
+        def decrypt(self, token):
+            if not token.startswith(b"stub:"):
+                raise Exception("Invalid token")
+            return token[5:]
+
+    class _InvalidToken(Exception):
+        pass
+
+    fernet_stub.Fernet = _StubFernet
+    fernet_stub.InvalidToken = _InvalidToken
+    sys.modules["cryptography"] = cryptography_stub
+    sys.modules["cryptography.fernet"] = fernet_stub
+
+if "mwoauth" not in sys.modules:
+    mwoauth_stub = types.ModuleType("mwoauth")
+
+    class _RequestToken:
+        def __init__(self, key, secret):
+            self.key = key
+            self.secret = secret
+
+    class _AccessToken(_RequestToken):
+        pass
+
+    class _ConsumerToken(_RequestToken):
+        pass
+
+    class _Handshaker:
+        def __init__(self, *_args, **_kwargs):
+            self.consumer_token = _kwargs.get("consumer_token")
+
+        def initiate(self):
+            return "https://example.org/oauth", _RequestToken("request", "secret")
+
+        def complete(self, request_token, _query):
+            return _AccessToken("access", "secret")
+
+        def identify(self, _access_token):
+            return {"sub": "user-1", "username": "TestUser"}
+
+    mwoauth_stub.RequestToken = _RequestToken
+    mwoauth_stub.AccessToken = _AccessToken
+    mwoauth_stub.ConsumerToken = _ConsumerToken
+    mwoauth_stub.Handshaker = _Handshaker
+
+    sys.modules["mwoauth"] = mwoauth_stub
 
 

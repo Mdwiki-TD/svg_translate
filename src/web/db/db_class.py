@@ -43,11 +43,23 @@ class Database:
         Returns:
             list[dict] | int: For SELECT queries, a list of result rows (each row as a dict). For non-SELECT queries, the number of affected rows. On SQL error, returns an empty list.
         """
-        with self.connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
+        statement = (sql_query or "").strip().lower()
+        is_select = statement.startswith("select")
 
-            self.connection.commit()
-            return cursor.rowcount
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(sql_query, params)
+
+                if is_select:
+                    return cursor.fetchall()
+
+                self.connection.commit()
+                return cursor.rowcount
+
+        except pymysql.MySQLError as exc:
+            print(f"execute_query - SQL error: {exc}<br>{sql_query}, params:")
+            print(params)
+            return [] if is_select else 0
 
     def fetch_query(self, sql_query, params=None):
         """
@@ -60,11 +72,17 @@ class Database:
         Returns:
             list: A list of rows (dictionaries when using a DictCursor). Returns an empty list if a SQL error occurs.
         """
-        with self.connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(sql_query, params)
 
-            result = cursor.fetchall()
-            return result
+                result = cursor.fetchall()
+                return result
+
+        except pymysql.MySQLError as exc:
+            print(f"fetch_query - SQL error: {exc}<br>{sql_query}, params:")
+            print(params)
+            return []
 
     def execute_many(self, sql_query: str, params_seq, batch_size: int = 1000):
         """
@@ -143,4 +161,5 @@ class Database:
         except pymysql.MySQLError as e:
             print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
             print(params)
-            return 0
+            statement = (sql_query or "").strip().lower()
+            return [] if statement.startswith("select") else 0

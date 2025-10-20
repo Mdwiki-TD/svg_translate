@@ -2,7 +2,17 @@ import json
 import html
 from urllib.parse import quote
 
-from svg_translate import get_files, get_wikitext, start_injects, extract, logger
+try:  # pragma: no cover - maintain compatibility with both package layouts
+    from svg_translate import get_files, get_wikitext, start_injects, extract
+    from svg_translate.log import logger
+except ImportError:  # pragma: no cover
+    from src.svg_translate import (  # type: ignore[no-redef]
+        get_files,
+        get_wikitext,
+        start_injects,
+        extract,
+    )
+    from src.svg_translate.log import logger  # type: ignore[no-redef]
 from .download_task import download_one_file
 
 
