@@ -663,9 +663,9 @@ class TaskStorePyMysql(StageStoreProtocol):
             logger.error("Failed to list tasks")
             return []
 
-        tasks: List[Dict[str, Any]] = []
-        for task_row in task_rows:
-            task_id = task_row["id"]
-            tasks.append(self._row_to_task(task_row, stages=stage_map.get(task_id, {})))
+        tasks: List[Dict[str, Any]] = [
+            self._row_to_task(task_row, stages=stage_map.get(task_row["id"], {}))
+            for task_row in task_rows
+        ]
 
         return tasks
