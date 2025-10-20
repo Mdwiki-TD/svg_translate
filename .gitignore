@@ -26,3 +26,4 @@ web_sh/new_update.sh
 *.sqlite3-wal
 /confs
 **/old/**
+/0

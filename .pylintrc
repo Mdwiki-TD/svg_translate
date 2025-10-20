@@ -1,9 +1,0 @@
-[MASTER]
-ignore=venv,tests
-extension-pkg-whitelist=lxml
-
-[MESSAGES CONTROL]
-disable=missing-module-docstring,missing-class-docstring,missing-function-docstring,too-few-public-methods
-
-[FORMAT]
-max-line-length=100
