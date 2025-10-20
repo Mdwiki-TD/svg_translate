@@ -179,7 +179,9 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
         return fail_task(store, task_id, task_snapshot, "No translations available")
 
     # Stage 4: download SVG files
-    def download_progress(): return store.update_data(task_id, task_snapshot)
+    def download_progress(stages):
+        return store.update_data(task_id, task_snapshot)
+
     files, stages_list["download"] = download_task(
         stages_list["download"],
         output_dir_main,
@@ -205,7 +207,9 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     no_file_path = len(inject_files) - len(files_to_upload)
 
     # Stage 6: upload results
-    def upload_progress(): return store.update_data(task_id, task_snapshot)
+    def upload_progress():
+        return store.update_data(task_id, task_snapshot)
+
     upload_result, stages_list["upload"] = upload_task(
         stages_list["upload"],
         files_to_upload,

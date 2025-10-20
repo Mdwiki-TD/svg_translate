@@ -44,83 +44,43 @@ def _safe_invoke_callback(
         logger.exception("Error while executing progress callback")
 
 
-def download_commons_new(
-    titles: Iterable[str],
-    out_dir: Path | str,
-    per_file_callback: PerFileCallback = None,
-):
-    """
-    Download the given Wikimedia Commons SVG titles into the specified output directory and report per-file progress via an optional callback.
-
-    Parameters:
-        titles (Iterable[str]): Iterable of file titles to download (e.g., "File:Example.svg").
-        out_dir (Path | str): Destination directory where files will be saved; it will be created if it does not exist.
-        per_file_callback (Optional[Callable[[int, int, Path, str], None]]): Optional callable invoked after each file attempt with
-            (index, total, target_path, status) where status is one of "success", "skipped", or "failed".
-
-    Returns:
-        files (List[str]): List of file paths (as strings) that were written or already existed in out_dir.
-    """
-    out_dir = Path(str(out_dir))
-    out_dir.mkdir(parents=True, exist_ok=True)
-
+def download_one_file(title: str, session: requests.Session, out_dir: Path | str, i: int):
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
-    session = requests.Session()
-    session.headers.update(
-        {
-            "User-Agent": "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)",
-        }
-    )
+    data = {
+        "result" : "",
+        "path": "",
+    }
 
-    titles = list(titles)
-    files: list[str] = []
+    if not title:
+        return data
 
-    existing = 0
-    failed = 0
-    success = 0
+    url = f"{base}{quote(title)}"
+    out_path = out_dir / title
 
-    for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
-        if not title:
-            continue
-        url = f"{base}{quote(title)}"
-        # url = f"{base}{title}"
-        out_path = out_dir / title
+    if out_path.exists():
+        logger.info(f"[{i}] Skipped existing: {title}")
+        data["result"] = "existing"
+        data["path"] = str(out_path)
+        return data
 
-        if out_path.exists():
-            logger.info(f"[{i}] Skipped existing: {title}")
-            existing += 1
-            files.append(str(out_path))
-            _safe_invoke_callback(per_file_callback, i, len(titles), out_path, "skipped")
-            continue
+    try:
+        response = session.get(url, timeout=30, allow_redirects=True)
+    except requests.RequestException as exc:
+        data["result"] = "failed"
+        logger.error(f"[{i}] Failed (network error): {title} -> {exc}")
+        return data
 
-        try:
-            response = session.get(url, timeout=30, allow_redirects=True)
-        except requests.RequestException as exc:
-            failed += 1
-            logger.error(f"[{i}] Failed (network error): {title} -> {exc}")
-            _safe_invoke_callback(per_file_callback, i, len(titles), out_path, "failed")
-            continue
+    if response.status_code == 200:
+        logger.info(f"[{i}] Downloaded: {title}")
+        out_path.write_bytes(response.content)
+        data["result"] = "success"
+        data["path"] = str(out_path)
+    else:
+        data["result"] = "failed"
+        logger.error(f"[{i}] Failed (non-SVG or not found): {title}")
 
-        if response.status_code == 200:
-            logger.info(f"[{i}] Downloaded: {title}")
-            out_path.write_bytes(response.content)
-            success += 1
-            files.append(str(out_path))
-            _safe_invoke_callback(per_file_callback, i, len(titles), out_path, "success")
-        else:
-            failed += 1
-            logger.error(f"[{i}] Failed (non-SVG or not found): {title}")
-            _safe_invoke_callback(per_file_callback, i, len(titles), out_path, "failed")
-
-    logger.info(
-        "Downloaded %s files, skipped %s existing files, failed to download %s files",
-        success,
-        existing,
-        failed,
-    )
-
-    return files
+    return data
 
 
 def download_task(
@@ -148,55 +108,48 @@ def download_task(
     stages["status"] = "Running"
 
     if progress_updater:
-        try:
-            progress_updater(stages)
-        except Exception:  # pragma: no cover - defensive logging
-            logger.exception("Error while executing progress updater")
+        progress_updater(stages)
 
-    counts = {"success": 0, "skipped": 0, "failed": 0}
+    counts = {"success": 0, "existing": 0, "failed": 0}
 
-    def per_file_callback(index: int, total_items: int, _path: Path, status: str) -> None:
-        """
-        Update aggregate download counts and the stages message for a single file, then invoke the optional progress updater.
+    out_dir = Path(str(output_dir_main))
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-        Parameters:
-            index (int): 1-based position of the current file in the total sequence.
-            total_items (int): Total number of files being processed.
-            _path (Path): Path of the current file (not used by this callback).
-            status (str): Outcome for the file; expected values: "success", "skipped", or other values treated as failure.
+    session = requests.Session()
 
-        Description:
-            Increments the appropriate counter in the enclosing `counts` dictionary based on `status`,
-            updates `stages["message"]` to a human-readable progress string like "Downloaded 3/10",
-            and calls `progress_updater()` if one is provided; exceptions from the updater are caught and logged.
-        """
-        if status == "success":
+    session.headers.update({
+        "User-Agent": "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)",
+    })
+
+    files = []
+
+    for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
+        result = download_one_file(title, session, out_dir=out_dir)
+        if result["result"] == "success":
             counts["success"] += 1
-            prefix = "Downloaded"
-        elif status == "skipped":
-            counts["skipped"] += 1
-            prefix = "Skipped"
+        elif result["result"] == "existing":
+            counts["existing"] += 1
         else:
             counts["failed"] += 1
-            prefix = "Failed"
 
-        stages["message"] = f"{prefix} {index:,}/{total_items:,}"
+        stages["message"] = f"Downloading {i:,}/{len(titles):,}"
+
+        if result["path"]:
+            files.append(result["path"])
 
         if progress_updater:
-            try:
-                progress_updater(stages)
-            except Exception:  # pragma: no cover - defensive logging
-                logger.exception("Error while executing progress updater")
-
-    files = download_commons_new(
-        titles,
-        out_dir=output_dir_main,
-        per_file_callback=per_file_callback,
-    )
+            progress_updater(stages)
 
     logger.info("files: %s", len(files))
 
-    processed = counts["success"] + counts["skipped"]
+    logger.info(
+        "Downloaded %s files, skipped %s existing files, failed to download %s files",
+        counts["success"],
+        counts["existing"],
+        counts["failed"],
+    )
+
+    processed = counts["success"] + counts["existing"]
     if counts["failed"]:
         stages["status"] = "Failed"
         stages["message"] = (
@@ -207,9 +160,6 @@ def download_task(
         stages["message"] = f"Downloaded {processed:,}/{total:,}"
 
     if progress_updater:
-        try:
-            progress_updater(stages)
-        except Exception:  # pragma: no cover - defensive logging
-            logger.exception("Error while executing progress updater")
+        progress_updater(stages)
 
     return files, stages

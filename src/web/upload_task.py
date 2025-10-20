@@ -198,10 +198,7 @@ def upload_task(
         stages["message"] = f"{prefix} {index:,}/{total_items:,}"
 
         if progress_updater:
-            try:
-                progress_updater()
-            except Exception:  # pragma: no cover - defensive logging
-                logger.exception("Error while executing progress updater")
+            progress_updater()
 
     upload_result = start_upload(
         files_to_upload,
@@ -223,9 +220,6 @@ def upload_task(
         stages["status"] = "Completed"
 
     if progress_updater:
-        try:
-            progress_updater()
-        except Exception:  # pragma: no cover - defensive logging
-            logger.exception("Error while executing progress updater")
+        progress_updater()
 
     return upload_result, stages
