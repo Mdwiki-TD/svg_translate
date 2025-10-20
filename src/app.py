@@ -19,6 +19,7 @@ from web.web_run_task import run_task
 from svg_translate import logger, config_logger
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from svg_config import SECRET_KEY, db_data
+from user_info import username, password
 
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
@@ -27,6 +28,7 @@ TASKS_LOCK = threading.Lock()
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = SECRET_KEY
+user_data = {"username": username, "password": password}
 
 
 def parse_args(request_form):
@@ -209,7 +211,7 @@ def start():
     # ---
     t = threading.Thread(
         target=run_task,
-        args=(db_data, task_id, title, args),
+        args=(db_data, task_id, title, args, user_data),
         name=f"task-runner-{task_id[:8]}",
         daemon=True
     )

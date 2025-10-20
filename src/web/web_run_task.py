@@ -15,7 +15,6 @@ from web.start_bot import (
 )
 from web.download_task import download_task
 from web.upload_task import upload_task
-from user_info import username, password
 
 from svg_config import svg_data_dir
 from svg_translate import logger
@@ -116,7 +115,7 @@ def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], m
 
 
 # --- main pipeline --------------------------------------------
-def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any) -> None:
+def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_data: Dict[str, str]) -> None:
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,
@@ -205,7 +204,7 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any) -> No
         files_to_upload,
         main_title,
         do_upload=args.upload,
-        user={"username": username, "password": password},
+        user=user_data,
         progress_updater=upload_progress,
     )
     store.update_data(task_id, task_snapshot)
