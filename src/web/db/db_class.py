@@ -24,7 +24,8 @@ class Database:
                 user=self.user,
                 password=self.password,
                 database=self.dbname,
-                cursorclass=pymysql.cursors.DictCursor
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True
             )
         except pymysql.MySQLError as e:
             print(f"Error connecting to the database: {e}")
