@@ -18,8 +18,7 @@ from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
 from svg_translate import logger
-# from web.task_store import TaskStore
-from web.task_store_pymysql import TaskStorePyMysql
+from web.db.task_store_pymysql import TaskStorePyMysql
 
 # logger = logging.getLogger(__name__)
 
@@ -41,7 +40,7 @@ def _compute_output_dir(title: str) -> Path:
 def make_stages():
     """
     Create an initial stages dictionary describing progress metadata for the workflow.
-    
+
     Returns:
         dict: Mapping of stage names ('initialize', 'text', 'titles', 'translations', 'download', 'inject', 'upload')
         to metadata objects with the keys:
@@ -99,9 +98,9 @@ def make_stages():
 def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], msg: str | None = None):
     """
     Mark the task as failed in the provided TaskStore and log an optional error message.
-    
+
     This sets the `"initialize"` stage status to `"Completed"`, persists the updated snapshot via the store, and marks the task status as `"Failed"`.
-    
+
     Parameters:
         snapshot (Dict[str, Any]): Current task snapshot; must contain a `"stages"` mapping.
         msg (str | None): Optional error message to log.
@@ -117,12 +116,11 @@ def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], m
 
 # --- main pipeline --------------------------------------------
 def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> None:
-
     """
     Execute the end-to-end SVG processing workflow for a task, persisting progress and final results to the provided TaskStore.
-    
+
     Runs a sequence of stages (text extraction, title extraction, translations, download, injection, upload, and finalization), updating the task's snapshot and status in `store` after each stage, creating output directories and files under a computed project directory, saving file statistics, and writing a results summary. If a critical stage produces no usable output, the task is marked failed and processing stops.
-    
+
     Parameters:
         store (TaskStorePyMysql): Persistent task store used to read/write task snapshots, statuses, and results.
         task_id (str): Identifier of the task being processed; used as the key for store updates.
@@ -131,7 +129,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
             - titles_limit (int): Limit passed to the titles extraction stage.
             - overwrite (bool): Whether injection should overwrite existing files.
             - upload (bool): Whether upload stage should actually perform uploads.
-    
+
     Side effects:
         - Creates output directories on disk.
         - Writes task snapshot updates, status changes, and final results into `store`.
@@ -181,7 +179,9 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
         return fail_task(store, task_id, task_snapshot, "No translations available")
 
     # Stage 4: download SVG files
-    download_progress = lambda: store.update_data(task_id, task_snapshot)
+    def download_progress(stages):
+        return store.update_data(task_id, task_snapshot)
+
     files, stages_list["download"] = download_task(
         stages_list["download"],
         output_dir_main,
@@ -207,7 +207,9 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     no_file_path = len(inject_files) - len(files_to_upload)
 
     # Stage 6: upload results
-    upload_progress = lambda: store.update_data(task_id, task_snapshot)
+    def upload_progress():
+        return store.update_data(task_id, task_snapshot)
+
     upload_result, stages_list["upload"] = upload_task(
         stages_list["upload"],
         files_to_upload,

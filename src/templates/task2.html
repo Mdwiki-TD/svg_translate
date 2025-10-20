@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}SVG Translate Bot{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">SVG Translate Bot</h1>
+
+{% if error_message %}
+<div class="alert alert-info" role="alert">{{ error_message }}</div>
+{% endif %}
+
+{% if not task_id %}
+<form method="post" class="row gy-2 gx-3 align-items-center mb-4">
+    <div class="col-12 col-md-6">
+        <label for="title" class="form-label">Template Title</label>
+        <input type="text" class="form-control" id="title" name="title"
+            value="{{ form.title if form and form.title else 'Template:OWID/death rate from obesity'}}" required>
+    </div>
+    <div class="col-6 col-md-3">
+        <label for="titles_limit" class="form-label">Titles Limit</label>
+        <input type="number" class="form-control" id="titles_limit" name="titles_limit" min="1"
+            value="{{ form.titles_limit if form and form.titles_limit else 1000 }}">
+    </div>
+    <div class="col-12 col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Start</button>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" value="z" id="overwrite" name="overwrite"
+                {{ 'checked' if not form or form.overwrite == "z" else '' }}>
+            <label class="form-check-label" for="overwrite">
+                Overwrite Existing translations
+            </label>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" value="1" id="upload" name="upload"
+                {{ 'checked' if form and form.upload else '' }}>
+            <label class="form-check-label" for="upload">
+                Upload New translations
+            </label>
+        </div>
+    </div>
+</form>
+<div class="alert alert-info" role="alert">
+    This tool automates the translation and preparation of Wikimedia Commons SVG graphics.
+    Given a template title, it fetches the template's wikitext and identifies the SVG files.
+    It then downloads the main graphic, extracts its text, and applies translations to related SVGs.
+    Finally, it saves the updated files and produces stats to help with uploading the translated assets back to Commons.
+</div>
+{% endif %}
+{% if task_id %}
+<div id="progress-section" data-task-id="{{ task_id }}">
+    <h2 class="h5">
+        Task Status <span id="task_status">
+            {% if task %}
+            ({{ task.status if task.status else ("Not Found" if task.error == 'not-found' else "") }})
+            {% endif %}
+        </span>
+    </h2>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div id="task-meta" class="mb-2 text-muted">
+            <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
+        </div>
+        <span id="task-title" class="fw-bold">
+            {{ title if title else (task.title if task and task.title else '') }}
+        </span>
+        <div class="small text-muted" id="last-update"></div>
+    </div>
+    <div class="progress mb-3" style="height:8px;">
+        <div id="global-progress" class="progress-bar bg-primary" style="width:0%"></div>
+    </div>
+    <div class="col-12" id="alert_div">
+    </div>
+    {% set stage_colors = {
+        'Completed': 'success',
+        'Failed': 'danger',
+        'Skipped': 'warning',
+        'Running': 'primary',
+        'Pending': 'secondary'
+    } %}
+    <ul id="stagesnew" class="list-group">
+        {% for name, st in stages %}
+        {% set status = st.status or 'Pending' %}
+        {% set color = stage_colors.get(status, 'secondary') %}
+        {% if status == 'Completed' %}
+        {% set percent = 100 %}
+        {% elif status == 'Running' %}
+        {% set percent = 60 %}
+        {% elif status == 'Pending' %}
+        {% set percent = 10 %}
+        {% else %}
+        {% set percent = 0 %}
+        {% endif %}
+        {% set running_class = 'running' if status == 'Running' else '' %}
+        <li class="list-group-item {{ running_class }} border border-{{ color }}">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold">{{ name }}{% if st.sub_name %} <small
+                        class="text-muted">({{ st.sub_name }})</small>{% endif %}</span>
+                <span class="badge text-bg-{{ color }} border border-{{ color }}">{{ status }}</span>
+            </div>
+            <div class="small text-muted">{{ st.message or '' }}</div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-{{ color }}" style="width:{{ percent }}%"></div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="mt-4" id="results">
+        {% if task and task.results %}
+        <h3 class="h6">Summary</h3>
+        <ul class="list-group">
+            <li class="list-group-item">Total files: {{ task.results.total_files }}</li>
+            <li class="list-group-item">Ready to upload: {{ task.results.files_to_upload_count }}</li>
+            <li class="list-group-item">No file path: {{ task.results.no_file_path }}</li>
+            <li class="list-group-item">Nested files: {{ (task.results or {}).get('injects_result', {}).get('nested_files', 0) }}</li>
+            <li class="list-group-item">New translations: {{ task.results.new_translations_count }}</li>
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/task.js') }}"></script>
+{% endblock %}
