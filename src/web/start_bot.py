@@ -86,7 +86,7 @@ def titles_task(stages, text, titles_limit=None):
 
     main_title, titles = get_files(text)
 
-    if not titles:
+    if not titles or not main_title:
         stages["status"] = "Failed"
         logger.error("no titles")
     else:
@@ -98,6 +98,9 @@ def titles_task(stages, text, titles_limit=None):
         stages["message"] += f", use only {titles_limit:,}"
         # use only n titles
         titles = titles[:titles_limit]
+
+    if not main_title:
+        stages["message"] += ", no main title found"
 
     data = {
         "main_title": main_title,

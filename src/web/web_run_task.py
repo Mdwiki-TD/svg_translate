@@ -151,9 +151,12 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
     push_stage("titles")
 
     main_title, titles = titles_result["main_title"], titles_result["titles"]
+
     if not titles:
         return fail_task(store, task_id, stages_list, "No titles found")
 
+    if not main_title:
+        return fail_task(store, task_id, stages_list, "No main title found")
     # ----------------------------------------------
     # Stage 3: get translations
     output_dir_main = output_dir / "files"
