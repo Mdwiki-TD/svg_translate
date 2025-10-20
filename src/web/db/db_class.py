@@ -3,6 +3,7 @@ import pymysql
 
 class Database:
     """Thin wrapper around a PyMySQL connection with convenience helpers."""
+
     def __init__(self, db_data):
         """
         Initialize the Database instance and establish a MySQL connection using credentials from db_data.

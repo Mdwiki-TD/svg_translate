@@ -3,12 +3,13 @@ from __future__ import annotations
 from collections import namedtuple
 from datetime import datetime
 from logging import debug
+import os
 import sys
 import threading
 import uuid
 from typing import Any, Dict, List
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 # from asgiref.wsgi import WsgiToAsgi
 
 from web.web_run_task import run_task
@@ -31,7 +32,7 @@ app.config["SECRET_KEY"] = SECRET_KEY
 user_data = {"username": username, "password": password}
 
 
-def parse_args(request_form):
+def parse_args(request_form: Dict[str, Any]) -> Any:
     """Extract workflow arguments from a Flask request form.
 
     Parameters:
@@ -44,9 +45,10 @@ def parse_args(request_form):
 
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
-    upload = bool(request_form.get("upload"))
-    # ---
     upload = False
+    # ---
+    if os.getenv("DISABLE_UPLOADS", "1") != "1":
+        upload = bool(request_form.get("upload"))
     # ---
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
@@ -117,10 +119,10 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     """Normalize the stage mapping into a sorted list of name/data tuples.
 
     Parameters:
-        stages (dict[str, dict] | None): Mapping of stage name to metadata or None.
+        stages (Dict[str, Any] | None): Mapping of stage name to metadata or None.
 
     Returns:
-        list[tuple[str, dict]]: Stage entries sorted by their `number` key; empty
+        List[tuple[str, Dict[str, Any]]]: Stage entries sorted by their `number` key; empty
         when `stages` is falsy or lacks valid dict values.
     """
 
@@ -135,7 +137,7 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
 
 
 @app.get("/task1")
-def task1():
+def task1() -> Response:
     """Render the task detail page for the first step of the workflow.
 
     Returns:
@@ -165,7 +167,7 @@ def task1():
 
 
 @app.get("/")
-def index():
+def index() -> Response:
     """Render the landing page for creating a new translation task.
 
     Returns:
@@ -186,7 +188,7 @@ def index():
 
 
 @app.get("/task2")
-def task2():
+def task2() -> Response:
     """Render the progress page for an existing translation task.
 
     Returns:
@@ -221,7 +223,7 @@ def task2():
 
 
 @app.post("/")
-def start():
+def start() -> Response:
     """Create a new task for the submitted title and launch the background worker.
 
     Side Effects:
@@ -275,7 +277,7 @@ def start():
 
 
 @app.get("/tasks")
-def tasks():
+def tasks() -> Response:
     """
     Render the task listing page with formatted task metadata and available status filters.
 
