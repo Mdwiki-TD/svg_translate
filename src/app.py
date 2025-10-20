@@ -198,7 +198,6 @@ def start():
             TASK_STORE.create_task(
                 task_id,
                 title,
-                # form={x: request.form.get(x) for x in request.form}
                 form=request.form.to_dict(flat=True)
             )
         except TaskAlreadyExistsError as exc:
