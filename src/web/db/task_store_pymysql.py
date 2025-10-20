@@ -57,40 +57,44 @@ class StageStoreProtocol(Protocol):
             )
         except Exception as exc:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
-
     def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
         now = _current_ts()
 
+        if not stages:
+            return
+            
+        # NOTE: This method is not atomic. The DELETE and INSERTs should be wrapped in a single transaction.
         self.db.execute_query_safe("DELETE FROM task_stages WHERE task_id = %s", [task_id])
-        for stage_name, stage_data in stages.items():
-            self.db.execute_query_safe(
-                """
-            INSERT INTO task_stages (
-                stage_id, task_id,
-                stage_name, stage_number,
-                stage_status, stage_sub_name,
-                stage_message, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                stage_number = VALUES(stage_number),
-                stage_status = VALUES(stage_status),
-                stage_sub_name = VALUES(stage_sub_name),
-                stage_message = VALUES(stage_message),
-                updated_at = VALUES(updated_at)
-            """,
-                [
-                    f"{task_id}:{stage_name}",
-                    task_id,
-                    stage_name,
-                    stage_data.get("number", 0),
-                    stage_data.get("status", "Pending"),
-                    stage_data.get("sub_name"),
-                    stage_data.get("message"),
-                    now,
-                ],
-            )
 
-    def fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
+
+        params_seq = [
+            (
+                f"{task_id}:{stage_name}",
+                task_id,
+                stage_name,
+                stage_data.get("number", 0),
+                stage_data.get("status", "Pending"),
+                stage_data.get("sub_name"),
+                stage_data.get("message"),
+                now,
+            )
+            for stage_name, stage_data in stages.items()
+        ]
+
+        if params_seq:
+            self.db.execute_many(
+                """
+                INSERT INTO task_stages (
+                    stage_id, task_id,
+                    stage_name, stage_number,
+                    stage_status, stage_sub_name,
+                    stage_message, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                params_seq,
+            )
+            
+    def fetch_stages(self, task_id: str) -> Dict[str, ict[str, Any]]:
         rows = self.db.fetch_query_safe(
             """
                 SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
