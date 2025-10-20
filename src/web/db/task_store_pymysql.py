@@ -24,7 +24,104 @@ class TaskAlreadyExistsError(Exception):
         self.task = task
 
 
-class TaskStorePyMysql:
+class StageStoreProtocol(Protocol):
+
+    def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
+        now = _current_ts()
+        try:
+            self.db.execute_query(
+                """
+                INSERT INTO task_stages (
+                    stage_id, task_id,
+                    stage_name, stage_number,
+                    stage_status, stage_sub_name,
+                    stage_message, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    stage_number = COALESCE(VALUES(stage_number), stage_number),
+                    stage_status = COALESCE(VALUES(stage_status), stage_status),
+                    stage_sub_name = COALESCE(VALUES(stage_sub_name), stage_sub_name),
+                    stage_message = COALESCE(VALUES(stage_message), stage_message),
+                    updated_at = VALUES(updated_at)
+                """,
+                [
+                    f"{task_id}:{stage_name}",
+                    task_id,
+                    stage_name,
+                    stage_data.get("number", 0),
+                    stage_data.get("status", "Pending"),
+                    stage_data.get("sub_name"),
+                    stage_data.get("message"),
+                    now,
+                ],
+            )
+        except Exception as exc:
+            logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
+
+    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
+        now = _current_ts()
+
+        self.db.execute_query_safe("DELETE FROM task_stages WHERE task_id = %s", [task_id])
+        for stage_name, stage_data in stages.items():
+            self.db.execute_query_safe(
+                """
+            INSERT INTO task_stages (
+                stage_id, task_id,
+                stage_name, stage_number,
+                stage_status, stage_sub_name,
+                stage_message, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                stage_number = VALUES(stage_number),
+                stage_status = VALUES(stage_status),
+                stage_sub_name = VALUES(stage_sub_name),
+                stage_message = VALUES(stage_message),
+                updated_at = VALUES(updated_at)
+            """,
+                [
+                    f"{task_id}:{stage_name}",
+                    task_id,
+                    stage_name,
+                    stage_data.get("number", 0),
+                    stage_data.get("status", "Pending"),
+                    stage_data.get("sub_name"),
+                    stage_data.get("message"),
+                    now,
+                ],
+            )
+
+    def fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
+        rows = self.db.fetch_query_safe(
+            """
+                SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
+                FROM task_stages
+                WHERE task_id = %s
+                ORDER BY stage_number
+                """,
+            [task_id],
+        )
+        if not rows:
+            logger.error(f"Failed to fetch stages for task {task_id}")
+            return {}
+
+        stages: Dict[str, Dict[str, Any]] = {}
+        for row in rows:
+            updated_at = row["updated_at"]
+            if hasattr(updated_at, "isoformat"):
+                updated_str = updated_at.isoformat()
+            else:
+                updated_str = str(updated_at) if updated_at is not None else None
+            stages[row["stage_name"]] = {
+                "number": row["stage_number"],
+                "status": row["stage_status"],
+                "sub_name": row.get("stage_sub_name"),
+                "message": row.get("stage_message"),
+                "updated_at": updated_str,
+            }
+        return stages
+
+
+class TaskStorePyMysql(StageStoreProtocol):
     """MySQL-backed task store using helper functions execute_query/fetch_query."""
 
     def __init__(self, db_data: Dict[str, str]) -> None:
@@ -240,6 +337,9 @@ class TaskStorePyMysql:
             results (Optional[Dict[str, Any]]): New results payload to store (will be JSON-serialized).
         """
         form_json = _serialize(form) if form is not None else None
+        if data is not None and isinstance(data, dict) and "stages" in data:
+            data = dict(data)
+            data.pop("stages", None)
         data_json = _serialize(data) if data is not None else None
         results_json = _serialize(results) if results is not None else None
         norm_title = _normalize_title(title) if title is not None else None
@@ -339,6 +439,7 @@ class TaskStorePyMysql:
             "results": _deserialize(row.get("results_json")),
             "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
             "updated_at": row["updated_at"].isoformat() if hasattr(row["updated_at"], "isoformat") else str(row["updated_at"]),
+            "stages": self.fetch_stages(row["id"]),
         }
 
     def list_tasks(

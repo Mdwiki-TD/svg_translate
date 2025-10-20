@@ -2,7 +2,8 @@ import json
 import html
 from urllib.parse import quote
 
-from svg_translate import download_commons_svgs, get_files, get_wikitext, start_injects, extract, logger
+from svg_translate import get_files, get_wikitext, start_injects, extract, logger
+from .download_task import download_one_file
 
 
 def json_save(path, data):
@@ -125,14 +126,14 @@ def translations_task(stages, main_title, output_dir_main):
     # ---
     stages["status"] = "Running"
     # ---
-    files1 = download_commons_svgs([main_title], out_dir=output_dir_main)
-    if not files1:
+    files1 = download_one_file(main_title, output_dir_main, 0)
+    if not files1.get("path"):
         logger.error(f"when downloading main file: {main_title}")
         stages["message"] = "Error when downloading main file"
         stages["status"] = "Failed"
         return {}, stages
 
-    main_title_path = files1[0]
+    main_title_path = files1["path"]
     translations = extract(main_title_path, case_insensitive=True)
 
     stages["status"] = "Failed" if not translations else "Completed"

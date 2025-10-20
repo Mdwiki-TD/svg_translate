@@ -23,7 +23,7 @@ from user_info import username, password
 
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
-TASK_STORE = TaskStorePyMysql()
+TASK_STORE = TaskStorePyMysql(db_data)
 TASKS_LOCK = threading.Lock()
 
 app = Flask(__name__, template_folder="templates")

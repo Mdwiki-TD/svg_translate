@@ -14,8 +14,10 @@ from svg_translate import logger
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
+USER_AGENT = "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)"
 
-def download_one_file(title: str, session: requests.Session, out_dir: Path, i: int):
+
+def download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None):
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
     data = {
@@ -34,7 +36,11 @@ def download_one_file(title: str, session: requests.Session, out_dir: Path, i: i
         data["result"] = "existing"
         data["path"] = str(out_path)
         return data
-
+    if not session:
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": USER_AGENT,
+        })
     try:
         response = session.get(url, timeout=30, allow_redirects=True)
     except requests.RequestException as exc:
@@ -89,13 +95,13 @@ def download_task(
     session = requests.Session()
 
     session.headers.update({
-        "User-Agent": "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)",
+        "User-Agent": USER_AGENT,
     })
 
     files = []
 
     for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
-        result = download_one_file(title, session, out_dir, i)
+        result = download_one_file(title, out_dir, i, session)
         if result["result"] == "success":
             counts["success"] += 1
         elif result["result"] == "existing":
