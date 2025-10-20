@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 from svg_translate import logger
 from svg_translate.commons.upload_bot import upload_file
-from user_info import username, password
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
@@ -125,6 +124,7 @@ def upload_task(
     files_to_upload: Dict[str, Dict[str, object]],
     main_title: str,
     do_upload: Optional[bool] = None,
+    user: Dict[str, str] = None,
     progress_updater: ProgressUpdater = None,
 ):
     """
@@ -167,7 +167,7 @@ def upload_task(
             progress_updater(stages)
         return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
 
-    if not username or not password:
+    if not user.get("username") or not user.get("password"):
         stages["status"] = "Failed"
         stages["message"] += " (Missing credentials)"
         if progress_updater:
@@ -212,8 +212,8 @@ def upload_task(
     upload_result = start_upload(
         files_to_upload,
         main_title_link,
-        username,
-        password,
+        user.get("username"),
+        user.get("password"),
         per_file_callback=per_file_callback,
     )
 
