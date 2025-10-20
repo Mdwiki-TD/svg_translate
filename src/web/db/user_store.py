@@ -27,22 +27,29 @@ class UserCredentials:
     access_secret: str
     created_at: str
     updated_at: str
+    last_used_at: str | None
+    rotated_at: str | None
 
-    def as_dict(self, include_secrets: bool = False) -> Dict[str, str]:
-        """Return a dictionary representation suitable for templating."""
+    def without_secrets(self) -> Dict[str, str]:
+        """Return a representation safe for exposure to templates."""
 
-        data = {
+        return {
             "user_id": self.user_id,
             "username": self.username,
         }
-        if include_secrets:
-            data.update(
-                {
-                    "access_token": self.access_token,
-                    "access_secret": self.access_secret,
-                }
-            )
-        return data
+
+    def secrets(self) -> Dict[str, str]:
+        """Return the sensitive token payload for internal use."""
+
+        return {
+            "access_token": self.access_token,
+            "access_secret": self.access_secret,
+        }
+
+    def is_revoked(self) -> bool:
+        """Return ``True`` when the stored credentials have been revoked."""
+
+        return bool(self.rotated_at) or not (self.access_token and self.access_secret)
 
 
 class UserTokenStore:
@@ -55,8 +62,13 @@ class UserTokenStore:
         if Fernet is None:  # pragma: no cover - handled by explicit tests
             raise RuntimeError("cryptography is required to use UserTokenStore")
 
+        key_bytes = encryption_key.encode() if isinstance(encryption_key, str) else encryption_key
+        try:
+            self.fernet = Fernet(key_bytes)
+        except Exception as exc:  # pragma: no cover - validation branch
+            raise ValueError("OAUTH_ENCRYPTION_KEY is not a valid Fernet key") from exc
+
         self.db = Database(db_data)
-        self.fernet = Fernet(encryption_key.encode() if isinstance(encryption_key, str) else encryption_key)
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:
@@ -65,11 +77,13 @@ class UserTokenStore:
         ddl = """
             CREATE TABLE IF NOT EXISTS user_tokens (
                 user_id VARCHAR(255) PRIMARY KEY,
-                username VARCHAR(255) NOT NULL,
+                username VARCHAR(255) NOT NULL UNIQUE,
                 access_token VARBINARY(1024) NOT NULL,
                 access_secret VARBINARY(1024) NOT NULL,
                 created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL
+                updated_at DATETIME NOT NULL,
+                last_used_at DATETIME DEFAULT NULL,
+                rotated_at DATETIME DEFAULT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
         self.db.execute_query_safe(ddl)
@@ -95,22 +109,28 @@ class UserTokenStore:
         """Insert or update a user's OAuth credentials."""
 
         now = _current_ts()
+        encrypted_token = self._encrypt(access_token)
+        encrypted_secret = self._encrypt(access_secret)
+
         self.db.execute_query_safe(
             """
             INSERT INTO user_tokens (
-                user_id, username, access_token, access_secret, created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                user_id, username, access_token, access_secret, created_at, updated_at, last_used_at, rotated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, NULL)
             ON DUPLICATE KEY UPDATE
                 username = VALUES(username),
                 access_token = VALUES(access_token),
                 access_secret = VALUES(access_secret),
-                updated_at = VALUES(updated_at)
+                updated_at = VALUES(updated_at),
+                last_used_at = VALUES(last_used_at),
+                rotated_at = NULL
             """,
             [
                 user_id,
                 username,
-                self._encrypt(access_token),
-                self._encrypt(access_secret),
+                encrypted_token,
+                encrypted_secret,
+                now,
                 now,
                 now,
             ],
@@ -121,7 +141,15 @@ class UserTokenStore:
 
         rows = self.db.fetch_query_safe(
             """
-            SELECT user_id, username, access_token, access_secret, created_at, updated_at
+            SELECT
+                user_id,
+                username,
+                access_token,
+                access_secret,
+                created_at,
+                updated_at,
+                last_used_at,
+                rotated_at
             FROM user_tokens
             WHERE user_id = %s
             """,
@@ -138,12 +166,36 @@ class UserTokenStore:
             access_secret=self._decrypt(row["access_secret"]),
             created_at=str(row.get("created_at")),
             updated_at=str(row.get("updated_at")),
+            last_used_at=str(row.get("last_used_at")) if row.get("last_used_at") else None,
+            rotated_at=str(row.get("rotated_at")) if row.get("rotated_at") else None,
         )
 
-    def delete_user(self, user_id: str) -> None:
-        """Remove a user's credentials from the store."""
+    def mark_last_used(self, user_id: str) -> None:
+        """Update the ``last_used_at`` timestamp for ``user_id``."""
 
-        self.db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", [user_id])
+        now = _current_ts()
+        self.db.execute_query_safe(
+            "UPDATE user_tokens SET last_used_at = %s WHERE user_id = %s",
+            [now, user_id],
+        )
+
+    def revoke(self, user_id: str) -> None:
+        """Rotate credentials for ``user_id`` and scrub stored secrets."""
+
+        now = _current_ts()
+        placeholder = self._encrypt("")
+        self.db.execute_query_safe(
+            """
+            UPDATE user_tokens
+            SET access_token = %s,
+                access_secret = %s,
+                updated_at = %s,
+                last_used_at = %s,
+                rotated_at = %s
+            WHERE user_id = %s
+            """,
+            [placeholder, placeholder, now, now, now, user_id],
+        )
 
 
 __all__ = ["UserTokenStore", "UserCredentials"]

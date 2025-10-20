@@ -1,5 +1,3 @@
-"""Tests for the encrypted user token store."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,6 +18,7 @@ def test_upsert_credentials_encrypts_tokens(mock_database):
     assert args[1] == "Tester"
     assert args[2].startswith(b"stub:")
     assert args[3].startswith(b"stub:")
+    assert args[6]  # last_used_at timestamp
 
 
 @patch("src.web.db.user_store.Database")
@@ -33,6 +32,8 @@ def test_get_user_decrypts_payload(mock_database):
             "access_secret": b"stub:ats",
             "created_at": "now",
             "updated_at": "now",
+            "last_used_at": "now",
+            "rotated_at": None,
         }
     ]
     mock_database.return_value = db_instance
@@ -44,4 +45,31 @@ def test_get_user_decrypts_payload(mock_database):
 
     assert user is not None
     assert user.access_token == "atk"
-    assert user.access_secret == "ats"
+    assert not user.is_revoked()
+
+
+@patch("src.web.db.user_store.Database")
+def test_revoke_scrubs_credentials(mock_database):
+    db_instance = MagicMock()
+    mock_database.return_value = db_instance
+
+    from src.web.db.user_store import UserTokenStore
+
+    store = UserTokenStore({"host": "", "user": "", "dbname": "", "password": ""}, "test-key")
+    store.revoke("user-1")
+
+    query, params = db_instance.execute_query_safe.call_args[0]
+    assert "rotated_at" in query
+    assert params[-1] == "user-1"
+
+
+def test_invalid_key_raises(monkeypatch):
+    from src.web.db.user_store import Fernet, UserTokenStore
+
+    monkeypatch.setattr("src.web.db.user_store.Fernet", MagicMock(side_effect=ValueError("bad key")))
+
+    with pytest.raises(ValueError):
+        UserTokenStore({"host": "", "user": "", "dbname": "", "password": ""}, "not-a-key")
+
+    # restore original to avoid leaking patched state
+    monkeypatch.setattr("src.web.db.user_store.Fernet", Fernet)

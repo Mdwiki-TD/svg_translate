@@ -98,8 +98,10 @@ if "mwoauth" not in sys.modules:
     class _Handshaker:
         def __init__(self, *_args, **_kwargs):
             self.consumer_token = _kwargs.get("consumer_token")
+            self.last_initiate = {}
 
-        def initiate(self):
+        def initiate(self, callback=None, params=None):  # pragma: no cover - behaviour verified in tests
+            self.last_initiate = {"callback": callback, "params": params}
             return "https://example.org/oauth", _RequestToken("request", "secret")
 
         def complete(self, request_token, _query):

@@ -1,64 +1,33 @@
+"""Flask application factory for the SVG Translate web interface."""
+
 from __future__ import annotations
 
-from collections import namedtuple
-from datetime import datetime
-from logging import debug
-import sys
 import threading
-import uuid
-from typing import Any, Dict, List, Optional
-from types import SimpleNamespace
 from http.cookies import SimpleCookie
+from typing import Any, Optional
 
-from flask import (
-    Flask,
-    jsonify,
-    g,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import Flask
 from flask.testing import FlaskClient
-# from asgiref.wsgi import WsgiToAsgi
 
-from web.web_run_task import run_task
-# from uvicorn.main import logger
-# import logging
-# logger = logging.getLogger(__name__)
-
-from itsdangerous import BadSignature, URLSafeTimedSerializer
-
-try:
-    import mwoauth
-except ModuleNotFoundError:  # pragma: no cover - optional dependency in tests
-    mwoauth = None  # type: ignore[assignment]
+from svg_config import SECRET_KEY, db_data
 
 try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import config_logger, logger
+    from svg_translate.log import config_logger
 except ImportError:  # pragma: no cover
-    from src.svg_translate.log import config_logger, logger  # type: ignore[no-redef]
-from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from web.db.user_store import UserTokenStore
-from svg_config import (
-    OAUTH_CONSUMER_KEY,
-    OAUTH_CONSUMER_SECRET,
-    OAUTH_ENCRYPTION_KEY,
-    OAUTH_MWURI,
-    SECRET_KEY,
-    db_data,
-)
+    from src.svg_translate.log import config_logger  # type: ignore[no-redef]
 
-config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
+from web.auth import init_app as init_auth
+from web.db.task_store_pymysql import TaskStorePyMysql
+from web.views import main as main_views
+from web.web_run_task import run_task
 
-TASK_STORE = TaskStorePyMysql(db_data)
-TASKS_LOCK = threading.Lock()
+config_logger("DEBUG")
+
 
 class CookieHeaderClient(FlaskClient):
     """Test client that accepts raw ``Cookie`` headers for compatibility."""
 
-    def open(self, *args, **kwargs):  # type: ignore[override]
+    def open(self, *args: Any, **kwargs: Any):  # type: ignore[override]
         headers = kwargs.get("headers")
         raw_cookie = None
 
@@ -89,579 +58,36 @@ class CookieHeaderClient(FlaskClient):
         return super().open(*args, **kwargs)
 
 
-app = Flask(__name__, template_folder="templates")
-app.test_client_class = CookieHeaderClient
-app.config["SECRET_KEY"] = SECRET_KEY
+def create_app() -> Flask:
+    """Instantiate and configure the Flask application."""
 
-AUTH_COOKIE_NAME = "svg_translate_user"
-AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 days
-REQUEST_TOKEN_SESSION_KEY = "oauth_request_token"
-_cookie_serializer = URLSafeTimedSerializer(SECRET_KEY, salt="svg-translate-user")
+    app = Flask(__name__, template_folder="templates")
+    app.test_client_class = CookieHeaderClient
+    app.config["SECRET_KEY"] = SECRET_KEY
+    app.config["DB_DATA"] = dict(db_data)
 
-USER_STORE: Optional[UserTokenStore] = None
-HANDSHAKER: Optional[object] = None
+    app.extensions["task_store"] = TaskStorePyMysql(app.config["DB_DATA"])
+    app.extensions["task_lock"] = threading.Lock()
+    app.extensions["run_task"] = run_task
 
+    init_auth(app)
+    main_views.init_app(app)
 
-def get_user_store() -> Optional[UserTokenStore]:
-    """Return a cached :class:`UserTokenStore` instance when configuration allows."""
+    return app
 
-    global USER_STORE
-    if USER_STORE is not None:
-        return USER_STORE
 
-    if not OAUTH_ENCRYPTION_KEY:
-        logger.warning("OAUTH_ENCRYPTION_KEY is not configured; OAuth logins disabled")
-        return None
+_APP: Optional[Flask] = None
 
-    try:
-        USER_STORE = UserTokenStore(db_data, OAUTH_ENCRYPTION_KEY)
-    except Exception as exc:  # pragma: no cover - defensive logging
-        logger.exception("Failed to initialise user token store", exc_info=exc)
-        USER_STORE = None
-    return USER_STORE
 
+def get_app() -> Flask:
+    """Return a singleton application instance for import-time callers."""
 
-def get_handshaker() -> Optional[object]:
-    """Return a cached mwoauth Handshaker when OAuth is configured."""
+    global _APP
+    if _APP is None:
+        _APP = create_app()
+    return _APP
 
-    global HANDSHAKER
-    if HANDSHAKER is not None:
-        return HANDSHAKER
 
-    if mwoauth is None:
-        logger.warning("mwoauth library is not available; OAuth login disabled")
-        return None
+app = get_app()
 
-    if not (OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET and OAUTH_MWURI):
-        logger.warning("OAuth consumer details are incomplete; OAuth login disabled")
-        return None
-
-    try:
-        consumer_token = mwoauth.ConsumerToken(OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET)
-        HANDSHAKER = mwoauth.Handshaker(OAUTH_MWURI, consumer_token=consumer_token)
-    except Exception as exc:  # pragma: no cover - defensive logging
-        logger.exception("Failed to initialise OAuth handshaker", exc_info=exc)
-        HANDSHAKER = None
-    return HANDSHAKER
-
-
-def _user_context(user_id: str, username: str) -> SimpleNamespace:
-    return SimpleNamespace(user_id=str(user_id), username=str(username))
-
-
-def _encode_user_cookie(user_id: str) -> str:
-    return _cookie_serializer.dumps({"user_id": user_id})
-
-
-def _decode_user_cookie(raw: str) -> Optional[str]:
-    try:
-        data = _cookie_serializer.loads(raw, max_age=AUTH_COOKIE_MAX_AGE)
-    except BadSignature:
-        return None
-    if not isinstance(data, dict):
-        return None
-    user_id = data.get("user_id")
-    return str(user_id) if user_id else None
-
-
-def _build_request_token(data: Any) -> Any:
-    if mwoauth and hasattr(mwoauth, "RequestToken"):
-        try:
-            return mwoauth.RequestToken(*data)
-        except Exception:  # pragma: no cover - compatibility shim
-            return data
-    return data
-
-
-def _extract_token_pair(token: Any) -> tuple[str, str]:
-    if isinstance(token, (tuple, list)) and len(token) >= 2:
-        return str(token[0]), str(token[1])
-    key = getattr(token, "key", None)
-    secret = getattr(token, "secret", None)
-    if key and secret:
-        return str(key), str(secret)
-    raise ValueError("OAuth access token does not provide key/secret")
-
-
-@app.before_request
-def load_authenticated_user() -> None:
-    """Populate :mod:`flask.g` with the authenticated user and OAuth tokens."""
-
-    g.current_user = None
-    g.oauth_credentials = None
-    g.is_authenticated = False
-    g.authenticated_user_id = None
-
-    cookie_value = request.cookies.get(AUTH_COOKIE_NAME)
-    if not cookie_value:
-        raw_cookie = request.headers.get("Cookie")
-        if raw_cookie:
-            parsed = SimpleCookie()
-            parsed.load(raw_cookie)
-            morsel = parsed.get(AUTH_COOKIE_NAME)
-            if morsel:
-                cookie_value = morsel.value
-    if not cookie_value:
-        return
-
-    user_id = _decode_user_cookie(cookie_value)
-    if not user_id:
-        return
-
-    store = get_user_store()
-    if not store:
-        return
-
-    user = store.get_user(user_id)
-    if not user:
-        return
-
-    g.authenticated_user_id = user.user_id
-    g.current_user = SimpleNamespace(**user.as_dict())
-    g.oauth_credentials = user.as_dict(include_secrets=True)
-    g.is_authenticated = True
-
-
-@app.context_processor
-def inject_user_context() -> Dict[str, object]:
-    """Expose authentication helpers to all templates."""
-
-    return {
-        "current_user": getattr(g, "current_user", None),
-        "is_authenticated": getattr(g, "is_authenticated", False),
-    }
-
-
-def parse_args(request_form):
-    """Extract workflow arguments from a Flask request form.
-
-    Parameters:
-        request_form (Mapping[str, Any]): The POSTed form data from the request.
-
-    Returns:
-        namedtuple: A namespace containing `titles_limit` (int), `overwrite` (bool),
-        and `upload` (bool) flags consumed by the background task runner.
-    """
-
-    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
-    # ---
-    upload = bool(request_form.get("upload"))
-    # ---
-    upload = False
-    # ---
-    result = Args(
-        titles_limit=request_form.get("titles_limit", 1000, type=int),
-        overwrite=bool(request_form.get("overwrite")),
-        upload=upload
-    )
-    # ---
-    return result
-
-
-@app.get("/login")
-def login() -> Any:
-    """Initiate the OAuth handshake against MediaWiki."""
-
-    handshaker = get_handshaker()
-    if not handshaker:
-        return redirect(url_for("index", error="oauth-disabled"))
-
-    try:
-        redirect_url, request_token = handshaker.initiate()
-    except Exception as exc:  # pragma: no cover - network interaction
-        logger.exception("Failed to initiate OAuth handshake", exc_info=exc)
-        return redirect(url_for("index", error="oauth-init-failed"))
-
-    session[REQUEST_TOKEN_SESSION_KEY] = (
-        getattr(request_token, "key", None),
-        getattr(request_token, "secret", None),
-    )
-    return redirect(redirect_url)
-
-
-@app.get("/callback")
-def callback() -> Any:
-    """Handle the OAuth callback and persist the access tokens."""
-
-    handshaker = get_handshaker()
-    if not handshaker:
-        return redirect(url_for("index", error="oauth-disabled"))
-
-    token_data = session.pop(REQUEST_TOKEN_SESSION_KEY, None)
-    if not token_data or not all(token_data):
-        return redirect(url_for("index", error="oauth-missing-state"))
-
-    request_token = _build_request_token(token_data)
-
-    try:
-        access_token = handshaker.complete(request_token, request.args)
-    except Exception as exc:  # pragma: no cover - network interaction
-        logger.exception("OAuth callback completion failed", exc_info=exc)
-        return redirect(url_for("index", error="oauth-complete-failed"))
-
-    try:
-        identity = handshaker.identify(access_token)
-    except Exception as exc:  # pragma: no cover - network interaction
-        logger.exception("Failed to fetch OAuth identity", exc_info=exc)
-        return redirect(url_for("index", error="oauth-identify-failed"))
-
-    user_id = identity.get("sub") or identity.get("id") or identity.get("username")
-    if not user_id:
-        return redirect(url_for("index", error="oauth-missing-identity"))
-
-    username = identity.get("username") or identity.get("name") or str(user_id)
-
-    try:
-        access_key, access_secret = _extract_token_pair(access_token)
-    except ValueError:
-        return redirect(url_for("index", error="oauth-missing-token"))
-
-    store = get_user_store()
-    if not store:
-        return redirect(url_for("index", error="oauth-storage-unavailable"))
-
-    store.upsert_credentials(str(user_id), str(username), access_key, access_secret)
-
-    response = redirect(url_for("index"))
-    response.set_cookie(
-        AUTH_COOKIE_NAME,
-        _encode_user_cookie(str(user_id)),
-        max_age=AUTH_COOKIE_MAX_AGE,
-        httponly=True,
-        secure=request.is_secure,
-        samesite="Lax",
-    )
-
-    g.authenticated_user_id = str(user_id)
-    g.current_user = _user_context(user_id, username)
-    g.oauth_credentials = {
-        "user_id": str(user_id),
-        "username": str(username),
-        "access_token": access_key,
-        "access_secret": access_secret,
-    }
-    g.is_authenticated = True
-
-    return response
-
-
-@app.get("/logout")
-def logout() -> Any:
-    """Remove persisted credentials and clear the authentication cookie."""
-
-    response = redirect(url_for("index"))
-    session.pop(REQUEST_TOKEN_SESSION_KEY, None)
-
-    user_id = getattr(g, "authenticated_user_id", None)
-    if not user_id:
-        cookie_value = request.cookies.get(AUTH_COOKIE_NAME)
-        if cookie_value:
-            user_id = _decode_user_cookie(cookie_value)
-
-    store = get_user_store()
-    if store and user_id:
-        store.delete_user(str(user_id))
-
-    response.delete_cookie(AUTH_COOKIE_NAME)
-
-    g.current_user = None
-    g.oauth_credentials = None
-    g.is_authenticated = False
-    g.authenticated_user_id = None
-
-    return response
-
-
-def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
-    """
-    Format a timestamp value for user display and provide a sortable ISO-style key.
-
-    Parameters:
-        value (datetime | str | None): The timestamp to format. May be a datetime, a string (ISO format or "%Y-%m-%d %H:%M:%S"), or None.
-
-    Returns:
-        tuple[str, str]: A pair (display, sort_key).
-            - display: human-readable timestamp in "YYYY-MM-DD HH:MM:SS", an empty string if `value` is None, or the original string if it could not be parsed.
-            - sort_key: an ISO-format timestamp suitable for sorting, an empty string if `value` is None, or the original string if it could not be parsed.
-    """
-    if not value:
-        return "", ""
-    dt = None
-    if isinstance(value, str):
-        for fmt in (None, "%Y-%m-%d %H:%M:%S"):
-            try:
-                dt = datetime.fromisoformat(value) if fmt is None else datetime.strptime(value, fmt)
-                break
-            except ValueError:
-                continue
-    elif isinstance(value, datetime):
-        dt = value
-
-    if not dt:
-        return str(value), str(value)
-
-    display = dt.strftime("%Y-%m-%d %H:%M:%S")
-    sort_key = dt.isoformat()
-    return display, sort_key
-
-
-def _format_task_for_view(task: dict) -> dict:
-    """Formats a task dictionary for the tasks list view."""
-    results = task.get("results") or {}
-    injects = results.get("injects_result") or {}
-
-    created_display, created_sort = _format_timestamp(task.get("created_at"))
-    updated_display, updated_sort = _format_timestamp(task.get("updated_at"))
-
-    return {
-        "id": task.get("id"),
-        "title": task.get("title"),
-        "status": task.get("status"),
-        "files_to_upload_count": results.get("files_to_upload_count", 0),
-        "new_translations_count": results.get("new_translations_count", 0),
-        "total_files": results.get("total_files", 0),
-        "nested_files": injects.get("nested_files", 0),
-        "created_at_display": created_display,
-        "created_at_sort": created_sort,
-        "updated_at_display": updated_display,
-        "updated_at_sort": updated_sort,
-    }
-
-
-def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, Any]]]:
-    """Normalize the stage mapping into a sorted list of name/data tuples.
-
-    Parameters:
-        stages (dict[str, dict] | None): Mapping of stage name to metadata or None.
-
-    Returns:
-        list[tuple[str, dict]]: Stage entries sorted by their `number` key; empty
-        when `stages` is falsy or lacks valid dict values.
-    """
-
-    if not stages:
-        return []
-    ordered: List[tuple[str, Dict[str, Any]]] = []
-    for name, data in stages.items():
-        if isinstance(data, dict):
-            ordered.append((name, data))
-    ordered.sort(key=lambda item: item[1].get("number", 0))
-    return ordered
-
-
-@app.get("/task1")
-def task1():
-    """Render the task detail page for the first step of the workflow.
-
-    Returns:
-        flask.Response: The rendered template for task step 1, populated with the
-        stored task data or an error payload when the task identifier is invalid.
-    """
-
-    task_id = request.args.get("task_id")
-    task = TASK_STORE.get_task(task_id) if task_id else None
-
-    if not task:
-        task = {"error": "not-found"}
-        logger.debug(f"Task {task_id} not found!!")
-
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
-
-    return render_template(
-        "task1.html",
-        task_id=task_id,
-        task=task,
-        form=task.get("form", {}),
-        error_message=error_message,
-    )
-
-
-@app.get("/")
-def index():
-    """Render the landing page for creating a new translation task.
-
-    Returns:
-        flask.Response: The rendered `index.html` template, optionally populated
-        with an error message when a duplicate task submission was attempted.
-    """
-
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
-
-    return render_template(
-        "index.html",
-        form={},
-        error_message=error_message,
-    )
-
-
-@app.get("/task2")
-def task2():
-    """Render the progress page for an existing translation task.
-
-    Returns:
-        flask.Response: The rendered template for task step 2 with the ordered
-        stages list, or an error payload if the task no longer exists.
-    """
-
-    task_id = request.args.get("task_id")
-    title = request.args.get("title")
-    task = TASK_STORE.get_task(task_id) if task_id else None
-
-    if not task:
-        task = {"error": "not-found"}
-        logger.debug(f"Task {task_id} not found!!")
-
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
-
-    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
-
-    return render_template(
-        "task2.html",
-        task_id=task_id,
-        title=title or task.get("title", ""),
-        task=task,
-        stages=stages,
-        form=task.get("form", {}),
-        error_message=error_message,
-    )
-
-
-@app.post("/")
-def start():
-    """Create a new task for the submitted title and launch the background worker.
-
-    Side Effects:
-        Persists a new task record in the database-backed store and spawns a
-        daemon thread to execute :func:`web.web_run_task.run_task`.
-
-    Returns:
-        flask.Response: Redirects the user to the step-1 view for either the newly
-        created task or the existing active task when a duplicate title is
-        detected.
-    """
-
-    title = request.form.get("title", "").strip()
-    if not title:
-        return redirect(url_for("index"))
-
-    task_id = uuid.uuid4().hex
-
-    with TASKS_LOCK:
-        existing_task = TASK_STORE.get_active_task_by_title(title)
-
-        if existing_task:
-            logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-            return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
-
-        try:
-            TASK_STORE.create_task(
-                task_id,
-                title,
-                form=request.form.to_dict(flat=True)
-            )
-        except TaskAlreadyExistsError as exc:
-            existing = exc.task
-            return redirect(url_for("task1", task_id=existing["id"], title=title, error="task-active"))
-        except Exception as exc:  # noqa: BLE001 — TaskStore may surface heterogeneous DB errors
-            logger.exception("Failed to create task", exc_info=exc)
-            return redirect(url_for("index", title=title, error="task-create-failed"))
-
-    if not getattr(g, "is_authenticated", False):
-        return redirect(url_for("index", error="auth-required"))
-
-    oauth_tokens = getattr(g, "oauth_credentials", None) or {}
-    if not oauth_tokens.get("access_token") or not oauth_tokens.get("access_secret"):
-        return redirect(url_for("index", error="oauth-missing-token"))
-
-    if not (OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET):
-        return redirect(url_for("index", error="oauth-consumer-missing"))
-
-    auth_payload = {
-        "consumer_key": OAUTH_CONSUMER_KEY,
-        "consumer_secret": OAUTH_CONSUMER_SECRET,
-        "access_token": oauth_tokens.get("access_token"),
-        "access_secret": oauth_tokens.get("access_secret"),
-        "username": (
-            oauth_tokens.get("username")
-            or getattr(getattr(g, "current_user", None), "username", None)
-        ),
-        "user_id": oauth_tokens.get("user_id"),
-    }
-
-    args = parse_args(request.form)
-    # ---
-    t = threading.Thread(
-        target=run_task,
-        args=(db_data, task_id, title, args, auth_payload),
-        name=f"task-runner-{task_id[:8]}",
-        daemon=True
-    )
-    # ---
-    t.start()
-    # ---
-    return redirect(url_for("task1", title=title, task_id=task_id))
-
-
-@app.get("/tasks")
-def tasks():
-    """
-    Render the task listing page with formatted task metadata and available status filters.
-
-    Retrieve tasks from the global task store, optionally filter by status, and produce a list of task dictionaries with selected fields and display/sortable timestamp values. Also collect the distinct task statuses found and pass the tasks, the current status filter, and the sorted available statuses to the "tasks.html" template.
-
-    Returns:
-        A Flask response object rendering "tasks.html" with the context keys `tasks`, `status_filter`, and `available_statuses`.
-    """
-    status_filter = request.args.get("status")
-
-    with TASKS_LOCK:
-        db_tasks = TASK_STORE.list_tasks(status=status_filter, order_by="created_at", descending=True)
-
-    formatted_tasks = [_format_task_for_view(task) for task in db_tasks]
-    status_values = {task.get("status") for task in db_tasks if task.get("status")}
-
-    available_statuses = sorted(status_values)
-
-    return render_template(
-        "tasks.html",
-        tasks=formatted_tasks,
-        status_filter=status_filter,
-        available_statuses=available_statuses,
-    )
-
-
-@app.get("/status/<task_id>")
-def status(task_id: str):
-    """
-    Return the JSON representation of the task identified by `task_id`.
-
-    Parameters:
-        task_id (str): Identifier of the task to retrieve.
-
-    Returns:
-        A JSON response containing the task data when found. If no task exists for `task_id`, a JSON error `{"error": "not-found"}` is returned with HTTP status 404.
-    """
-    if not task_id:
-        logger.error("No task_id provided in status request.")
-        return jsonify({"error": "no-task-id"}), 400
-
-    task = TASK_STORE.get_task(task_id)
-    if not task:
-        logger.debug(f"Task {task_id} not found")
-        return jsonify({"error": "not-found"}), 404
-
-    return jsonify(task)
-
-
-if __name__ == "__main__":
-    debug = "debug" in sys.argv
-    app.run(debug=debug)
+__all__ = ["app", "create_app", "get_app"]
