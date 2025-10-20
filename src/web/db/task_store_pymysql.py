@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from svg_translate import logger
 
@@ -24,7 +24,7 @@ class TaskAlreadyExistsError(Exception):
         self.task = task
 
 
-class StageStoreProtocol(Protocol):
+class StageStore:
 
     def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
         now = _current_ts()
@@ -125,7 +125,7 @@ class StageStoreProtocol(Protocol):
         return stages
 
 
-class TaskStorePyMysql(StageStoreProtocol):
+class TaskStorePyMysql(StageStore):
     """MySQL-backed task store using helper functions execute_query/fetch_query."""
 
     def __init__(self, db_data: Dict[str, str]) -> None:
