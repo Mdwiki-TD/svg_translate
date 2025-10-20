@@ -136,7 +136,7 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     return ordered
 
 
-def get_error_message(error_code):
+def get_error_message(error_code: str | None) -> str:
     if not error_code:
         return ""
     # ---
