@@ -15,6 +15,15 @@ class SvgStructureException(Exception):
     """Raised when SVG structure is unsuitable for translation."""
 
     def __init__(self, code: str, element=None, extra=None):
+        """Store structured error details for later reporting.
+
+        Parameters:
+            code (str): Machine-readable error code describing the structural
+                issue encountered.
+            element: Optional XML element related to the error (for diagnostics).
+            extra: Optional supplemental data used to enrich the exception
+                message.
+        """
         self.code = code
         self.element = element
         self.extra = extra

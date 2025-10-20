@@ -18,6 +18,19 @@ USER_AGENT = "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; m
 
 
 def download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None):
+    """Download a single Commons file, skipping already-downloaded copies.
+
+    Parameters:
+        title (str): Title of the file page on Wikimedia Commons.
+        out_dir (Path): Directory where the file should be stored.
+        i (int): 1-based index used only for logging context.
+        session (requests.Session | None): Optional shared session. A new session
+            with an appropriate User-Agent is created when omitted.
+
+    Returns:
+        dict: Outcome dictionary with keys ``result`` ("success", "existing", or
+        "failed") and ``path`` (path string when available).
+    """
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
     data = {

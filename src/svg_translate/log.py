@@ -6,6 +6,17 @@ logger = logging.getLogger(__name__)
 
 
 def config_logger(level=None):
+    """Configure the module-level logger with a standard formatter and level.
+
+    Parameters:
+        level (int | str | None): Logging level to apply. When None, the level is
+            derived from command-line arguments (DEBUG when "DEBUG" is present,
+            otherwise INFO). Accepts either numeric levels or their string names.
+
+    Side Effects:
+        Calls :func:`logging.basicConfig` to configure the root logger and updates
+        this module's ``logger`` accordingly.
+    """
     _nameToLevel = [
         'CRITICAL',
         'FATAL',

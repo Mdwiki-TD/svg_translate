@@ -32,6 +32,16 @@ user_data = {"username": username, "password": password}
 
 
 def parse_args(request_form):
+    """Extract workflow arguments from a Flask request form.
+
+    Parameters:
+        request_form (Mapping[str, Any]): The POSTed form data from the request.
+
+    Returns:
+        namedtuple: A namespace containing `titles_limit` (int), `overwrite` (bool),
+        and `upload` (bool) flags consumed by the background task runner.
+    """
+
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
     # ---
     upload = bool(request_form.get("upload"))
@@ -104,6 +114,16 @@ def _format_task_for_view(task: dict) -> dict:
 
 
 def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, Any]]]:
+    """Normalize the stage mapping into a sorted list of name/data tuples.
+
+    Parameters:
+        stages (dict[str, dict] | None): Mapping of stage name to metadata or None.
+
+    Returns:
+        list[tuple[str, dict]]: Stage entries sorted by their `number` key; empty
+        when `stages` is falsy or lacks valid dict values.
+    """
+
     if not stages:
         return []
     ordered: List[tuple[str, Dict[str, Any]]] = []
@@ -116,6 +136,13 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
 
 @app.get("/task1")
 def task1():
+    """Render the task detail page for the first step of the workflow.
+
+    Returns:
+        flask.Response: The rendered template for task step 1, populated with the
+        stored task data or an error payload when the task identifier is invalid.
+    """
+
     task_id = request.args.get("task_id")
     task = TASK_STORE.get_task(task_id) if task_id else None
 
@@ -139,6 +166,13 @@ def task1():
 
 @app.get("/")
 def index():
+    """Render the landing page for creating a new translation task.
+
+    Returns:
+        flask.Response: The rendered `index.html` template, optionally populated
+        with an error message when a duplicate task submission was attempted.
+    """
+
     error_code = request.args.get("error")
     error_message = None
     if error_code == "task-active":
@@ -153,6 +187,13 @@ def index():
 
 @app.get("/task2")
 def task2():
+    """Render the progress page for an existing translation task.
+
+    Returns:
+        flask.Response: The rendered template for task step 2 with the ordered
+        stages list, or an error payload if the task no longer exists.
+    """
+
     task_id = request.args.get("task_id")
     title = request.args.get("title")
     task = TASK_STORE.get_task(task_id) if task_id else None
@@ -181,6 +222,18 @@ def task2():
 
 @app.post("/")
 def start():
+    """Create a new task for the submitted title and launch the background worker.
+
+    Side Effects:
+        Persists a new task record in the database-backed store and spawns a
+        daemon thread to execute :func:`web.web_run_task.run_task`.
+
+    Returns:
+        flask.Response: Redirects the user to the step-1 view for either the newly
+        created task or the existing active task when a duplicate title is
+        detected.
+    """
+
     title = request.form.get("title", "").strip()
     if not title:
         return redirect(url_for("index"))

@@ -1,10 +1,11 @@
-lxml
 Flask
 asgiref
 uvicorn
 python-dotenv
-mwclient
-wikitextparser
 requests
-gunicorn
+wikitextparser
+mwclient
+lxml
+tqdm
 pymysql
+gunicorn

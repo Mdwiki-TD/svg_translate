@@ -2,6 +2,7 @@ import pymysql
 
 
 class Database:
+    """Thin wrapper around a PyMySQL connection with convenience helpers."""
     def __init__(self, db_data):
         """
         Initialize the Database instance and establish a MySQL connection using credentials from db_data.
@@ -108,6 +109,16 @@ class Database:
             return 0
 
     def fetch_query_safe(self, sql_query, params=None):
+        """Return all rows for a query while converting SQL failures into logs.
+
+        Parameters:
+            sql_query (str): SQL statement to execute.
+            params (tuple|dict|None): Optional parameters for the query.
+
+        Returns:
+            list[dict]: Query results when successful; otherwise an empty list if
+            an exception is raised.
+        """
         try:
             return self.fetch_query(sql_query, params)
         except pymysql.MySQLError as e:
@@ -116,6 +127,16 @@ class Database:
             return []
 
     def execute_query_safe(self, sql_query, params=None):
+        """Execute a modifying statement while swallowing PyMySQL exceptions.
+
+        Parameters:
+            sql_query (str): SQL statement to execute.
+            params (tuple|dict|None): Optional parameters for the query.
+
+        Returns:
+            int: Number of affected rows for success; ``0`` when an exception is
+            encountered.
+        """
         try:
             return self.execute_query(sql_query, params)
 

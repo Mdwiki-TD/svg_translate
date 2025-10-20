@@ -7,6 +7,22 @@ from .log import logger
 
 
 def start_injects(files, translations, output_dir_translated, overwrite=False):
+    """Inject translations into multiple SVG files and write the results.
+
+    Parameters:
+        files (Iterable[pathlib.Path | str]): Source SVG paths to process.
+        translations (dict): Mapping of translation data understood by
+            :func:`svg_translate.svgpy.bots.inject_bot.inject`.
+        output_dir_translated (pathlib.Path): Destination directory for translated
+            SVG files; the directory must be writable and will receive one file per
+            source entry.
+        overwrite (bool): Whether to allow inject_bot to overwrite existing
+            translations within the SVG content.
+
+    Returns:
+        dict: Aggregated statistics keyed by `saved_done`, `no_save`,
+        `nested_files`, and `files` (per-file outcome mapping).
+    """
 
     saved_done = 0
     no_save = 0

@@ -68,6 +68,23 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
 
 
 def svg_extract_and_injects(translations, inject_file, output_dir=None, save_result=False, **kwargs):
+    """Inject provided translations into a single SVG file.
+
+    Parameters:
+        translations (dict): Mapping of extracted translation data structured as
+            expected by :func:`svg_translate.svgpy.bots.inject_bot.inject`.
+        inject_file (pathlib.Path | str): Target SVG path to update.
+        output_dir (pathlib.Path | None): Destination directory for translated
+            output when ``save_result`` is truthy; defaults to the module's
+            ``translated`` folder.
+        save_result (bool): When True, write the translated SVG to disk.
+        **kwargs: Additional keyword arguments forwarded to
+            :func:`svg_translate.svgpy.bots.inject_bot.inject` (e.g., overwrite).
+
+    Returns:
+        tuple[lxml.etree._ElementTree | None, dict]: The injected XML tree and the
+        statistics dictionary produced by :func:`inject`.
+    """
 
     inject_file = Path(str(inject_file))
 
