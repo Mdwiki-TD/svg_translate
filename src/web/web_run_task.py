@@ -137,12 +137,14 @@ def run_task(db_data, task_id: str, title: str, args: Any) -> None:
 
     stages_list = task_snapshot["stages"]
 
+    # ----------------------------------------------
     # Stage 1: extract text
     text, stages_list["text"] = text_task(stages_list["text"], title)
     store.update_data(task_id, task_snapshot)
     if not text:
         return fail_task(store, task_id, task_snapshot, "No text extracted")
 
+    # ----------------------------------------------
     # Stage 2: extract titles
     titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
     store.update_data(task_id, task_snapshot)
@@ -151,6 +153,7 @@ def run_task(db_data, task_id: str, title: str, args: Any) -> None:
     if not titles:
         return fail_task(store, task_id, task_snapshot, "No titles found")
 
+    # ----------------------------------------------
     # Stage 3: get translations
     output_dir_main = output_dir / "files"
     output_dir_main.mkdir(parents=True, exist_ok=True)
@@ -161,6 +164,7 @@ def run_task(db_data, task_id: str, title: str, args: Any) -> None:
     if not translations:
         return fail_task(store, task_id, task_snapshot, "No translations available")
 
+    # ----------------------------------------------
     # Stage 4: download SVG files
     def download_progress(stages):
         return store.update_data(task_id, task_snapshot)
@@ -176,6 +180,7 @@ def run_task(db_data, task_id: str, title: str, args: Any) -> None:
     if not files:
         return fail_task(store, task_id, task_snapshot, "No files downloaded")
 
+    # ----------------------------------------------
     # Stage 5: inject translations
     injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
     store.update_data(task_id, task_snapshot)
@@ -185,11 +190,12 @@ def run_task(db_data, task_id: str, title: str, args: Any) -> None:
 
     inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
+    # ----------------------------------------------
+    # Stage 6: upload results
     files_to_upload = {x: v for x, v in inject_files.items() if v.get("file_path")}
 
     no_file_path = len(inject_files) - len(files_to_upload)
 
-    # Stage 6: upload results
     def upload_progress():
         return store.update_data(task_id, task_snapshot)
 
@@ -202,6 +208,7 @@ def run_task(db_data, task_id: str, title: str, args: Any) -> None:
     )
     store.update_data(task_id, task_snapshot)
 
+    # ----------------------------------------------
     # Stage 7: save stats and mark done
     data = {
         "main_title": main_title,
