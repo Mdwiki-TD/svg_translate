@@ -7,6 +7,20 @@ from .commons.upload_bot import upload_file
 
 
 def start_upload(files_to_upload, main_title_link, username, password):
+    """Upload translated SVG files to Wikimedia Commons.
+
+    Parameters:
+        files_to_upload (dict[str, dict]): Mapping of filename to metadata produced
+            by the injection stage. Each entry should provide a ``file_path`` and
+            ``new_languages`` count.
+        main_title_link (str): Commons link to reference in the upload summary.
+        username (str): Bot username for authentication.
+        password (str): Password associated with the bot user.
+
+    Returns:
+        dict: Summary dictionary with counts for ``done`` and ``not_done`` uploads
+        and a list of ``errors`` returned by the API.
+    """
 
     site = mwclient.Site('commons.m.wikimedia.org')
 

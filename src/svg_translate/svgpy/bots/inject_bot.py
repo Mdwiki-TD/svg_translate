@@ -31,6 +31,17 @@ def generate_unique_id(base_id, lang, existing_ids):
 
 
 def load_all_mappings(mapping_files):
+    """Load and merge translation mapping JSON files into a single dictionary.
+
+    Parameters:
+        mapping_files (Iterable[pathlib.Path | str]): Paths to JSON files whose
+            contents map source text to language translations.
+
+    Returns:
+        dict: Nested dictionary where the top-level keys correspond to source
+        strings and values are language-to-translation mappings. Files that fail
+        to load are skipped with a logged warning.
+    """
     all_mappings = {}
 
     for mapping_file in mapping_files:
@@ -314,6 +325,20 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
 
 
 def inject(inject_file, *args, **kwargs):
+    """Inject translations into a single SVG file and optionally return stats.
+
+    Parameters:
+        inject_file (pathlib.Path | str): Path to the SVG file to modify.
+        *args: Positional arguments forwarded to :func:`_inject`.
+        **kwargs: Keyword arguments forwarded to :func:`_inject`. When
+            ``return_stats`` is truthy, both the XML tree and statistics dict are
+            returned; otherwise only the tree is returned.
+
+    Returns:
+        lxml.etree._ElementTree | tuple[lxml.etree._ElementTree, dict]: The
+        modified SVG tree, optionally paired with processing statistics when
+        ``return_stats`` is requested.
+    """
 
     tree, stats = _inject(inject_file, *args, **kwargs)
 
