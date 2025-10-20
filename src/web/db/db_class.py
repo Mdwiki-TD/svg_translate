@@ -1,7 +1,5 @@
 import pymysql
 
-# from db_class import Database
-
 
 class Database:
     def __init__(self, db_data):

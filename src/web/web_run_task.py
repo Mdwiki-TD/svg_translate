@@ -115,32 +115,15 @@ def fail_task(store: TaskStorePyMysql, task_id: str, snapshot: Dict[str, Any], m
 
 
 # --- main pipeline --------------------------------------------
-def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> None:
-    """
-    Execute the end-to-end SVG processing workflow for a task, persisting progress and final results to the provided TaskStore.
-
-    Runs a sequence of stages (text extraction, title extraction, translations, download, injection, upload, and finalization), updating the task's snapshot and status in `store` after each stage, creating output directories and files under a computed project directory, saving file statistics, and writing a results summary. If a critical stage produces no usable output, the task is marked failed and processing stops.
-
-    Parameters:
-        store (TaskStorePyMysql): Persistent task store used to read/write task snapshots, statuses, and results.
-        task_id (str): Identifier of the task being processed; used as the key for store updates.
-        title (str): Project title or source path used to compute the output directory for generated files.
-        args (Any): Object containing runtime options consumed by the workflow. Expected attributes:
-            - titles_limit (int): Limit passed to the titles extraction stage.
-            - overwrite (bool): Whether injection should overwrite existing files.
-            - upload (bool): Whether upload stage should actually perform uploads.
-
-    Side effects:
-        - Creates output directories on disk.
-        - Writes task snapshot updates, status changes, and final results into `store`.
-        - Writes files produced by download and injection stages.
-        - May mark the task as Failed via fail_task when critical outputs are missing.
-    """
+def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_data: Dict[str, str]) -> None:
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,
         "stages": make_stages(),
     }
+
+    store = TaskStorePyMysql(db_data)
+
     # TODO:
     """
         After each processing stage, the entire task_snapshot is serialized to JSON and written to the database. This is inefficient and results in many database writes. For better performance, consider introducing more granular update methods in TaskStore to update only the parts of the task data that have changed, such as the status of a specific stage. This would reduce I/O and JSON serialization overhead.
@@ -154,12 +137,14 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
 
     stages_list = task_snapshot["stages"]
 
+    # ----------------------------------------------
     # Stage 1: extract text
     text, stages_list["text"] = text_task(stages_list["text"], title)
     store.update_data(task_id, task_snapshot)
     if not text:
         return fail_task(store, task_id, task_snapshot, "No text extracted")
 
+    # ----------------------------------------------
     # Stage 2: extract titles
     titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
     store.update_data(task_id, task_snapshot)
@@ -168,6 +153,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     if not titles:
         return fail_task(store, task_id, task_snapshot, "No titles found")
 
+    # ----------------------------------------------
     # Stage 3: get translations
     output_dir_main = output_dir / "files"
     output_dir_main.mkdir(parents=True, exist_ok=True)
@@ -178,6 +164,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     if not translations:
         return fail_task(store, task_id, task_snapshot, "No translations available")
 
+    # ----------------------------------------------
     # Stage 4: download SVG files
     def download_progress(stages):
         return store.update_data(task_id, task_snapshot)
@@ -193,6 +180,7 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
     if not files:
         return fail_task(store, task_id, task_snapshot, "No files downloaded")
 
+    # ----------------------------------------------
     # Stage 5: inject translations
     injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
     store.update_data(task_id, task_snapshot)
@@ -202,11 +190,12 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
 
     inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
+    # ----------------------------------------------
+    # Stage 6: upload results
     files_to_upload = {x: v for x, v in inject_files.items() if v.get("file_path")}
 
     no_file_path = len(inject_files) - len(files_to_upload)
 
-    # Stage 6: upload results
     def upload_progress():
         return store.update_data(task_id, task_snapshot)
 
@@ -215,10 +204,12 @@ def run_task(store: TaskStorePyMysql, task_id: str, title: str, args: Any) -> No
         files_to_upload,
         main_title,
         do_upload=args.upload,
+        user=user_data,
         progress_updater=upload_progress,
     )
     store.update_data(task_id, task_snapshot)
 
+    # ----------------------------------------------
     # Stage 7: save stats and mark done
     data = {
         "main_title": main_title,

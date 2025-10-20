@@ -1,21 +1,11 @@
 from __future__ import annotations
 
-import json
-# import threading
 from typing import Any, Dict, Iterable, List, Optional, Protocol
-import datetime
 
 from svg_translate import logger
 
-from svg_config import db_data
 from .db_class import Database
-
-db = Database(db_data)
-
-execute_query = db.execute_query
-execute_query_safe = db.execute_query_safe
-fetch_query = db.fetch_query
-fetch_query_safe = db.fetch_query_safe
+from .utils import _serialize, _normalize_title, _deserialize, _current_ts
 
 TERMINAL_STATUSES = ("Completed", "Failed")
 
@@ -34,51 +24,10 @@ class TaskAlreadyExistsError(Exception):
         self.task = task
 
 
-def _serialize(value: Any) -> Optional[str]:
-    """
-    Serialize a Python value to a JSON string suitable for storage, or return None for missing values.
-
-    Parameters:
-        value (Any): The Python value to serialize; if `None`, no serialization is performed.
-
-    Returns:
-        Optional[str]: JSON string of `value` with Unicode preserved (`ensure_ascii=False`), or `None` if `value` is `None`.
-    """
-    if value is None:
-        return None
-    return json.dumps(value, ensure_ascii=False)
-
-
-def _normalize_title(title: str) -> str:
-    """
-    Normalize a title for duplicate detection.
-
-    Returns:
-        normalized (str): The title with surrounding whitespace removed and casefold applied.
-    """
-    title = title.replace("_", " ")
-    return title.strip().casefold()
-
-
-def _deserialize(value: Optional[str]) -> Any:
-    """
-    Deserialize a JSON-formatted string into a Python object.
-
-    Parameters:
-        value (Optional[str]): A JSON-formatted string, or None.
-
-    Returns:
-        The Python object produced by parsing `value`, or `None` if `value` is `None`.
-    """
-    if value is None:
-        return None
-    return json.loads(value)
-
-
 class TaskStorePyMysql:
     """MySQL-backed task store using helper functions execute_query/fetch_query."""
 
-    def __init__(self, _: str | None = None) -> None:
+    def __init__(self, db_data: Dict[str, str]) -> None:
         # Note: db connection is managed inside execute_query/fetch_query
         # self._lock = threading.Lock()
         """
@@ -86,6 +35,7 @@ class TaskStorePyMysql:
 
         Calls internal schema initialization to create the tasks table and any necessary indexes.
         """
+        self.db = Database(db_data)
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -128,11 +78,11 @@ class TaskStorePyMysql:
         # MySQL before 8.0 does not accept "IF NOT EXISTS" on CREATE INDEX.
         # So we guard by checking INFORMATION_SCHEMA and creating conditionally.
         # ---
-        execute_query_safe(ddl[0])
-        execute_query_safe(ddl[1])
+        self.db.execute_query_safe(ddl[0])
+        self.db.execute_query_safe(ddl[1])
         # ---
         # Conditionally create indexes for maximum compatibility
-        existing = fetch_query_safe(
+        existing = self.db.fetch_query_safe(
             """
             SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
@@ -140,15 +90,15 @@ class TaskStorePyMysql:
         )
         existing_idx = {row["INDEX_NAME"] for row in existing}
         if "idx_tasks_norm" not in existing_idx:
-            execute_query_safe("CREATE INDEX idx_tasks_norm ON tasks(normalized_title)")
+            self.db.execute_query_safe("CREATE INDEX idx_tasks_norm ON tasks(normalized_title)")
         # ---
         if "idx_tasks_status" not in existing_idx:
-            execute_query_safe("CREATE INDEX idx_tasks_status ON tasks(status)")
+            self.db.execute_query_safe("CREATE INDEX idx_tasks_status ON tasks(status)")
         # ---
         if "idx_tasks_created" not in existing_idx:
-            execute_query_safe("CREATE INDEX idx_tasks_created ON tasks(created_at)")
+            self.db.execute_query_safe("CREATE INDEX idx_tasks_created ON tasks(created_at)")
         # ---
-        existing_stage_idx = fetch_query_safe(
+        existing_stage_idx = self.db.fetch_query_safe(
             """
             SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task_stages'
@@ -157,24 +107,7 @@ class TaskStorePyMysql:
         # ---
         existing_stage_idx_names = {row["INDEX_NAME"] for row in existing_stage_idx}
         if "idx_task_stages_task" not in existing_stage_idx_names:
-            execute_query_safe("CREATE INDEX idx_task_stages_task ON task_stages(task_id, stage_number)")
-
-    def _current_ts(self) -> str:
-        # Store in UTC. MySQL DATETIME has no TZ; keep application-level UTC.
-        """
-        Return the current UTC timestamp formatted for MySQL DATETIME.
-
-        Returns:
-            A string of the current UTC time in the format "YYYY-MM-DD HH:MM:SS".
-        """
-        return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
-
-    def close(self) -> None:
-        # No-op: connections are short-lived inside helpers.
-        """
-        No operation — the store does not hold persistent connections because connection lifecycle is managed by the helper functions.
-        """
-        return
+            self.db.execute_query_safe("CREATE INDEX idx_task_stages_task ON task_stages(task_id, stage_number)")
 
     def create_task(
         self,
@@ -196,13 +129,13 @@ class TaskStorePyMysql:
             TaskAlreadyExistsError: If an existing non-terminal task with the same normalized title is found.
             Exception: Propagates any underlying database or execution errors encountered during insert.
         """
-        now = self._current_ts()
+        now = _current_ts()
         normalized_title = _normalize_title(title)
         # Application-level guard to ensure at most one active task per normalized_title.
         # with self._lock:
         try:
             # Check for an existing active task
-            row = fetch_query(
+            row = self.db.fetch_query(
                 """
                 SELECT * FROM tasks
                 WHERE normalized_title = %s AND status NOT IN (%s, %s)
@@ -215,7 +148,7 @@ class TaskStorePyMysql:
                 raise TaskAlreadyExistsError(self._row_to_task(row[0]))
 
             # Insert new task
-            execute_query(
+            self.db.execute_query(
                 """
                 INSERT INTO tasks
                     (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
@@ -251,7 +184,7 @@ class TaskStorePyMysql:
         Returns:
             A dictionary representing the task with deserialized JSON fields and ISO-formatted timestamps, or `None` if the task does not exist or an error occurred while fetching it.
         """
-        rows = fetch_query_safe("SELECT * FROM tasks WHERE id = %s", [task_id])
+        rows = self.db.fetch_query_safe("SELECT * FROM tasks WHERE id = %s", [task_id])
         if not rows:
             logger.error("Failed to get task")
             return None
@@ -268,7 +201,7 @@ class TaskStorePyMysql:
             dict: Task dictionary with deserialized JSON fields and ISO-formatted timestamps, or `None` if no active task is found or an error occurs.
         """
         normalized_title = _normalize_title(title)
-        rows = fetch_query_safe(
+        rows = self.db.fetch_query_safe(
             """
             SELECT * FROM tasks
             WHERE normalized_title = %s AND status NOT IN (%s, %s)
@@ -317,7 +250,7 @@ class TaskStorePyMysql:
 
         # Build dynamic UPDATE using COALESCE to keep existing values
         try:
-            execute_query(
+            self.db.execute_query(
                 """
                 UPDATE tasks
                 SET
@@ -337,7 +270,7 @@ class TaskStorePyMysql:
                     form_json,
                     data_json,
                     results_json,
-                    self._current_ts(),
+                    _current_ts(),
                     task_id,
                 ],
             )
@@ -466,7 +399,7 @@ class TaskStorePyMysql:
             params.append(offset)
 
         sql = " ".join(query_parts)
-        rows = fetch_query_safe(sql, params)
+        rows = self.db.fetch_query_safe(sql, params)
 
         if not rows:
             logger.error("Failed to list tasks")
