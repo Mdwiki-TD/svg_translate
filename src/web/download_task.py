@@ -15,7 +15,7 @@ PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
 
-def download_one_file(title: str, session: requests.Session, out_dir: Path | str, i: int):
+def download_one_file(title: str, session: requests.Session, out_dir: Path, i: int):
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
     data = {
@@ -95,7 +95,7 @@ def download_task(
     files = []
 
     for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
-        result = download_one_file(title, session, out_dir=out_dir)
+        result = download_one_file(title, session, out_dir, i)
         if result["result"] == "success":
             counts["success"] += 1
         elif result["result"] == "existing":

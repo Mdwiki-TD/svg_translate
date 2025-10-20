@@ -25,6 +25,7 @@ from svg_config import SECRET_KEY
 config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
 TASK_STORE = TaskStorePyMysql()
+TASKS_LOCK = threading.Lock()
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = SECRET_KEY
@@ -184,26 +185,28 @@ def start():
     if not title:
         return redirect(url_for("index"))
 
-    existing_task = TASK_STORE.get_active_task_by_title(title)
+    with TASKS_LOCK:
+        existing_task = TASK_STORE.get_active_task_by_title(title)
 
-    if existing_task:
-        logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-        return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
+        if existing_task:
+            logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
+            return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
 
     task_id = uuid.uuid4().hex
 
-    try:
-        TASK_STORE.create_task(
-            task_id,
-            title,
-            form={x: request.form.get(x) for x in request.form}
-        )
-    except TaskAlreadyExistsError as exc:
-        existing = exc.task
-        return redirect(url_for("task1", task_id=existing["id"], title=title, error="task-active"))
-    except Exception as exc:
-        logger.exception(f"Failed to create task: {exc}")
-        return redirect(url_for("index", title=title, error="task-create-failed"))
+    with TASKS_LOCK:
+        try:
+            TASK_STORE.create_task(
+                task_id,
+                title,
+                form={x: request.form.get(x) for x in request.form}
+            )
+        except TaskAlreadyExistsError as exc:
+            existing = exc.task
+            return redirect(url_for("task1", task_id=existing["id"], title=title, error="task-active"))
+        except Exception as exc:
+            logger.exception(f"Failed to create task: {exc}")
+            return redirect(url_for("index", title=title, error="task-create-failed"))
 
     args = parse_args(request.form)
     # ---
@@ -225,7 +228,9 @@ def tasks():
         A Flask response object rendering "tasks.html" with the context keys `tasks`, `status_filter`, and `available_statuses`.
     """
     status_filter = request.args.get("status")
-    db_tasks = TASK_STORE.list_tasks(status=status_filter, order_by="created_at", descending=True)
+
+    with TASKS_LOCK:
+        db_tasks = TASK_STORE.list_tasks(status=status_filter, order_by="created_at", descending=True)
 
     formatted_tasks = [_format_task_for_view(task) for task in db_tasks]
     status_values = {task.get("status") for task in db_tasks if task.get("status")}
