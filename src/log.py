@@ -1,7 +1,36 @@
-
-import sys
+import os
 import logging
-logger = logging.getLogger(__name__)
+from pathlib import Path
+
+home_dir = os.getenv("HOME") if os.getenv("HOME") else 'I:/SVG/svg_repo'
+
+# Create log directory if needed
+log_dir = Path(f"{home_dir}/logs")
+log_dir.mkdir(parents=True, exist_ok=True)
+
+# Define paths
+all_log_path = log_dir / "app.log"
+error_log_path = log_dir / "errors.log"
+
+# Create main logger
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+# Handler for all logs
+all_handler = logging.FileHandler(all_log_path)
+all_handler.setLevel(logging.INFO)  # INFO, WARNING, etc.
+all_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+all_handler.setFormatter(all_formatter)
+
+# Handler for only ERROR and CRITICAL
+error_handler = logging.FileHandler(error_log_path)
+error_handler.setLevel(logging.ERROR)
+error_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+error_handler.setFormatter(error_formatter)
+
+# Attach handlers
+logger.addHandler(all_handler)
+logger.addHandler(error_handler)
 
 
 def config_logger(level=None):
@@ -26,8 +55,7 @@ def config_logger(level=None):
         'DEBUG',
         'NOTSET',
     ]
-    if not level:
-        level = logging.DEBUG if "DEBUG" in sys.argv else logging.INFO
+    level = level or logging.INFO
 
     logging.basicConfig(
         level=level,
