@@ -183,6 +183,7 @@ class TaskStorePyMysql(StageStore):
             """
             CREATE TABLE IF NOT EXISTS tasks (
                 id VARCHAR(128) PRIMARY KEY,
+                username TEXT NULL,
                 title TEXT NOT NULL,
                 normalized_title VARCHAR(512) NOT NULL,
                 status VARCHAR(64) NOT NULL,
@@ -247,6 +248,7 @@ class TaskStorePyMysql(StageStore):
         task_id: str,
         title: str,
         status: str = "Pending",
+        username: str = "",
         form: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
@@ -302,12 +304,13 @@ class TaskStorePyMysql(StageStore):
             self.db.execute_query(
                 """
                 INSERT INTO tasks
-                    (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
+                    (id, username, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
                 VALUES
-                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 [
                     task_id,
+                    username,
                     title,
                     normalized_title,
                     status,
@@ -538,6 +541,7 @@ class TaskStorePyMysql(StageStore):
 
         return {
             "id": row["id"],
+            "username": row.get("username", ""),
             "title": row["title"],
             "normalized_title": row["normalized_title"],
             "status": row["status"],

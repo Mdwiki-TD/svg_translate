@@ -16,7 +16,7 @@ _home_dir = _HOME if _HOME else os.path.expanduser("~")
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{_home_dir}/svg_data")
 LOG_DIR_PATH = os.getenv("LOG_PATH", f"{_home_dir}/logs")
-DISABLE_UPLOADS = os.getenv("DISABLE_UPLOADS", "1")
+DISABLE_UPLOADS = os.getenv("DISABLE_UPLOADS", "")
 # ---
 DB_USER = os.getenv("DB_USER", "")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")

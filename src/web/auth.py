@@ -10,6 +10,8 @@ from functools import wraps
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlencode
 
+import mwoauth
+
 from flask import (
     Blueprint,
     Response,
@@ -39,11 +41,6 @@ from svg_config import (
 )
 
 from web.db.user_store import UserTokenStore
-
-try:
-    import mwoauth
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    mwoauth = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 bp = Blueprint("auth", __name__)
@@ -117,10 +114,7 @@ def _state_serializer() -> URLSafeTimedSerializer:
     return current_app.extensions["auth_state_serializer"]
 
 
-def _build_handshaker() -> Optional[object]:
-    if mwoauth is None:
-        logger.warning("mwoauth is not installed; OAuth login disabled")
-        return None
+def _build_handshaker() -> mwoauth.Handshaker:
     if not (OAUTH_CONSUMER_KEY and OAUTH_CONSUMER_SECRET and OAUTH_MWURI):
         logger.warning("OAuth consumer configuration incomplete; OAuth login disabled")
         return None
@@ -141,15 +135,6 @@ def _serialise_request_token(token: Any) -> tuple[str, str]:
     if isinstance(token, (list, tuple)) and len(token) >= 2:
         return str(token[0]), str(token[1])
     raise ValueError("Request token does not contain key/secret")
-
-
-def _build_request_token(data: Any) -> Any:
-    if not mwoauth or not hasattr(mwoauth, "RequestToken"):
-        return data
-    try:
-        return mwoauth.RequestToken(*data)
-    except Exception:  # pragma: no cover - compatibility shim
-        return data
 
 
 def _load_authenticated_user() -> None:
@@ -244,7 +229,7 @@ def oauth_required(fn: Callable[..., Any]) -> Callable[..., Any]:
 
 @bp.get("/login")
 def login() -> Response | WerkzeugResponse:
-    handshaker = get_handshaker()
+    handshaker: mwoauth.Handshaker = get_handshaker()
     if not handshaker:
         return redirect(url_for("main.index", error="oauth-disabled"))
 
@@ -275,7 +260,7 @@ def login() -> Response | WerkzeugResponse:
 
 @bp.get("/callback")
 def callback() -> Response | WerkzeugResponse:
-    handshaker = get_handshaker()
+    handshaker: mwoauth.Handshaker = get_handshaker()
     if not handshaker:
         return redirect(url_for("main.index", error="oauth-disabled"))
 
@@ -301,7 +286,7 @@ def callback() -> Response | WerkzeugResponse:
     if parsed_state.get("state") != saved_state:
         return redirect(url_for("main.index", error="oauth-state-mismatch"))
 
-    request_token = _build_request_token(token_data)
+    request_token = mwoauth.RequestToken(*token_data)
 
     if not request.args.get("oauth_verifier"):
         return redirect(url_for("main.index", error="oauth-missing-verifier"))

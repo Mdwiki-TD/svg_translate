@@ -102,6 +102,7 @@ def _format_task(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
+        "username": task.get("username"),
     }
 
 
@@ -183,7 +184,9 @@ def tasks():
 
     formatted = [_format_task(task) for task in db_tasks]
     available_statuses = sorted(
-        {task.get("status") for task in db_tasks if task.get("status")}
+        {
+            task.get("status", "") for task in db_tasks  # if task.get("status")
+        }
     )
 
     return render_template(
@@ -209,7 +212,7 @@ def status(task_id: str):
 
 
 @bp.post("/start")
-# @oauth_required
+@oauth_required
 def start():
     title = request.form.get("title", "").strip()
     if not title:
@@ -228,10 +231,17 @@ def start():
                     url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active")
                 )
 
+        username = ""
+
+        current_user = getattr(g, "current_user", None)
+        if current_user:
+            username = current_user.username
+
         try:
             _task_store().create_task(
                 task_id,
                 title,
+                username=username,
                 form=request.form.to_dict(flat=True),
             )
         except TaskAlreadyExistsError as exc:

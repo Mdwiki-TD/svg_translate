@@ -62,7 +62,7 @@
                 <td>{{ task.new_translations_count }}</td>
                 <td data-order="{{ task.created_at_sort }}">{{ task.created_at_display }}</td>
                 <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td>
-                <td>{{ task.user or "" }}</td>
+                <td>{{ task.username or "" }}</td>
             </tr>
             {% endfor %}
         </tbody>
