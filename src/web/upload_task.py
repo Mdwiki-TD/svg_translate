@@ -7,10 +7,10 @@ from typing import Any, Callable, Dict, Optional
 
 from tqdm import tqdm
 
-from src.svg_translate.log import logger
+from svg_translate.log import logger
 from svg_translate.commons.upload_bot import upload_file
-from src.app.users.store import mark_token_used
-from src.app.wiki_client import build_oauth_site
+from app.users.store import mark_token_used
+from app.wiki_client import build_oauth_site
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]

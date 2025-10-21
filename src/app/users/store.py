@@ -84,20 +84,20 @@ def ensure_user_token_table() -> None:
         )
         """,
     )
-    db.execute_query(
+    '''db.execute_query(
         """
-        CREATE INDEX IF NOT EXISTS idx_user_tokens_username ON user_tokens(username)
-        """,
-    )
+        CREATE INDEX /*IF NOT EXISTS*/ idx_user_tokens_username ON user_tokens(username)
+        """
+    )'''
     try:
         db.execute_query(
-            "ALTER TABLE user_tokens ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP NULL",
+            "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ last_used_at TIMESTAMP NULL",
         )
     except Exception:  # pragma: no cover - defensive logging
         logger.exception("Failed to ensure last_used_at column exists")
     try:
         db.execute_query(
-            "ALTER TABLE user_tokens ADD COLUMN IF NOT EXISTS rotated_at TIMESTAMP NULL",
+            "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ rotated_at TIMESTAMP NULL",
         )
     except Exception:  # pragma: no cover - defensive logging
         logger.exception("Failed to ensure rotated_at column exists")

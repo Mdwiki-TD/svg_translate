@@ -17,7 +17,7 @@ from web.download_task import download_task
 from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
-from src.svg_translate.log import logger
+from svg_translate.log import logger
 from web.db.task_store_pymysql import TaskStorePyMysql
 
 # logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def _compute_output_dir(title: str) -> Path:
     # Use last path segment and sanitize for filesystem safety
     name = Path(title).name
     # ---
-    slug = re.sub(r'[^A-Za-z0-9._-]+', "_", name).strip("._") or "untitled"
+    slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", name).strip("._") or "untitled"
     # ---
     out = svg_data_dir / slug
     # ---

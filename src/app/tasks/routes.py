@@ -10,7 +10,7 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 
 from web.web_run_task import run_task
 
-from src.svg_translate.log import logger, config_logger
+from svg_translate.log import logger, config_logger
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from svg_config import db_data
 from ..users.current import current_user, require_login
@@ -24,7 +24,7 @@ bp_main = Blueprint("main", __name__)
 
 
 def parse_args(request_form):
-    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload", "ignore_existing_task"])
     # ---
     upload = bool(request_form.get("upload"))
     # ---
@@ -33,6 +33,7 @@ def parse_args(request_form):
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
         overwrite=bool(request_form.get("overwrite")),
+        ignore_existing_task=bool(request_form.get("ignore_existing_task")),
         upload=upload
     )
     # ---
@@ -181,7 +182,7 @@ def task2():
 
 
 @bp_main.post("/")
-@require_login
+# @require_login
 def start():
     user = current_user()
     title = request.form.get("title", "").strip()
@@ -192,12 +193,16 @@ def start():
 
     store = _get_task_store()
 
-    with TASKS_LOCK:
-        existing_task = store.get_active_task_by_title(title)
+    args = parse_args(request.form)
 
-        if existing_task:
-            logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-            return redirect(url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active"))
+    with TASKS_LOCK:
+        logger.info(f"ignore_existing_task: {args.ignore_existing_task}")
+        if not args.ignore_existing_task:
+            existing_task = store.get_active_task_by_title(title)
+
+            if existing_task:
+                logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
+                return redirect(url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active"))
 
         try:
             store.create_task(
@@ -212,7 +217,6 @@ def start():
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 
-    args = parse_args(request.form)
     user_payload: Dict[str, Any] = {}
     if user:
         user_payload = {

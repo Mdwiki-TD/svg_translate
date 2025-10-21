@@ -9,7 +9,7 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 
-from src.svg_translate.log import logger
+from svg_translate.log import logger
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]

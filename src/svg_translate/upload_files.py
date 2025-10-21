@@ -7,8 +7,8 @@ from typing import Mapping
 from tqdm import tqdm
 
 from .commons.upload_bot import upload_file
-from src.app.users.store import UserTokenRecord, mark_token_used
-from src.app.wiki_client import build_oauth_site, build_site_for_user
+from app.users.store import UserTokenRecord, mark_token_used
+from app.wiki_client import build_oauth_site, build_site_for_user
 
 
 def _resolve_site(token_source: UserTokenRecord | Mapping[str, object]):
