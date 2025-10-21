@@ -72,16 +72,16 @@ def ensure_user_token_table() -> None:
     db = _get_db()
     db.execute_query(
         """
-        CREATE TABLE IF NOT EXISTS user_tokens (
-            user_id BIGINT PRIMARY KEY,
-            username VARCHAR(255) NOT NULL,
-            access_token VARBINARY(2048) NOT NULL,
-            access_secret VARBINARY(2048) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            last_used_at TIMESTAMP NULL,
-            rotated_at TIMESTAMP NULL
-        )
+            CREATE TABLE IF NOT EXISTS user_tokens (
+                user_id VARCHAR(255) PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                access_token VARBINARY(1024) NOT NULL,
+                access_secret VARBINARY(1024) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                last_used_at DATETIME DEFAULT NULL,
+                rotated_at DATETIME DEFAULT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """,
     )
     try:
