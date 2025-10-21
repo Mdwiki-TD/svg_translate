@@ -12,8 +12,6 @@ from .db_class import Database
 
 
 db_data = svg_config.db_data
-_db_instance: Optional[Database] = None
-_db_signature: Optional[tuple[tuple[str, Any], ...]] = None
 
 
 def _get_db() -> Database:
@@ -24,14 +22,6 @@ def _get_db() -> Database:
     # honoured.  Creating a new :class:`Database` each time keeps that behaviour
     # while remaining inexpensive for the lightweight test stubs.
     return Database(db_data)
-
-
-def reset_cache() -> None:
-    """Reset the cached database connection (useful in tests)."""
-
-    global _db_instance, _db_signature
-    _db_instance = None
-    _db_signature = None
 
 
 def execute_query(sql_query: str, params: Optional[Any] = None):
@@ -65,5 +55,4 @@ __all__ = [
     "fetch_query",
     "execute_query_safe",
     "fetch_query_safe",
-    "reset_cache",
 ]

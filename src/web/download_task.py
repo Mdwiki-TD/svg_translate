@@ -73,7 +73,7 @@ def _download_titles(
         else:
             counts["failed"] += 1
 
-        target = Path(result["path"]) if result["path"] else out_dir / title
+        target = Path(result["path"]) if result["path"] else out_dir / Path(title).name
         if result["path"]:
             files.append(result["path"])
 

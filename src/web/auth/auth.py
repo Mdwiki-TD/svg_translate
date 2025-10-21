@@ -316,7 +316,7 @@ def login() -> Response | WerkzeugResponse:
         )
     except Exception as exc:  # pragma: no cover - network interaction
         logger.exception("Failed to initiate OAuth handshake", exc_info=exc)
-        print(f"callback_url:{callback_url}")
+        # print(f"callback_url:{callback_url}")
         return redirect(url_for("main.index", error="oauth-init-failed"))
 
     try:
