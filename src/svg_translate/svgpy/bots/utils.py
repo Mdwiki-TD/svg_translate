@@ -8,6 +8,7 @@ from utils import normalize_text, extract_text_from_node
 import logging
 logger = logging.getLogger(__name__)
 
+
 def normalize_text(text, case_insensitive=False):
     """Normalize text by trimming whitespace and collapsing internal whitespace."""
     if not text:

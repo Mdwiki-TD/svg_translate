@@ -14,6 +14,7 @@ from .utils import normalize_text  # , extract_text_from_node
 
 logger = logging.getLogger(__name__)
 
+
 def extract(svg_file_path, case_insensitive=True):
     """
     Extract translations from an SVG file and save them as JSON.
@@ -31,7 +32,7 @@ def extract(svg_file_path, case_insensitive=True):
         logger.error(f"SVG file not found: {svg_file_path}")
         return None
 
-    logger.info(f"Extracting translations from {svg_file_path}")
+    logger.debug(f"Extracting translations from {svg_file_path}")
 
     # Parse SVG as XML
     parser = etree.XMLParser(remove_blank_text=True)
@@ -40,7 +41,7 @@ def extract(svg_file_path, case_insensitive=True):
 
     # Find all switch elements
     switches = root.xpath('//svg:switch', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-    logger.info(f"Found {len(switches)} switch elements")
+    logger.debug(f"Found {len(switches)} switch elements")
 
     translations = {}
     translations["new"] = {}
@@ -118,7 +119,7 @@ def extract(svg_file_path, case_insensitive=True):
                     # ---
                     en_key_text = translations["new"]["default_tspans_by_id"].get(en_key) or translations["new"]["default_tspans_by_id"].get(en_key.lower())
                     # ---
-                    logger.info(f"{en_key=}, {en_key_text=}")
+                    logger.debug(f"{en_key=}, {en_key_text=}")
                     # ---
                     if en_key_text:
                         # ----
@@ -146,7 +147,7 @@ def extract(svg_file_path, case_insensitive=True):
             processed_switches += 1
             logger.warning(f"Processed switch with default texts: {default_texts}")
 
-    logger.info(f"Extracted translations for {processed_switches} switches")
+    logger.debug(f"Extracted translations for {processed_switches} switches")
 
     # Count languages
     all_languages = set()
@@ -154,7 +155,7 @@ def extract(svg_file_path, case_insensitive=True):
         langs = text_dict.get("_translations", {}).keys()
         all_languages.update(langs)
 
-    logger.info(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")
+    logger.debug(f"Found translations in {len(all_languages)} languages: {', '.join(sorted(all_languages))}")
 
     translations["title"] = {}
     # ---

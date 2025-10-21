@@ -6,14 +6,16 @@ python I:/SVG/svg_repo/svgpy/bots/inject_bot.py
 """
 
 import json
-import logging
 from pathlib import Path
 from lxml import etree
+
+import logging
 
 from .utils import normalize_text, extract_text_from_node
 from .translation_ready import make_translation_ready
 
 logger = logging.getLogger(__name__)
+
 
 def generate_unique_id(base_id, lang, existing_ids):
     """Generate a unique ID by appending language code and numeric suffix if needed."""

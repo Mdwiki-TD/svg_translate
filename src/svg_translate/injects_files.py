@@ -3,6 +3,7 @@ from tqdm import tqdm
 from pathlib import Path
 import logging
 
+
 from .svgpy.svgtranslate import svg_extract_and_injects
 logger = logging.getLogger(__name__)
 
