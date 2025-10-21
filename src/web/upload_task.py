@@ -8,9 +8,11 @@ from typing import Any, Callable, Dict, Optional
 from tqdm import tqdm
 import logging
 
-from svg_translate.commons.upload_bot import upload_file
-from app.users.store import mark_token_used
-from app.wiki_client import build_oauth_site
+
+try:  # pragma: no cover - maintain compatibility with both package layouts
+    from svg_translate.commons.upload_bot import upload_file
+except ImportError:  # pragma: no cover - fallback when running from src package
+    from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
 
 logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
