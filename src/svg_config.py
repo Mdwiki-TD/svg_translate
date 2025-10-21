@@ -23,14 +23,12 @@ _www_default = f"{_home}/www" if _home else "I:/SVG/svg_repo"
 project = os.environ.get("SVG_TRANSLATE_PROJECT_ROOT", _project_default)
 project_www = os.environ.get("SVG_TRANSLATE_WWW_ROOT", _www_default)
 
-user_config_path = os.environ.get("SVG_TRANSLATE_USER_CONFIG", f"{project}/confs/user.ini")
 db_config_path = os.environ.get("SVG_TRANSLATE_DB_CONFIG", f"{project}/confs/db.ini")
 
-TASK_DB_PATH = os.environ.get("TASK_DB_PATH", f"{project_www}/tasks.sqlite3")
 SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 _data_dir_default = os.environ.get(
-    "SVG_DATA_DIR",
+    "SVG_DATA_PATH",
     f"{project_www}/svg_data" if _home else "I:/SVG/svg_data",
 )
 svg_data_dir = Path(_data_dir_default)
@@ -139,13 +137,9 @@ class _LazyDbConfig(Dict[str, str]):
 db_data: Dict[str, str] = _LazyDbConfig()
 
 __all__ = [
-    "TASK_DB_PATH",
     "SECRET_KEY",
     "db_data",
     "svg_data_dir",
-    "project",
-    "project_www",
-    "user_config_path",
     "db_config_path",
     "OAUTH_MWURI",
     "OAUTH_CONSUMER_KEY",
