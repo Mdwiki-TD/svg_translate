@@ -8,9 +8,11 @@ python I:/SVG/svg_repo/svgpy/bots/extract_bot.py
 # import json
 from pathlib import Path
 from lxml import etree
+import logging
 
-from ...log import logger
 from .utils import normalize_text  # , extract_text_from_node
+
+logger = logging.getLogger(__name__)
 
 
 def extract(svg_file_path, case_insensitive=True):

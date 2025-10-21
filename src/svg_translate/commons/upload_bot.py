@@ -2,7 +2,9 @@
 import requests
 import mwclient
 from pathlib import Path
-from ..log import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def upload_file(file_name, file_path, site=None, username=None, password=None, summary=None):
