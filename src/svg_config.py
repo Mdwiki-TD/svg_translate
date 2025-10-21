@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # ---
 HOME = os.getenv("HOME")
 # ---
-env_file_path = f"{HOME}/python/.env" if (HOME and os.path.exists(f"{HOME}/python/.env")) else ".env"
+env_file_path = f"{HOME}/confs/.env" if (HOME and os.path.exists(f"{HOME}/confs/.env")) else ".env"
 # ---
 load_dotenv(env_file_path)
 # ---
