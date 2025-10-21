@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 # from asgiref.wsgi import WsgiToAsgi
 
-from svg_config import SECRET_KEY, db_data, DISABLE_UPLOADS
+from svg_config import SECRET_KEY, db_data, DISABLE_UPLOADS, user_data
 from log import logger  # , config_logger
 # config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
@@ -20,15 +20,12 @@ from web.web_run_task import run_task
 # from uvicorn.main import logger
 
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from user_info import username, password
-
 
 TASK_STORE = TaskStorePyMysql(db_data)
 TASKS_LOCK = threading.Lock()
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = SECRET_KEY
-user_data = {"username": username, "password": password}
 
 
 def parse_args(request_form: Dict[str, Any]) -> Any:

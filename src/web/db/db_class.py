@@ -30,10 +30,21 @@ class Database:
                 to a pymysql connection using a DictCursor. On connection failure,
                 prints an error message and exits the process.
         """
+
         self.host = db_data['host']
-        self.user = db_data['user']
         self.dbname = db_data['dbname']
+
+        self.user = db_data['user']
         self.password = db_data['password']
+
+        if not db_data.get("db_connect_file"):
+            self.credentials = {
+                'user': self.user,
+                'password': self.password
+            }
+        else:
+            self.credentials = {'read_default_file': db_data.get("db_connect_file")}
+
         self._lock = threading.RLock()
         self.connection: Any | None = None
 
@@ -52,8 +63,6 @@ class Database:
         with self._lock:
             self.connection = pymysql.connect(
                 host=self.host,
-                user=self.user,
-                password=self.password,
                 database=self.dbname,
                 connect_timeout=5,
                 read_timeout=10,
@@ -62,6 +71,7 @@ class Database:
                 init_command="SET time_zone = '+00:00'",
                 autocommit=True,
                 cursorclass=pymysql.cursors.DictCursor,
+                **self.credentials
             )
 
     def _ensure_connection(self) -> None:
