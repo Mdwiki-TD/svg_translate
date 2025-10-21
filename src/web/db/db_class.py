@@ -215,7 +215,7 @@ class Database:
             timeout_override=timeout_override,
         )
 
-    def fetch_all(
+    def fetch_query(
         self,
         sql_query: str,
         params: Any = None,
@@ -291,13 +291,13 @@ class Database:
                 cursor, sql_query, batch[mid:]
             )
 
-    def fetch_all_safe(self, sql_query, params=None, *, timeout_override: float | None = None):
+    def fetch_query_safe(self, sql_query, params=None, *, timeout_override: float | None = None):
         """Return all rows for a query while converting SQL failures into logs."""
         try:
-            return self.fetch_all(sql_query, params, timeout_override=timeout_override)
+            return self.fetch_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_fetch_failed sql=%s error=%s", sql_query, e)
-            print(f"fetch_all - SQL error: {e}<br>{sql_query}, params:")
+            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
             print(params)
             return []
 

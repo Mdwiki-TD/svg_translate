@@ -127,7 +127,7 @@ class StageStore:
             dict[str, dict]: Stage metadata keyed by stage name. Returns an empty
             dict when the query fails or the task has no recorded stages.
         """
-        rows = self.db.fetch_all_safe(
+        rows = self.db.fetch_query_safe(
             """
                 SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
                 FROM task_stages
@@ -158,10 +158,10 @@ class StageStore:
 
 
 class TaskStorePyMysql(StageStore):
-    """MySQL-backed task store using helper functions execute_query/fetch_all."""
+    """MySQL-backed task store using helper functions execute_query/fetch_query."""
 
     def __init__(self, db_data: Dict[str, str]) -> None:
-        # Note: db connection is managed inside execute_query/fetch_all
+        # Note: db connection is managed inside execute_query/fetch_query
         # self._lock = threading.Lock()
         """
         Initialize the task store and ensure the required database schema exists.
@@ -215,7 +215,7 @@ class TaskStorePyMysql(StageStore):
         self.db.execute_query_safe(ddl[1])
         # ---
         # Conditionally create indexes for maximum compatibility
-        existing = self.db.fetch_all_safe(
+        existing = self.db.fetch_query_safe(
             """
             SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'
@@ -231,7 +231,7 @@ class TaskStorePyMysql(StageStore):
         if "idx_tasks_created" not in existing_idx:
             self.db.execute_query_safe("CREATE INDEX idx_tasks_created ON tasks(created_at)")
         # ---
-        existing_stage_idx = self.db.fetch_all_safe(
+        existing_stage_idx = self.db.fetch_query_safe(
             """
             SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task_stages'
@@ -269,7 +269,7 @@ class TaskStorePyMysql(StageStore):
         try:
             if not form.get("ignore_existing_task"):
                 # Check for an existing active task
-                rows = self.db.fetch_all(
+                rows = self.db.fetch_query(
                     """
                     SELECT
                         t.*,
@@ -336,7 +336,7 @@ class TaskStorePyMysql(StageStore):
         Returns:
             A dictionary representing the task with deserialized JSON fields and ISO-formatted timestamps, or `None` if the task does not exist or an error occurred while fetching it.
         """
-        rows = self.db.fetch_all_safe(
+        rows = self.db.fetch_query_safe(
             """
             SELECT
                 t.*,
@@ -376,7 +376,7 @@ class TaskStorePyMysql(StageStore):
             dict: Task dictionary with deserialized JSON fields and ISO-formatted timestamps, or `None` if no active task is found or an error occurs.
         """
         normalized_title = _normalize_title(title)
-        rows = self.db.fetch_all_safe(
+        rows = self.db.fetch_query_safe(
             """
             SELECT
                 t.*,
@@ -512,7 +512,7 @@ class TaskStorePyMysql(StageStore):
         *,
         stages: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
-        # row is a dict from pymysql DictCursor via fetch_all()
+        # row is a dict from pymysql DictCursor via fetch_query()
         """
         Convert a database row dictionary into a task dictionary suitable for application use.
 
@@ -666,7 +666,7 @@ class TaskStorePyMysql(StageStore):
             ORDER BY t.{order_column} {direction}, COALESCE(ts.stage_number, 0) ASC
         """
 
-        rows = self.db.fetch_all_safe(sql, params)
+        rows = self.db.fetch_query_safe(sql, params)
 
         if not rows:
             logger.error("Failed to list tasks")
