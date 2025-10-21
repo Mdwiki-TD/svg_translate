@@ -40,8 +40,8 @@ class Database:
         try:
             self._connect()
         except pymysql.MySQLError as exc:  # pragma: no cover - defensive
-            logger.error("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
-            logger.debug(f"Error connecting to the database: {exc}")
+            logger.info(f"Error connecting to the database: {exc}")
+            logger.exception("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
             raise
 
     # ------------------------------------------------------------------

@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 # from asgiref.wsgi import WsgiToAsgi
 
+from svg_config import SECRET_KEY, db_data, DISABLE_UPLOADS
 from log import logger  # , config_logger
 # config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
@@ -19,7 +20,6 @@ from web.web_run_task import run_task
 # from uvicorn.main import logger
 
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from svg_config import SECRET_KEY, db_data
 from user_info import username, password
 
 
@@ -46,7 +46,7 @@ def parse_args(request_form: Dict[str, Any]) -> Any:
     # ---
     upload = False
     # ---
-    if os.getenv("DISABLE_UPLOADS", "1") != "1":
+    if DISABLE_UPLOADS != "1":
         upload = bool(request_form.get("upload"))
     # ---
     result = Args(

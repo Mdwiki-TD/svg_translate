@@ -1,12 +1,11 @@
 import sys
-import os
 import logging
 from pathlib import Path
 
-home_dir = os.getenv("HOME") if os.getenv("HOME") else 'I:/SVG'
+from svg_config import LOG_DIR_PATH
 
 # Create log directory if needed
-log_dir = Path(f"{home_dir}/logs")
+log_dir = Path(LOG_DIR_PATH)
 log_dir.mkdir(parents=True, exist_ok=True)
 
 # Define paths
