@@ -267,36 +267,37 @@ class TaskStorePyMysql(StageStore):
         # Application-level guard to ensure at most one active task per normalized_title.
         # with self._lock:
         try:
-            # Check for an existing active task
-            rows = self.db.fetch_all(
-                """
-                SELECT
-                    t.*,
-                    ts.stage_name AS stage_name,
-                    ts.stage_number AS stage_number,
-                    ts.stage_status AS stage_status,
-                    ts.stage_sub_name AS stage_sub_name,
-                    ts.stage_message AS stage_message,
-                    ts.updated_at AS stage_updated_at
-                FROM (
-                    SELECT * FROM tasks
-                    WHERE normalized_title = %s AND status NOT IN (%s, %s)
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                ) AS t
-                LEFT JOIN task_stages ts ON t.id = ts.task_id
-                ORDER BY COALESCE(ts.stage_number, 0) ASC
-                """,
-                [normalized_title, *TERMINAL_STATUSES],
-            )
-            if rows:
-                task_rows, stage_map = self._rows_to_tasks_with_stages(rows)
-                existing_task_row = task_rows[0]
-                existing_task = self._row_to_task(
-                    existing_task_row,
-                    stages=stage_map.get(existing_task_row["id"], {}),
+            if not form.get("ignore_existing_task"):
+                # Check for an existing active task
+                rows = self.db.fetch_all(
+                    """
+                    SELECT
+                        t.*,
+                        ts.stage_name AS stage_name,
+                        ts.stage_number AS stage_number,
+                        ts.stage_status AS stage_status,
+                        ts.stage_sub_name AS stage_sub_name,
+                        ts.stage_message AS stage_message,
+                        ts.updated_at AS stage_updated_at
+                    FROM (
+                        SELECT * FROM tasks
+                        WHERE normalized_title = %s AND status NOT IN (%s, %s)
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    ) AS t
+                    LEFT JOIN task_stages ts ON t.id = ts.task_id
+                    ORDER BY COALESCE(ts.stage_number, 0) ASC
+                    """,
+                    [normalized_title, *TERMINAL_STATUSES],
                 )
-                raise TaskAlreadyExistsError(existing_task)
+                if rows:
+                    task_rows, stage_map = self._rows_to_tasks_with_stages(rows)
+                    existing_task_row = task_rows[0]
+                    existing_task = self._row_to_task(
+                        existing_task_row,
+                        stages=stage_map.get(existing_task_row["id"], {}),
+                    )
+                    raise TaskAlreadyExistsError(existing_task)
 
             # Insert new task
             self.db.execute_query(

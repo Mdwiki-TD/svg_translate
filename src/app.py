@@ -43,7 +43,7 @@ def parse_args(request_form: Dict[str, Any]) -> Any:
         and `upload` (bool) flags consumed by the background task runner.
     """
 
-    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload", "ignore_existing_task"])
     # ---
     upload = False
     # ---
@@ -53,6 +53,7 @@ def parse_args(request_form: Dict[str, Any]) -> Any:
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
         overwrite=bool(request_form.get("overwrite")),
+        ignore_existing_task=bool(request_form.get("ignore_existing_task")),
         upload=upload
     )
     # ---
@@ -244,14 +245,18 @@ def start() -> Response:
     if not title:
         return redirect(url_for("index"))
 
+    args = parse_args(request.form)
+
     task_id = uuid.uuid4().hex
 
     with TASKS_LOCK:
-        existing_task = TASK_STORE.get_active_task_by_title(title)
+        logger.info(f"ignore_existing_task: {args.ignore_existing_task}")
+        if not args.ignore_existing_task:
+            existing_task = TASK_STORE.get_active_task_by_title(title)
 
-        if existing_task:
-            logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-            return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
+            if existing_task:
+                logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
+                return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
 
         try:
             TASK_STORE.create_task(
@@ -266,7 +271,6 @@ def start() -> Response:
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("index", title=title, error="task-create-failed"))
 
-    args = parse_args(request.form)
     # ---
     t = threading.Thread(
         target=run_task,

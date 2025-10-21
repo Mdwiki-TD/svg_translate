@@ -39,7 +39,10 @@ def _compute_output_dir(title: str) -> Path:
     # Use last path segment and sanitize for filesystem safety
     name = Path(title).name
     # ---
-    slug = re.sub(r'[^A-Za-z0-9._- ]+', "_", name).strip("._") or "untitled"
+    logger.info(f"compute_output_dir: {name=}")
+    # ---
+    # name = death rate from obesity
+    slug = re.sub(r'[^A-Za-z0-9._- ]+', "_", str(name)).strip("._") or "untitled"
     # ---
     out = svg_data_dir / slug
     # ---
