@@ -27,3 +27,4 @@ web_sh/new_update.sh
 /confs
 **/old/**
 src/.env
+/0
