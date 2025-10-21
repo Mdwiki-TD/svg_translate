@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-import random
 import threading
+import random
 import time
 from typing import Any, Iterable, Sequence
 
@@ -41,7 +41,7 @@ class Database:
             self._connect()
         except pymysql.MySQLError as exc:  # pragma: no cover - defensive
             logger.error("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
-            print(f"Error connecting to the database: {exc}")
+            logger.info(f"Error connecting to the database: {exc}")
             exit()
 
     # ------------------------------------------------------------------
@@ -299,8 +299,8 @@ class Database:
             return self.fetch_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_fetch_failed sql=%s error=%s", sql_query, e)
-            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
+            logger.info(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.info(params)
             return []
 
     def execute_query_safe(self, sql_query, params=None, *, timeout_override: float | None = None):
@@ -309,8 +309,8 @@ class Database:
             return self.execute_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_execute_failed sql=%s error=%s", sql_query, e)
-            print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
+            logger.info(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.info(params)
             if sql_query.strip().lower().startswith("select"):
                 return []
             return 0
