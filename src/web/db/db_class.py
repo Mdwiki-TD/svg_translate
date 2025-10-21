@@ -1,4 +1,10 @@
+
+import logging
+import threading
 import pymysql
+
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
@@ -19,6 +25,7 @@ class Database:
         self.user = db_data['user']
         self.dbname = db_data['dbname']
         self.password = db_data['password']
+        self._lock = threading.RLock()
 
         try:
             self.connection = pymysql.connect(
@@ -30,7 +37,7 @@ class Database:
                 autocommit=True
             )
         except pymysql.MySQLError as e:
-            print(f"Error connecting to the database: {e}")
+            logger.info(f"Error connecting to the database: {e}")
             exit()
 
     def execute_query(self, sql_query, params=None):
@@ -106,7 +113,7 @@ class Database:
                 self.connection.rollback()
             except Exception:
                 pass
-            print(f"execute_many - SQL error: {e}<br>{sql_query}")
+            logger.info(f"execute_many - SQL error: {e}<br>{sql_query}")
             return 0
 
     def fetch_query_safe(self, sql_query, params=None):
@@ -123,8 +130,8 @@ class Database:
         try:
             return self.fetch_query(sql_query, params)
         except pymysql.MySQLError as e:
-            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
+            logger.info(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.info(params)
             return []
 
     def execute_query_safe(self, sql_query, params=None):
@@ -142,6 +149,6 @@ class Database:
             return self.execute_query(sql_query, params)
 
         except pymysql.MySQLError as e:
-            print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
+            logger.info(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.info(params)
             return 0
