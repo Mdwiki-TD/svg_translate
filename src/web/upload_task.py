@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
-
 import mwclient
 from tqdm import tqdm
+import logging
 
-from svg_translate import logger
 from svg_translate.commons.upload_bot import upload_file
 
+logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 

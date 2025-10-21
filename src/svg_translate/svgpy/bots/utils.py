@@ -5,7 +5,8 @@ from utils import normalize_text, extract_text_from_node
 
 """
 
-from ...log import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 def normalize_text(text, case_insensitive=False):

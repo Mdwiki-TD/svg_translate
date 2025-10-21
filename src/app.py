@@ -12,24 +12,20 @@ from typing import Any, Dict, List
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 # from asgiref.wsgi import WsgiToAsgi
 
+from svg_config import SECRET_KEY, db_data, DISABLE_UPLOADS, user_data
+from log import logger  # , config_console_logger
+# config_console_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
+
 from web.web_run_task import run_task
 # from uvicorn.main import logger
-# import logging
-# logger = logging.getLogger(__name__)
 
-from svg_translate import logger, config_logger
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from svg_config import SECRET_KEY, db_data
-from user_info import username, password
-
-config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
 TASK_STORE = TaskStorePyMysql(db_data)
 TASKS_LOCK = threading.Lock()
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = SECRET_KEY
-user_data = {"username": username, "password": password}
 
 
 def parse_args(request_form: Dict[str, Any]) -> Any:
@@ -47,7 +43,7 @@ def parse_args(request_form: Dict[str, Any]) -> Any:
     # ---
     upload = False
     # ---
-    if os.getenv("DISABLE_UPLOADS", "1") != "1":
+    if DISABLE_UPLOADS != "1":
         upload = bool(request_form.get("upload"))
     # ---
     result = Args(
@@ -165,7 +161,7 @@ def task1() -> Response:
 
     if not task:
         task = {"error": "not-found"}
-        logger.debug(f"Task {task_id} not found!!")
+        logger.warning(f"Task {task_id} not found!!")
 
     error_message = get_error_message(request.args.get("error"))
 
@@ -211,7 +207,7 @@ def task2() -> Response:
 
     if not task:
         task = {"error": "not-found"}
-        logger.debug(f"Task {task_id} not found!!")
+        logger.warning(f"Task {task_id} not found!!")
 
     error_message = get_error_message(request.args.get("error"))
 
@@ -251,12 +247,12 @@ def start() -> Response:
     task_id = uuid.uuid4().hex
 
     with TASKS_LOCK:
-        logger.info(f"ignore_existing_task: {args.ignore_existing_task}")
+        logger.warning(f"ignore_existing_task: {args.ignore_existing_task}")
         if not args.ignore_existing_task:
             existing_task = TASK_STORE.get_active_task_by_title(title)
 
             if existing_task:
-                logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
+                logger.warning(f"Task for title '{title}' already exists: {existing_task['id']}.")
                 return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
 
         try:
@@ -330,7 +326,7 @@ def status(task_id: str):
 
     task = TASK_STORE.get_task(task_id)
     if not task:
-        logger.debug(f"Task {task_id} not found")
+        logger.warning(f"Task {task_id} not found")
         return jsonify({"error": "not-found"}), 404
 
     return jsonify(task)

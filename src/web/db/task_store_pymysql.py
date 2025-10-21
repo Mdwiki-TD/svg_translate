@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
-from svg_translate import logger
 
 from .db_class import Database
 from .utils import _serialize, _normalize_title, _deserialize, _current_ts
 
+logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed")
 
 

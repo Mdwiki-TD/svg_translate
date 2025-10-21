@@ -1,9 +1,11 @@
 
 from tqdm import tqdm
 from pathlib import Path
+import logging
+
 
 from .svgpy.svgtranslate import svg_extract_and_injects
-from .log import logger
+logger = logging.getLogger(__name__)
 
 
 def start_injects(files, translations, output_dir_translated, overwrite=False):
@@ -71,7 +73,7 @@ def start_injects(files, translations, output_dir_translated, overwrite=False):
         files_stats[file.name] = stats
         # if n == 10: break
 
-    logger.info(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}, nested_files: {nested_files:,}")
+    logger.debug(f"all files: {len(files):,} Saved {saved_done:,}, skipped {no_save:,}, nested_files: {nested_files:,}")
 
     data = {
         "saved_done": saved_done,

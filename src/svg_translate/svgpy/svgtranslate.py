@@ -9,10 +9,12 @@ to other SVG files by inserting missing <text systemLanguage="XX"> blocks.
 import json
 from pathlib import Path
 
+import logging
+
 from .bots.extract_bot import extract
 from .bots.inject_bot import inject
 
-from ..log import logger
+logger = logging.getLogger(__name__)
 
 
 def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None, save_result=False):
@@ -48,7 +50,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     with open(data_output_file, 'w', encoding='utf-8') as f:
         json.dump(translations, f, indent=2, ensure_ascii=False)
 
-    logger.info(f"Saved translations to {data_output_file}")
+    logger.debug(f"Saved translations to {data_output_file}")
 
     if not output_file:
         # output_dir = Path.cwd() / "translated"
