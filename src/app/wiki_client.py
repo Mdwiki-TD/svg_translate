@@ -25,9 +25,9 @@ def _build_site(access_key: str, access_secret: str) -> mwclient.Site:
     )
 
 
-def build_oauth_site(access_token_enc: bytes, access_secret_enc: bytes) -> mwclient.Site:
-    access_key = decrypt_value(access_token_enc)
-    access_secret = decrypt_value(access_secret_enc)
+def build_oauth_site(access_token: bytes, access_secret: bytes) -> mwclient.Site:
+    access_key = decrypt_value(access_token)
+    access_secret = decrypt_value(access_secret)
     return _build_site(access_key, access_secret)
 
 

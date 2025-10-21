@@ -15,14 +15,14 @@ def _resolve_site(token_source: UserTokenRecord | Mapping[str, object]):
     if isinstance(token_source, UserTokenRecord):
         return build_site_for_user(token_source)
 
-    access_token_enc = token_source.get("access_token_enc") if isinstance(token_source, Mapping) else None
-    access_secret_enc = token_source.get("access_secret_enc") if isinstance(token_source, Mapping) else None
+    access_token = token_source.get("access_token") if isinstance(token_source, Mapping) else None
+    access_secret = token_source.get("access_secret") if isinstance(token_source, Mapping) else None
     user_id = token_source.get("id") if isinstance(token_source, Mapping) else None
-    if not isinstance(access_token_enc, (bytes, bytearray, memoryview)) or not isinstance(
-        access_secret_enc, (bytes, bytearray, memoryview)
+    if not isinstance(access_token, (bytes, bytearray, memoryview)) or not isinstance(
+        access_secret, (bytes, bytearray, memoryview)
     ):
         raise ValueError("OAuth credentials are missing or invalid")
-    site = build_oauth_site(bytes(access_token_enc), bytes(access_secret_enc))
+    site = build_oauth_site(bytes(access_token), bytes(access_secret))
     if isinstance(user_id, int):
         mark_token_used(user_id)
     return site

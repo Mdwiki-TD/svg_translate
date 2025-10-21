@@ -163,10 +163,10 @@ def upload_task(
         return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
 
     user = user or {}
-    access_token_enc = _coerce_encrypted(user.get("access_token_enc"))
-    access_secret_enc = _coerce_encrypted(user.get("access_secret_enc"))
+    access_token = _coerce_encrypted(user.get("access_token"))
+    access_secret = _coerce_encrypted(user.get("access_secret"))
 
-    if not access_token_enc or not access_secret_enc:
+    if not access_token or not access_secret:
         stages["status"] = "Failed"
         stages["message"] += " (Missing OAuth credentials)"
         if progress_updater:
@@ -181,7 +181,7 @@ def upload_task(
     user_id = user.get("id") if isinstance(user, dict) else None
 
     try:
-        site = build_oauth_site(access_token_enc, access_secret_enc)
+        site = build_oauth_site(access_token, access_secret)
     except Exception as exc:  # pragma: no cover - network interaction
         logger.exception("Failed to build OAuth site", exc_info=exc)
         stages["status"] = "Failed"

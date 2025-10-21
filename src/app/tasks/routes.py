@@ -224,8 +224,8 @@ def start():
         user_payload = {
             "id": user.user_id,
             "username": user.username,
-            "access_token_enc": user.access_token_enc,
-            "access_secret_enc": user.access_secret_enc,
+            "access_token": user.access_token,
+            "access_secret": user.access_secret,
         }
 
     t = threading.Thread(
