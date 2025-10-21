@@ -72,7 +72,7 @@ def _load_oauth_config() -> Optional[OAuthConfig]:
         consumer_key=consumer_key,
         consumer_secret=consumer_secret,
         user_agent=os.getenv(
-            "OAUTH_USER_AGENT", "SVGTranslate/1.0 (svgtranslate@example.org)"
+            "USER_AGENT", "SVGTranslate/1.0 (svgtranslate@example.org)"
         ),
         api_host=os.getenv("OAUTH_API_HOST", "commons.wikimedia.org"),
         api_path=os.getenv("OAUTH_API_PATH", "/w/"),
