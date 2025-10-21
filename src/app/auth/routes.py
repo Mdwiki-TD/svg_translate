@@ -5,6 +5,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Sequence
 from typing import Any
+from urllib.parse import urlencode
 from flask import (Blueprint, Response, current_app, make_response, redirect, request,
                    session, url_for)
 
@@ -77,7 +78,9 @@ def callback() -> Response:
     except ValueError:
         return "Invalid OAuth state", 400
 
-    access_token, identity = complete_login(request_token, oauth_verifier)
+    response_qs = urlencode(request.args)
+
+    access_token, identity = complete_login(request_token, response_qs)
 
     token_key = getattr(access_token, "key", None)
     token_secret = getattr(access_token, "secret", None)

@@ -14,10 +14,14 @@ def get_handshaker():
 
     if not settings.oauth:
         raise RuntimeError("MediaWiki OAuth configuration is incomplete")
+
+    consumer_token = mwoauth.ConsumerToken(
+        settings.oauth.consumer_key,
+        settings.oauth.consumer_secret
+    )
     return mwoauth.Handshaker(
         settings.oauth.mw_uri,
-        consumer_key=settings.oauth.consumer_key,
-        consumer_secret=settings.oauth.consumer_secret,
+        consumer_token=consumer_token,
         user_agent=settings.oauth.user_agent,
     )
 
@@ -32,10 +36,10 @@ def start_login(state_token: str) -> Tuple[str, object]:
     return redirect_url, request_token
 
 
-def complete_login(request_token, oauth_verifier: str):
+def complete_login(request_token, response_qs: str):
     """Complete the OAuth login flow and return the access token and user identity."""
 
     handshaker = get_handshaker()
-    access_token = handshaker.complete(request_token, oauth_verifier)
+    access_token = handshaker.complete(request_token, response_qs)
     identity = handshaker.identify(access_token)
     return access_token, identity

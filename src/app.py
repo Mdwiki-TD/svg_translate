@@ -4,6 +4,8 @@ from __future__ import annotations
 import sys
 from app import create_app
 
+import svg_config  # load_dotenv()
+
 app = create_app()
 
 if __name__ == "__main__":

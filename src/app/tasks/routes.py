@@ -9,10 +9,10 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
+from svg_config import db_data, DISABLE_UPLOADS
 from web.web_run_task import run_task
 
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from svg_config import db_data, DISABLE_UPLOADS
 from ..users.current import current_user  # , require_login
 
 TASK_STORE: TaskStorePyMysql | None = None
