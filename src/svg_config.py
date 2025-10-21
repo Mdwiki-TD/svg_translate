@@ -1,146 +1,77 @@
-"""Central configuration for the SVG Translate web application."""
-
-from __future__ import annotations
-
-from configparser import ConfigParser
-from pathlib import Path
+"""
+Central configuration for the SVG Translate web application.
+"""
 import os
-from typing import Dict, Iterable, Iterator
-
-
+from pathlib import Path
 from dotenv import load_dotenv
+# ---
+_HOME = os.getenv("HOME")
+# ---
+_env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/confs/.env")) else ".env"
+# ---
+load_dotenv(_env_file_path)
+# ---
+_home_dir = _HOME if _HOME else os.path.expanduser("~")
+# ---
+SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
+SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{_home_dir}/svg_data")
+LOG_DIR_PATH = os.getenv("LOG_PATH", f"{_home_dir}/logs")
+DISABLE_UPLOADS = os.getenv("DISABLE_UPLOADS", "1")
+# ---
+DB_USER = os.getenv("DB_USER", "")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_NAME = os.getenv("DB_NAME", "")
+DB_HOST = os.getenv("DB_HOST", "")
+# ---
+COMMONS_USER = os.getenv("COMMONS_USER", "")
+COMMONS_PASSWORD = os.getenv("COMMONS_PASSWORD", "")
+# ---
 
-load_dotenv()
-
-# ---------------------------------------------------------------------------
-# Base paths and filesystem locations
-# ---------------------------------------------------------------------------
-
-_home = os.environ.get("HOME")
-_project_default = _home if _home else "I:/SVG/svg_repo"
-_www_default = f"{_home}/www" if _home else "I:/SVG/svg_repo"
-
-project = os.environ.get("SVG_TRANSLATE_PROJECT_ROOT", _project_default)
-project_www = os.environ.get("SVG_TRANSLATE_WWW_ROOT", _www_default)
-
-db_config_path = os.environ.get("SVG_TRANSLATE_DB_CONFIG", f"{project}/confs/db.ini")
-
-SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
-
-_data_dir_default = os.environ.get(
-    "SVG_DATA_PATH",
-    f"{project_www}/svg_data" if _home else "I:/SVG/svg_data",
-)
-svg_data_dir = Path(_data_dir_default)
+svg_data_dir = Path(SVG_DATA_PATH)
 svg_data_dir.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # OAuth configuration
 # ---------------------------------------------------------------------------
 
-OAUTH_MWURI = os.environ.get("OAUTH_MWURI", "")
-OAUTH_CONSUMER_KEY = os.environ.get("CONSUMER_KEY", "")
-OAUTH_CONSUMER_SECRET = os.environ.get("CONSUMER_SECRET", "")
-OAUTH_ENCRYPTION_KEY = os.environ.get("OAUTH_ENCRYPTION_KEY", "")
+OAUTH_MWURI = os.getenv("OAUTH_MWURI", "")
+OAUTH_CONSUMER_KEY = os.getenv("CONSUMER_KEY", "")
+OAUTH_CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", "")
+OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY", "")
 
-# ---------------------------------------------------------------------------
-# Database configuration helpers
-# ---------------------------------------------------------------------------
+db_data = {
+    "host": DB_HOST,
+    "dbname": DB_NAME,
 
-ConfigParserFactory = ConfigParser
+    "user": DB_USER,
+    "password": DB_PASSWORD,
+}
 
+db_connect_file = os.getenv("DB_CONNECT_FILE", os.path.join(os.path.expanduser('~'), 'replica.my.cnf'))
 
-def _load_db_config() -> Dict[str, str]:
-    """Read database configuration from the ``db.ini`` file."""
+if os.path.exists(db_connect_file):
+    db_data["db_connect_file"] = db_connect_file
 
-    parser = ConfigParserFactory()
-    try:
-        parser.read(db_config_path)
-    except Exception:  # pragma: no cover - defensive fallback
-        return {"host": "", "user": "", "dbname": "", "password": ""}
-
-    keys = ("host", "user", "dbname", "password")
-
-    def _section_values(section: object) -> Dict[str, str]:
-        values: Dict[str, str] = {key: "" for key in keys}
-        if not hasattr(section, "get") and not isinstance(section, dict):
-            return values
-
-        for key in keys:
-            value = ""
-            if hasattr(section, "get"):
-                try:
-                    value = section.get(key, "")  # type: ignore[call-arg]
-                except Exception:
-                    value = ""
-            if (not value) and isinstance(section, dict):
-                value = section.get(key, "")  # type: ignore[assignment]
-            values[key] = str(value or "")
-        return values
-
-    for section_name in ("client", "DEFAULT"):
-        try:
-            section = parser[section_name]
-        except Exception:
-            continue
-        values = _section_values(section)
-        if any(values.values()):
-            return values
-
-    return {key: "" for key in keys}
-
-
-class _LazyDbConfig(Dict[str, str]):
-    """Lazy dictionary wrapper that reloads configuration on demand."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._loaded = False
-
-    def _ensure(self) -> None:
-        if not self._loaded:
-            data = _load_db_config()
-            super().clear()
-            super().update(data)
-            self._loaded = True
-
-    def reload(self) -> None:
-        self._loaded = False
-        self._ensure()
-
-    # Mapping interface -------------------------------------------------
-    def __getitem__(self, key: str) -> str:  # type: ignore[override]
-        self._ensure()
-        return super().__getitem__(key)
-
-    def get(self, key: str, default: str | None = None) -> str:  # type: ignore[override]
-        self._ensure()
-        return super().get(key, default or "")
-
-    def items(self) -> Iterable[tuple[str, str]]:  # type: ignore[override]
-        self._ensure()
-        return super().items()
-
-    def values(self) -> Iterable[str]:  # type: ignore[override]
-        self._ensure()
-        return super().values()
-
-    def keys(self) -> Iterable[str]:  # type: ignore[override]
-        self._ensure()
-        return super().keys()
-
-    def __iter__(self) -> Iterator[str]:  # type: ignore[override]
-        self._ensure()
-        return super().__iter__()
-
-
-db_data: Dict[str, str] = _LazyDbConfig()
+user_data = {
+    "username": COMMONS_USER,
+    "password": COMMONS_PASSWORD
+}
 
 __all__ = [
     "SECRET_KEY",
-    "db_data",
+    "SVG_DATA_PATH",
+    "LOG_DIR_PATH",
+    "DISABLE_UPLOADS",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_NAME",
+    "DB_HOST",
+    "COMMONS_USER",
+    "COMMONS_PASSWORD",
     "svg_data_dir",
-    "db_config_path",
+    "db_data",
+    "db_connect_file",
+    "user_data",
     "OAUTH_MWURI",
     "OAUTH_CONSUMER_KEY",
     "OAUTH_CONSUMER_SECRET",

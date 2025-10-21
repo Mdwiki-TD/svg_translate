@@ -36,13 +36,6 @@ class TestSvgConfig:
         svg_config = reload_svg_config(monkeypatch)
         assert svg_config.SECRET_KEY == "my-secret-key"
 
-    def test_db_data_from_config_file(self, temp_env, monkeypatch):
-        project = Path(os.environ["SVG_TRANSLATE_PROJECT_ROOT"])
-        conf_dir = project / "confs"
-        conf_dir.mkdir(parents=True, exist_ok=True)
-        db_ini = conf_dir / "db.ini"
-        db_ini.write_text("""[client]\nhost=db.example.com\nuser=dbuser\ndbname=mydb\npassword=secret\n""")
-
         svg_config = reload_svg_config(monkeypatch)
         assert svg_config.db_data["host"] == "db.example.com"
         assert svg_config.db_data["user"] == "dbuser"
@@ -53,7 +46,3 @@ class TestSvgConfig:
         reload_svg_config(monkeypatch)
         assert data_dir.exists()
 
-    def test_config_file_paths(self, temp_env, monkeypatch):
-        svg_config = reload_svg_config(monkeypatch)
-        assert svg_config.user_config_path.endswith("user.ini")
-        assert svg_config.db_config_path.endswith("db.ini")
