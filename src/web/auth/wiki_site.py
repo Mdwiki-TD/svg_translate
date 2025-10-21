@@ -18,18 +18,18 @@ USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-sv
 UPLOAD_END_POINT = os.getenv("UPLOAD_END_POINT", "commons.wikimedia.org")
 
 
-class InsufficientPermission:
+class InsufficientPermission(Exception):
     pass
 
 
-class FileExists:
+class FileExists(Exception):
     """
     Raised when trying to upload a file that already exists.
 
     See also: https://www.mediawiki.org/wiki/API:Upload#Upload_warnings
     """
 
-    def __init__(self, file_name):
+    def __init__(self, file_name: str):
         self.file_name = file_name
 
     def __str__(self):
