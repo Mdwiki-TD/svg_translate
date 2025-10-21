@@ -149,11 +149,11 @@ def test_list_tasks_joins_stages_and_returns_stage_data(store_and_db):
             stage_name=None,
         ),
     ]
-    db.fetch_query_safe.return_value = rows
+    db.fetch_all_safe.return_value = rows
 
     tasks = store.list_tasks()
 
-    sql = db.fetch_query_safe.call_args[0][0]
+    sql = db.fetch_all_safe.call_args[0][0]
     assert "FROM (SELECT * FROM tasks" in sql
     assert "LEFT JOIN task_stages" in sql
     assert "ORDER BY t.created_at DESC" in sql
@@ -187,11 +187,11 @@ def test_get_task_joins_and_groups_stages(store_and_db):
             stage_updated_at=datetime.datetime(2024, 1, 1, 12, 5, 0),
         ),
     ]
-    db.fetch_query_safe.return_value = rows
+    db.fetch_all_safe.return_value = rows
 
     task = store.get_task("task-1")
 
-    sql = db.fetch_query_safe.call_args[0][0]
+    sql = db.fetch_all_safe.call_args[0][0]
     assert "LEFT JOIN task_stages" in sql
     assert "WHERE t.id = %s" in sql
 
@@ -213,11 +213,11 @@ def test_get_active_task_by_title_uses_join(store_and_db):
             stage_updated_at=datetime.datetime(2024, 1, 1, 12, 0, 0),
         )
     ]
-    db.fetch_query_safe.return_value = rows
+    db.fetch_all_safe.return_value = rows
 
     task = store.get_active_task_by_title("Task 1")
 
-    sql = db.fetch_query_safe.call_args[0][0]
+    sql = db.fetch_all_safe.call_args[0][0]
     assert "FROM (" in sql and "LEFT JOIN task_stages" in sql
     assert "LIMIT 1" in sql
     assert "status NOT IN" in sql
@@ -242,12 +242,12 @@ def test_create_task_duplicate_detection_uses_join(store_and_db):
             stage_updated_at=datetime.datetime(2024, 1, 1, 12, 0, 0),
         )
     ]
-    db.fetch_query.return_value = rows
+    db.fetch_all.return_value = rows
 
     with pytest.raises(TaskAlreadyExistsError) as exc:
         store.create_task("task-2", "Task 1")
 
-    sql = db.fetch_query.call_args[0][0]
+    sql = db.fetch_all.call_args[0][0]
     assert "LEFT JOIN task_stages" in sql
     assert "LIMIT 1" in sql
 
