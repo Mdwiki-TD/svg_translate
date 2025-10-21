@@ -42,7 +42,7 @@ def mark_token_used(user_id: int) -> None:
             "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
             (user_id,),
         )
-    except Exception:  # pragma: no cover - defensive logging
+    except Exception:
         logger.exception("Failed to update last_used_at for user %s", user_id)
 
 
@@ -84,22 +84,26 @@ def ensure_user_token_table() -> None:
         )
         """,
     )
-    '''db.execute_query(
-        """
-        CREATE INDEX /*IF NOT EXISTS*/ idx_user_tokens_username ON user_tokens(username)
-        """
-    )'''
+    try:
+        db.execute_query(
+            """
+            CREATE INDEX /*IF NOT EXISTS*/ idx_user_tokens_username ON user_tokens(username)
+            """
+        )
+    except Exception:
+        logger.exception("Failed to ensure last_used_at column exists")
+
     try:
         db.execute_query(
             "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ last_used_at TIMESTAMP NULL",
         )
-    except Exception:  # pragma: no cover - defensive logging
+    except Exception:
         logger.exception("Failed to ensure last_used_at column exists")
     try:
         db.execute_query(
             "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ rotated_at TIMESTAMP NULL",
         )
-    except Exception:  # pragma: no cover - defensive logging
+    except Exception:
         logger.exception("Failed to ensure rotated_at column exists")
 
 
