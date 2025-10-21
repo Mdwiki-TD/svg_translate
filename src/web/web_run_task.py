@@ -42,7 +42,7 @@ def _compute_output_dir(title: str) -> Path:
     logger.info(f"compute_output_dir: {name=}")
     # ---
     # name = death rate from obesity
-    slug = re.sub(r'[^A-Za-z0-9._- ]+', "_", str(name)).strip("._") or "untitled"
+    slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(name)).strip("._") or "untitled"
     # ---
     out = svg_data_dir / slug
     # ---
