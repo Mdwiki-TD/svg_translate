@@ -3,7 +3,15 @@ import html
 from urllib.parse import quote
 import logging
 
-from svg_translate import get_files, get_wikitext, start_injects, extract
+try:
+    from svg_translate import get_files, get_wikitext, start_injects, extract
+except ImportError:
+    from src.svg_translate import (
+        get_files,
+        get_wikitext,
+        start_injects,
+        extract,
+    )
 from .download_task import download_one_file
 
 logger = logging.getLogger(__name__)
