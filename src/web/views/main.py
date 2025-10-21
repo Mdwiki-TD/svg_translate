@@ -8,6 +8,8 @@ from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, List
 
+import logging
+
 from flask import (
     Blueprint,
     current_app,
@@ -21,17 +23,11 @@ from flask import (
 
 from svg_config import db_data
 
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import config_logger, logger
-except ImportError:  # pragma: no cover
-    from src.svg_translate.log import config_logger, logger  # type: ignore[no-redef]
-
 from web.auth import oauth_required
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from web.web_run_task import run_task
 
-config_logger("DEBUG")
-
+logger = logging.getLogger(__name__)
 bp = Blueprint("main", __name__)
 
 

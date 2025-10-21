@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Optional
 
 import mwclient
 from tqdm import tqdm
+import logging
 
 try:
     from mwclient.auth import OAuthAuthentication
@@ -14,12 +15,11 @@ except (ImportError, AttributeError):  # pragma: no cover - optional dependency 
     OAuthAuthentication = None  # type: ignore[assignment]
 
 try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import logger
     from svg_translate.commons.upload_bot import upload_file
 except ImportError:  # pragma: no cover - fallback when running from src package
-    from src.svg_translate.log import logger  # type: ignore[no-redef]
     from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
 
+logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 

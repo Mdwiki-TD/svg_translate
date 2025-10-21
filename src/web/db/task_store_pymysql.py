@@ -1,15 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import logger
-except ImportError:  # pragma: no cover
-    from src.svg_translate.log import logger  # type: ignore[no-redef]
 
 from .db_class import Database
 from .utils import _serialize, _normalize_title, _deserialize, _current_ts
 
+logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed")
 
 

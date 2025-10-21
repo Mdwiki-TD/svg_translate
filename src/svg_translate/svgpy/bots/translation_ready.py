@@ -4,8 +4,9 @@ import copy
 from pathlib import Path
 from typing import List
 from lxml import etree
+import logging
 
-from ...log import logger
+logger = logging.getLogger(__name__)
 
 SVG_NS = "http://www.w3.org/2000/svg"
 XMLNS_ATTR = "{http://www.w3.org/2000/xmlns/}xmlns"

@@ -14,18 +14,11 @@ from flask_limiter.util import get_remote_address
 
 from svg_config import SECRET_KEY, db_data
 
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import config_logger
-except ImportError:  # pragma: no cover
-    from src.svg_translate.log import config_logger  # type: ignore[no-redef]
-
 # from web import cli as web_cli
 from web.auth import init_app as init_auth
 from web.db.task_store_pymysql import TaskStorePyMysql
 from web.views import main as main_views
 from web.web_run_task import run_task
-
-config_logger("DEBUG")
 
 
 class CookieHeaderClient(FlaskClient):

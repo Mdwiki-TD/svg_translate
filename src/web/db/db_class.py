@@ -1,8 +1,14 @@
+
+import logging
 import pymysql
+
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
     """Thin wrapper around a PyMySQL connection with convenience helpers."""
+
     def __init__(self, db_data):
         """
         Initialize the Database instance and establish a MySQL connection using credentials from db_data.
@@ -14,22 +20,36 @@ class Database:
                 to a pymysql connection using a DictCursor. On connection failure,
                 prints an error message and exits the process.
         """
+
         self.host = db_data['host']
-        self.user = db_data['user']
         self.dbname = db_data['dbname']
+
+        self.user = db_data['user']
         self.password = db_data['password']
+
+        if not db_data.get("db_connect_file"):
+            self.credentials = {
+                'user': self.user,
+                'password': self.password
+            }
+        else:
+            self.credentials = {'read_default_file': db_data.get("db_connect_file")}
 
         try:
             self.connection = pymysql.connect(
                 host=self.host,
-                user=self.user,
-                password=self.password,
                 database=self.dbname,
+                connect_timeout=5,
+                read_timeout=10,
+                write_timeout=10,
+                charset="utf8mb4",
+                init_command="SET time_zone = '+00:00'",
+                autocommit=True,
                 cursorclass=pymysql.cursors.DictCursor,
-                autocommit=True
+                **self.credentials
             )
         except pymysql.MySQLError as e:
-            print(f"Error connecting to the database: {e}")
+            logger.debug(f"Error connecting to the database: {e}")
             exit()
 
     def execute_query(self, sql_query, params=None):
@@ -57,8 +77,8 @@ class Database:
                 return cursor.rowcount
 
         except pymysql.MySQLError as exc:
-            print(f"execute_query - SQL error: {exc}<br>{sql_query}, params:")
-            print(params)
+            logger.debug(f"execute_query - SQL error: {exc}<br>{sql_query}, params:")
+            logger.debug(params)
             return [] if is_select else 0
 
     def fetch_query(self, sql_query, params=None):
@@ -80,8 +100,8 @@ class Database:
                 return result
 
         except pymysql.MySQLError as exc:
-            print(f"fetch_query - SQL error: {exc}<br>{sql_query}, params:")
-            print(params)
+            logger.debug(f"fetch_query - SQL error: {exc}<br>{sql_query}, params:")
+            logger.debug(params)
             return []
 
     def execute_many(self, sql_query: str, params_seq, batch_size: int = 1000):
@@ -123,7 +143,7 @@ class Database:
                 self.connection.rollback()
             except Exception:
                 pass
-            print(f"execute_many - SQL error: {e}<br>{sql_query}")
+            logger.debug(f"execute_many - SQL error: {e}<br>{sql_query}")
             return 0
 
     def fetch_query_safe(self, sql_query, params=None):
@@ -140,8 +160,9 @@ class Database:
         try:
             return self.fetch_query(sql_query, params)
         except pymysql.MySQLError as e:
-            print(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
+            logger.error("event=db_fetch_failed sql=%s error=%s", sql_query, e)
+            logger.debug(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.debug(params)
             return []
 
     def execute_query_safe(self, sql_query, params=None):
@@ -159,7 +180,7 @@ class Database:
             return self.execute_query(sql_query, params)
 
         except pymysql.MySQLError as e:
-            print(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
-            print(params)
+            logger.debug(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.debug(params)
             statement = (sql_query or "").strip().lower()
             return [] if statement.startswith("select") else 0

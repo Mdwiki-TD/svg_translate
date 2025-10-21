@@ -1,9 +1,11 @@
 
 from tqdm import tqdm
 from pathlib import Path
+import logging
+
 
 from .svgpy.svgtranslate import svg_extract_and_injects
-from .log import logger
+logger = logging.getLogger(__name__)
 
 
 def start_injects(files, translations, output_dir_translated, overwrite=False):

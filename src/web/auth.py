@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+import logging
 from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
@@ -27,11 +28,6 @@ from svg_config import (
     OAUTH_MWURI,
 )
 
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import logger
-except ImportError:  # pragma: no cover
-    from src.svg_translate.log import logger  # type: ignore[no-redef]
-
 from web.db.user_store import UserTokenStore
 
 try:
@@ -39,6 +35,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     mwoauth = None  # type: ignore[assignment]
 
+logger = logging.getLogger(__name__)
 bp = Blueprint("auth", __name__)
 
 AUTH_COOKIE_NAME = "svg_translate_user"

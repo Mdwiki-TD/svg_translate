@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
 from urllib.parse import quote
@@ -9,10 +10,7 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.log import logger
-except ImportError:  # pragma: no cover
-    from src.svg_translate.log import logger  # type: ignore[no-redef]
+logger = logging.getLogger(__name__)
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
@@ -112,7 +110,7 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
     out_path = out_dir / title
 
     if out_path.exists():
-        logger.info(f"[{i}] Skipped existing: {title}")
+        logger.debug(f"[{i}] Skipped existing: {title}")
         data["result"] = "existing"
         data["path"] = str(out_path)
         return data
@@ -129,8 +127,9 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
         return data
 
     if response.status_code == 200:
-        logger.info(f"[{i}] Downloaded: {title}")
+        logger.debug(f"[{i}] Downloaded: {title}")
         out_path.write_bytes(response.content)
+        logger.debug(f"[{i}] out_path: {str(out_path)}")
         data["result"] = "success"
         data["path"] = str(out_path)
     else:
@@ -204,9 +203,9 @@ def download_task(
         counts["success"] = len(files)
         counts["failed"] = max(0, total - len(files))
 
-    logger.info("files: %s", len(files))
+    logger.debug("files: %s", len(files))
 
-    logger.info(
+    logger.debug(
         "Downloaded %s files, skipped %s existing files, failed to download %s files",
         counts["success"],
         counts["existing"],
