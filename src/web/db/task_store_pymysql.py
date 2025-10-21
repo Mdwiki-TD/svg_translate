@@ -266,11 +266,10 @@ class TaskStorePyMysql(StageStore):
         normalized_title = _normalize_title(title)
         # Application-level guard to ensure at most one active task per normalized_title.
         # with self._lock:
-        try:
-            if not form.get("ignore_existing_task"):
-                # Check for an existing active task
-                rows = self.db.fetch_query(
-                    """
+        if not form.get("ignore_existing_task"):
+            # Check for an existing active task
+            rows = self.db.fetch_query(
+                """
                     SELECT
                         t.*,
                         ts.stage_name AS stage_name,
@@ -290,15 +289,15 @@ class TaskStorePyMysql(StageStore):
                     """,
                     [normalized_title, *TERMINAL_STATUSES],
                 )
-                if rows:
-                    task_rows, stage_map = self._rows_to_tasks_with_stages(rows)
-                    existing_task_row = task_rows[0]
-                    existing_task = self._row_to_task(
-                        existing_task_row,
-                        stages=stage_map.get(existing_task_row["id"], {}),
-                    )
-                    raise TaskAlreadyExistsError(existing_task)
-
+            if rows:
+                task_rows, stage_map = self._rows_to_tasks_with_stages(rows)
+                existing_task_row = task_rows[0]
+                existing_task = self._row_to_task(
+                    existing_task_row,
+                    stages=stage_map.get(existing_task_row["id"], {}),
+                )
+                raise TaskAlreadyExistsError(existing_task)
+        try:
             # Insert new task
             self.db.execute_query(
                 """
