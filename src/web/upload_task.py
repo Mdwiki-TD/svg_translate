@@ -5,14 +5,29 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-import mwclient
 from tqdm import tqdm
 
-from svg_translate import logger
+from src.svg_translate.log import logger
 from svg_translate.commons.upload_bot import upload_file
+from src.app.users.store import mark_token_used
+from src.app.wiki_client import build_oauth_site
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
+
+
+def _coerce_encrypted(value: object) -> bytes | None:
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, bytearray):
+        return bytes(value)
+    if isinstance(value, memoryview):
+        return value.tobytes()
+    if isinstance(value, str):
+        return value.encode("utf-8")
+    return None
 
 
 def _safe_invoke_callback(
@@ -43,38 +58,10 @@ def _safe_invoke_callback(
 def start_upload(
     files_to_upload: Dict[str, Dict[str, object]],
     main_title_link: str,
-    username_value: str,
-    password_value: str,
+    site,
     per_file_callback: PerFileCallback = None,
 ):
-    """
-    Upload multiple files to Wikimedia Commons and invoke a per-file progress callback.
-
-    Parameters:
-        files_to_upload (Dict[str, Dict[str, object]]): Mapping from target file name to metadata. Each value may include:
-            - "file_path" (str): local path to the file to upload.
-            - "new_languages" (Any): optional value used to build the upload summary.
-        main_title_link (str): Wiki-file link (e.g., "[[:File:Title]]") used in the upload summary.
-        username_value (str): Wikimedia username used to authenticate the upload.
-        password_value (str): Wikimedia password used to authenticate the upload.
-        per_file_callback (Optional[Callable[[int, int, Path, str], None]]): Optional callback invoked after each file with
-            parameters (index, total, target_path, status) where status is "success" or "failed".
-
-    Returns:
-        dict: Summary of the upload run with keys:
-            - "done" (int): number of successfully uploaded files.
-            - "not_done" (int): number of files that failed to upload.
-            - "errors" (List[Any]): collected error messages from failed uploads.
-    """
-    site = mwclient.Site("commons.m.wikimedia.org")
-
-    try:
-        site.login(username_value, password_value)
-    except mwclient.errors.LoginError as exc:  # pragma: no cover - network interaction
-        print(f"Could not login error: {exc}")
-
-    if site.logged_in:
-        print(f"<<yellow>>logged in as {site.username}.")
+    """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
     done = 0
     not_done = 0
@@ -82,6 +69,11 @@ def start_upload(
 
     items = list(files_to_upload.items())
     total = len(items)
+
+    if getattr(site, "logged_in", False):  # pragma: no cover - informational log
+        username = getattr(site, "username", "")
+        if username:
+            print(f"<<yellow>>logged in as {username}.")
 
     for index, (file_name, file_data) in enumerate(
         tqdm(items, desc="uploading files", total=total),
@@ -98,8 +90,6 @@ def start_upload(
             file_name,
             file_path,
             site=site,
-            username=username_value,
-            password=password_value,
             summary=summary,
         ) or {}
         result = upload.get("result") if isinstance(upload, dict) else None
@@ -167,17 +157,44 @@ def upload_task(
             progress_updater(stages)
         return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
 
-    if not user.get("username") or not user.get("password"):
+    user = user or {}
+    access_token_enc = _coerce_encrypted(user.get("access_token_enc"))
+    access_secret_enc = _coerce_encrypted(user.get("access_secret_enc"))
+
+    if not access_token_enc or not access_secret_enc:
         stages["status"] = "Failed"
-        stages["message"] += " (Missing credentials)"
+        stages["message"] += " (Missing OAuth credentials)"
         if progress_updater:
             progress_updater(stages)
         return {
             "done": 0,
             "not_done": total,
             "skipped": True,
-            "reason": "missing-creds",
+            "reason": "missing-token",
         }, stages
+
+    user_id = user.get("id") if isinstance(user, dict) else None
+
+    try:
+        site = build_oauth_site(access_token_enc, access_secret_enc)
+    except Exception as exc:  # pragma: no cover - network interaction
+        logger.exception("Failed to build OAuth site", exc_info=exc)
+        stages["status"] = "Failed"
+        stages["message"] += " (OAuth authentication failed)"
+        if progress_updater:
+            progress_updater(stages)
+        return {
+            "done": 0,
+            "not_done": total,
+            "skipped": True,
+            "reason": "oauth-auth-failed",
+        }, stages
+
+    if isinstance(user_id, int):
+        try:
+            mark_token_used(user_id)
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception("Failed to record token usage", extra={"user_id": user_id})
 
     main_title_link = f"[[:File:{main_title}]]"
 
@@ -212,8 +229,7 @@ def upload_task(
     upload_result = start_upload(
         files_to_upload,
         main_title_link,
-        user.get("username"),
-        user.get("password"),
+        site,
         per_file_callback=per_file_callback,
     )
 

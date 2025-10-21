@@ -5,6 +5,8 @@ python-dotenv
 requests
 wikitextparser
 mwclient
+mwoauth
+cryptography
 lxml
 tqdm
 pymysql

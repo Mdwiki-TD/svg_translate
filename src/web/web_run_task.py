@@ -17,7 +17,7 @@ from web.download_task import download_task
 from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
-from svg_translate import logger
+from src.svg_translate.log import logger
 from web.db.task_store_pymysql import TaskStorePyMysql
 
 # logger = logging.getLogger(__name__)

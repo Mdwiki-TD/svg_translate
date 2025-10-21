@@ -2,7 +2,8 @@ import json
 import html
 from urllib.parse import quote
 
-from svg_translate import get_files, get_wikitext, start_injects, extract, logger
+from svg_translate import get_files, get_wikitext, start_injects, extract
+from src.svg_translate.log import logger
 from .download_task import download_one_file
 
 
