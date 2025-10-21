@@ -1,10 +1,6 @@
 """
-
-https://chatgpt.com/c/68f74419-c23c-832a-bb77-3a825c71c0eb
-
 """
 import requests
-from pathlib import Path
 import logging
 import os
 
