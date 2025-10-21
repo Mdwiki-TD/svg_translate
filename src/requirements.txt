@@ -1,9 +1,10 @@
-
 asgiref
+cryptography
 Flask
 gunicorn
 lxml
 mwclient
+mwoauth
 pymysql
 python-dotenv
 requests
