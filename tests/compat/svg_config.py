@@ -11,6 +11,10 @@ __all__ = [
     "svg_data_dir",
     "db_data",
     "user_config_path",
+    "OAUTH_MWURI",
+    "OAUTH_CONSUMER_KEY",
+    "OAUTH_CONSUMER_SECRET",
+    "OAUTH_ENCRYPTION_KEY",
 ]
 
 _default_base = Path(os.getenv("HOME", Path.cwd()))
@@ -27,3 +31,8 @@ db_data = {
 }
 
 user_config_path = os.getenv("USER_CONFIG_PATH", str(_default_base / "confs" / "user.ini"))
+
+OAUTH_MWURI = os.getenv("OAUTH_MWURI", "https://commons.wikimedia.org/w/index.php")
+OAUTH_CONSUMER_KEY = os.getenv("CONSUMER_KEY")
+OAUTH_CONSUMER_SECRET = os.getenv("CONSUMER_SECRET")
+OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY")
