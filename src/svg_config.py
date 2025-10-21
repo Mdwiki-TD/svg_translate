@@ -6,12 +6,16 @@ from configparser import ConfigParser
 from pathlib import Path
 # ---
 from dotenv import load_dotenv
-load_dotenv()
+# ---
+HOME = os.getenv("HOME")
+# ---
+env_file_path = f"{HOME}/python/.env" if (HOME and os.path.exists(f"{HOME}/python/.env")) else ".env"
+# ---
+load_dotenv(env_file_path)
 # ---
 config = ConfigParser()
 # ---
-home_dir = os.getenv("HOME") if os.getenv("HOME") else os.path.expanduser("~")
-# ---
+home_dir = HOME if HOME else os.path.expanduser("~")
 # ---
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{home_dir}/svg_data")
@@ -35,6 +39,3 @@ db_data = {
     "dbname": db_config_section.get('dbname', ""),
     "password": db_config_section.get('password', ""),
 }
-
-db_config_path = DB_CONFIG_PATH
-user_config_path = USER_CONFIG_PATH
