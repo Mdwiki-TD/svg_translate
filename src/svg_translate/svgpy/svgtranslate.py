@@ -8,12 +8,12 @@ to other SVG files by inserting missing <text systemLanguage="XX"> blocks.
 
 import json
 from pathlib import Path
+import logging
 
 from .bots.extract_bot import extract
 from .bots.inject_bot import inject
 
-from ..log import logger
-
+logger = logging.getLogger(__name__)
 
 def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_output_file=None, overwrite=None, save_result=False):
     """

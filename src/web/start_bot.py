@@ -1,11 +1,12 @@
 import json
 import html
 from urllib.parse import quote
+import logging
 
 from svg_translate import get_files, get_wikitext, start_injects, extract
-from svg_translate.log import logger
 from .download_task import download_one_file
 
+logger = logging.getLogger(__name__)
 
 def json_save(path, data):
     """
@@ -17,7 +18,7 @@ def json_save(path, data):
         path (str | os.PathLike): Destination file path where JSON will be written.
         data: JSON-serializable Python object to persist (e.g., dict, list).
     """
-    logger.info(f"Saving json to: {path}")
+    logger.debug(f"Saving json to: {path}")
 
     if not data or data is None:
         logger.error(f"Empty data to save to: {path}")
@@ -35,20 +36,50 @@ def json_save(path, data):
 
 
 def commons_link(title, name=None):
+    """Return an HTML anchor pointing to a Commons file page.
+
+    Parameters:
+        title (str): Page title used to build the Commons URL.
+        name (str | None): Optional link text; falls back to ``title`` when None.
+
+    Returns:
+        str: HTML anchor tag safe for embedding in status messages.
+    """
     safe_name = html.escape(name or title, quote=True)
     href = f"https://commons.wikimedia.org/wiki/{quote(title, safe='/:()')}"
     return f"<a href='{href}' target='_blank' rel='noopener noreferrer'>{safe_name}</a>"
 
 
 def save_files_stats(data, output_dir):
+    """Persist workflow statistics to ``files_stats.json`` within output_dir.
+
+    Parameters:
+        data (dict): Serializable summary data to write.
+        output_dir (pathlib.Path): Directory that will receive the JSON file.
+    """
 
     files_stats_path = output_dir / "files_stats.json"
     json_save(files_stats_path, data)
 
-    logger.info(f"files_stats at: {files_stats_path}")
+    logger.debug(f"files_stats at: {files_stats_path}")
 
 
 def make_results_summary(len_files, files_to_upload_count, no_file_path, injects_result, translations, main_title, upload_result):
+    """Compile the final task result payload consumed by the UI and API.
+
+    Parameters:
+        len_files (int): Total number of files processed during the workflow.
+        files_to_upload_count (int): Number of files with paths suitable for
+            upload.
+        no_file_path (int): Count of files lacking translated output paths.
+        injects_result (dict): Aggregated statistics from the injection phase.
+        translations (dict): Translation data summary used for injection.
+        main_title (str): The primary Commons title associated with the task.
+        upload_result (dict): Outcome of the upload stage.
+
+    Returns:
+        dict: Summary dictionary persisted to the database for task results.
+    """
     return {
         "total_files": len_files,
         "files_to_upload_count": files_to_upload_count,
@@ -65,6 +96,16 @@ def make_results_summary(len_files, files_to_upload_count, no_file_path, injects
 
 
 def text_task(stages, title):
+    """Fetch wikitext for a Commons file and update stage metadata.
+
+    Parameters:
+        stages (dict): Mutable stage metadata for the text stage.
+        title (str): Commons title whose wikitext should be retrieved.
+
+    Returns:
+        tuple: ``(text, stages)`` where ``text`` is the retrieved wikitext (empty
+        string on failure) and ``stages`` reflects the final status update.
+    """
 
     stages["status"] = "Running"
 
@@ -82,6 +123,17 @@ def text_task(stages, title):
 
 
 def titles_task(stages, text, titles_limit=None):
+    """Extract SVG titles from wikitext and update stage metadata.
+
+    Parameters:
+        stages (dict): Mutable stage metadata for the titles stage.
+        text (str): Wikitext retrieved from the main Commons page.
+        titles_limit (int | None): Optional maximum number of titles to keep.
+
+    Returns:
+        tuple: ``({"main_title": str | None, "titles": list[str]}, stages)`` with
+        the updated stage metadata.
+    """
 
     stages["status"] = "Running"
 
@@ -143,7 +195,7 @@ def translations_task(stages, main_title, output_dir_main):
     stages["status"] = "Failed" if not translations else "Completed"
 
     if not translations:
-        logger.info(f"Couldn't load translations from main file: {main_title}")
+        logger.debug(f"Couldn't load translations from main file: {main_title}")
         stages["message"] = "Couldn't load translations from main file"
         # ---
         return translations, stages

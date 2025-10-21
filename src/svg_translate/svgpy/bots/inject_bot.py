@@ -6,13 +6,14 @@ python I:/SVG/svg_repo/svgpy/bots/inject_bot.py
 """
 
 import json
+import logging
 from pathlib import Path
 from lxml import etree
 
 from .utils import normalize_text, extract_text_from_node
 from .translation_ready import make_translation_ready
-from ...log import logger
 
+logger = logging.getLogger(__name__)
 
 def generate_unique_id(base_id, lang, existing_ids):
     """Generate a unique ID by appending language code and numeric suffix if needed."""
@@ -31,6 +32,17 @@ def generate_unique_id(base_id, lang, existing_ids):
 
 
 def load_all_mappings(mapping_files):
+    """Load and merge translation mapping JSON files into a single dictionary.
+
+    Parameters:
+        mapping_files (Iterable[pathlib.Path | str]): Paths to JSON files whose
+            contents map source text to language translations.
+
+    Returns:
+        dict: Nested dictionary where the top-level keys correspond to source
+        strings and values are language-to-translation mappings. Files that fail
+        to load are skipped with a logged warning.
+    """
     all_mappings = {}
 
     for mapping_file in mapping_files:
@@ -49,7 +61,7 @@ def load_all_mappings(mapping_files):
                     all_mappings[key] = {}
                 all_mappings[key].update(value)
 
-            logger.info(f"Loaded mappings from {mapping_file}, len: {len(mappings)}")
+            logger.debug(f"Loaded mappings from {mapping_file}, len: {len(mappings)}")
         except Exception as e:
             logger.error(f"Error loading mapping file {mapping_file}: {str(e)}")
 
@@ -81,7 +93,7 @@ def work_on_switches(root, existing_ids, mappings, case_insensitive=False,
     }
 
     switches = root.xpath('//svg:switch', namespaces=SVG_NS)
-    logger.info(f"Found {len(switches)} switch elements")
+    logger.debug(f"Found {len(switches)} switch elements")
 
     if not switches:
         logger.error("No switch elements found in SVG")
@@ -128,7 +140,7 @@ def work_on_switches(root, existing_ids, mappings, case_insensitive=False,
             if key in all_mappings:
                 available_translations[key] = all_mappings[key]
             else:
-                logger.debug(f"No mapping for '{key}'")
+                logger.warning(f"No mapping for '{key}'")
 
         if not available_translations:
             continue
@@ -268,7 +280,7 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
         logger.error("No valid mappings found")
         return None, {"error": "No valid mappings found"}
 
-    logger.info(f"Injecting translations into {svg_file_path}")
+    logger.debug(f"Injecting translations into {svg_file_path}")
 
     # Parse SVG as XML
     # parser = etree.XMLParser(remove_blank_text=True)
@@ -303,17 +315,31 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
             logger.error(f"Failed writing {output_file}: {e}")
             tree = None
 
-    logger.info(f"Saved modified SVG to {output_file}")
+    logger.debug(f"Saved modified SVG to {output_file}")
 
-    logger.info(f"Processed {stats['processed_switches']} switches")
-    logger.info(f"Inserted {stats['inserted_translations']} translations")
-    logger.info(f"Updated {stats['updated_translations']} translations")
-    logger.info(f"Skipped {stats['skipped_translations']} existing translations")
+    logger.debug(f"Processed {stats['processed_switches']} switches")
+    logger.debug(f"Inserted {stats['inserted_translations']} translations")
+    logger.debug(f"Updated {stats['updated_translations']} translations")
+    logger.debug(f"Skipped {stats['skipped_translations']} existing translations")
 
     return tree, stats
 
 
 def inject(inject_file, *args, **kwargs):
+    """Inject translations into a single SVG file and optionally return stats.
+
+    Parameters:
+        inject_file (pathlib.Path | str): Path to the SVG file to modify.
+        *args: Positional arguments forwarded to :func:`_inject`.
+        **kwargs: Keyword arguments forwarded to :func:`_inject`. When
+            ``return_stats`` is truthy, both the XML tree and statistics dict are
+            returned; otherwise only the tree is returned.
+
+    Returns:
+        lxml.etree._ElementTree | tuple[lxml.etree._ElementTree, dict]: The
+        modified SVG tree, optionally paired with processing statistics when
+        ``return_stats`` is requested.
+    """
 
     tree, stats = _inject(inject_file, *args, **kwargs)
 

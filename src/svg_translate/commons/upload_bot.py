@@ -2,7 +2,8 @@
 import requests
 import mwclient
 from pathlib import Path
-from ..log import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 def upload_file(file_name, file_path, site=None, username=None, password=None, summary=None):
@@ -45,7 +46,7 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
                 ignore=True  # skip warnings like "file exists"
             )
 
-        logger.info(f"Successfully uploaded {file_name} to Wikimedia Commons")
+        logger.debug(f"Successfully uploaded {file_name} to Wikimedia Commons")
         return response
     except requests.exceptions.HTTPError:
         logger.error("HTTP error occurred while uploading file")

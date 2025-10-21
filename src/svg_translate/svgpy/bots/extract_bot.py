@@ -8,10 +8,11 @@ python I:/SVG/svg_repo/svgpy/bots/extract_bot.py
 # import json
 from pathlib import Path
 from lxml import etree
+import logging
 
-from ...log import logger
 from .utils import normalize_text  # , extract_text_from_node
 
+logger = logging.getLogger(__name__)
 
 def extract(svg_file_path, case_insensitive=True):
     """
@@ -143,7 +144,7 @@ def extract(svg_file_path, case_insensitive=True):
                 translations["old_way"][default_key]['_translations'][lang] = translated_texts
 
             processed_switches += 1
-            logger.debug(f"Processed switch with default texts: {default_texts}")
+            logger.warning(f"Processed switch with default texts: {default_texts}")
 
     logger.info(f"Extracted translations for {processed_switches} switches")
 

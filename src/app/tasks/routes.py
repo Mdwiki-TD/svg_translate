@@ -10,12 +10,9 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 
 from web.web_run_task import run_task
 
-from svg_translate.log import logger, config_logger
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from svg_config import db_data
 from ..users.current import current_user, require_login
-
-config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()

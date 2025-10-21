@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from tqdm import tqdm
+import logging
 
-from svg_translate.log import logger
 from svg_translate.commons.upload_bot import upload_file
 from app.users.store import mark_token_used
 from app.wiki_client import build_oauth_site
 
+logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 

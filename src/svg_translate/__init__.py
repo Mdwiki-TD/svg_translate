@@ -5,7 +5,6 @@ from .commons import upload_file, get_wikitext, get_files
 
 from .injects_files import start_injects
 from .upload_files import start_upload
-from .log import logger, config_logger
 
 __all__ = [
     "start_injects",
@@ -19,6 +18,4 @@ __all__ = [
     "get_files",
     "normalize_text",
     "generate_unique_id",
-    "logger",
-    "config_logger",
 ]

@@ -1,7 +1,8 @@
 
 import requests
 
-from ..log import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 def get_wikitext(title, project="commons.m.wikimedia.org"):

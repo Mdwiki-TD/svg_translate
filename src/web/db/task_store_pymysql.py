@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
-from svg_translate.log import logger
 
 from .db_class import Database
 from .utils import _serialize, _normalize_title, _deserialize, _current_ts
 
+logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed")
 
 
@@ -25,8 +25,21 @@ class TaskAlreadyExistsError(Exception):
 
 
 class StageStore:
+    """Utility mixin providing CRUD helpers for task stage persistence."""
 
     def update_stage(self, task_id: str, stage_name: str, stage_data: Dict[str, Any]) -> None:
+        """Insert or update a single stage row for the given task.
+
+        Parameters:
+            task_id (str): Identifier of the owning task.
+            stage_name (str): Logical stage key (e.g., "download").
+            stage_data (dict): Metadata describing the stage, including number,
+                status, sub_name, and message fields.
+
+        Side Effects:
+            Persists the stage to ``task_stages`` using an upsert operation and
+            logs errors without raising them.
+        """
         now = _current_ts()
         try:
             self.db.execute_query(
@@ -59,6 +72,16 @@ class StageStore:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
 
     def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
+        """Replace all stages for a task with the provided mapping.
+
+        Parameters:
+            task_id (str): Task identifier whose stages should be reset.
+            stages (dict[str, dict]): Mapping of stage name to metadata.
+
+        Side Effects:
+            Deletes existing rows in ``task_stages`` for the task and re-inserts
+            the provided entries in bulk.
+        """
 
         now = _current_ts()
 
@@ -95,6 +118,15 @@ class StageStore:
             )
 
     def fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
+        """Fetch persisted stages for a given task as a mapping.
+
+        Parameters:
+            task_id (str): Identifier whose stage rows should be retrieved.
+
+        Returns:
+            dict[str, dict]: Stage metadata keyed by stage name. Returns an empty
+            dict when the query fails or the task has no recorded stages.
+        """
         rows = self.db.fetch_query_safe(
             """
                 SELECT stage_name, stage_number, stage_status, stage_sub_name, stage_message, updated_at
@@ -520,6 +552,17 @@ class TaskStorePyMysql(StageStore):
     def _rows_to_tasks_with_stages(
         self, rows: List[Dict[str, Any]]
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Dict[str, Any]]]]:
+        """Split combined task/stage join rows into task rows and stage mapping.
+
+        Parameters:
+            rows (list[dict]): Result set from a join between ``tasks`` and
+                ``task_stages``.
+
+        Returns:
+            tuple: ``(task_rows, stage_map)`` where ``task_rows`` is an ordered
+            list of unique task dictionaries, and ``stage_map`` maps task IDs to a
+            stage-name-to-metadata dictionary.
+        """
         task_rows: Dict[str, Dict[str, Any]] = {}
         stage_map: Dict[str, Dict[str, Dict[str, Any]]] = {}
 

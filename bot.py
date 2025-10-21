@@ -11,13 +11,11 @@ from pathlib import Path
 import sys
 
 
-from src.svg_translate import start_on_template_title, config_logger
+from src.svg_translate import start_on_template_title
 from src.svg_translate.upload_files import start_upload
 
 from src.app.users.store import get_user_token
 from src.svg_config import svg_data_dir
-
-config_logger("ERROR")  # DEBUG # ERROR # CRITICAL
 
 
 def one_title(title, output_dir, titles_limit=None, overwrite=False):

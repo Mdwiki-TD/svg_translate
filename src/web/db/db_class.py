@@ -1,4 +1,9 @@
+
+import logging
 import pymysql
+
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
@@ -13,19 +18,33 @@ class Database:
                 to a pymysql connection using a DictCursor. On connection failure,
                 prints an error message and exits the process.
         """
+
         self.host = db_data['host']
-        self.user = db_data['user']
         self.dbname = db_data['dbname']
+
+        self.user = db_data['user']
         self.password = db_data['password']
+
+        if not db_data.get("db_connect_file"):
+            self.credentials = {
+                'user': self.user,
+                'password': self.password
+            }
+        else:
+            self.credentials = {'read_default_file': db_data.get("db_connect_file")}
 
         try:
             self.connection = pymysql.connect(
                 host=self.host,
-                user=self.user,
-                password=self.password,
                 database=self.dbname,
+                connect_timeout=5,
+                read_timeout=10,
+                write_timeout=10,
+                charset="utf8mb4",
+                init_command="SET time_zone = '+00:00'",
+                autocommit=True,
                 cursorclass=pymysql.cursors.DictCursor,
-                autocommit=True
+                **self.credentials
             )
         except pymysql.MySQLError as e:
             print(f"Error connecting to the database: {e}")

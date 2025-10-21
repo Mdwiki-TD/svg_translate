@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
 from urllib.parse import quote
@@ -9,7 +10,7 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 
-from svg_translate.log import logger
+logger = logging.getLogger(__name__)
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
@@ -18,6 +19,19 @@ USER_AGENT = "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; m
 
 
 def download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None):
+    """Download a single Commons file, skipping already-downloaded copies.
+
+    Parameters:
+        title (str): Title of the file page on Wikimedia Commons.
+        out_dir (Path): Directory where the file should be stored.
+        i (int): 1-based index used only for logging context.
+        session (requests.Session | None): Optional shared session. A new session
+            with an appropriate User-Agent is created when omitted.
+
+    Returns:
+        dict: Outcome dictionary with keys ``result`` ("success", "existing", or
+        "failed") and ``path`` (path string when available).
+    """
     base = "https://ar.wikipedia.org/wiki/Special:FilePath/"
 
     data = {
@@ -32,7 +46,7 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
     out_path = out_dir / title
 
     if out_path.exists():
-        logger.info(f"[{i}] Skipped existing: {title}")
+        logger.debug(f"[{i}] Skipped existing: {title}")
         data["result"] = "existing"
         data["path"] = str(out_path)
         return data
@@ -49,8 +63,9 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
         return data
 
     if response.status_code == 200:
-        logger.info(f"[{i}] Downloaded: {title}")
+        logger.debug(f"[{i}] Downloaded: {title}")
         out_path.write_bytes(response.content)
+        logger.debug(f"[{i}] out_path: {str(out_path)}")
         data["result"] = "success"
         data["path"] = str(out_path)
     else:
@@ -117,9 +132,9 @@ def download_task(
         if progress_updater and i % 10 == 0:
             progress_updater(stages)
 
-    logger.info("files: %s", len(files))
+    logger.debug("files: %s", len(files))
 
-    logger.info(
+    logger.debug(
         "Downloaded %s files, skipped %s existing files, failed to download %s files",
         counts["success"],
         counts["existing"],

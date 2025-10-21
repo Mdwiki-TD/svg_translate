@@ -1,47 +1,50 @@
 """
 
-from svg_config import db_data
-from svg_config import TASK_DB_PATH, SECRET_KEY
-from svg_config import user_config_path
-from svg_config import svg_data_dir
-
 """
 import os
-from configparser import ConfigParser
 from pathlib import Path
 # ---
-home_dir = os.getenv("HOME")
+from dotenv import load_dotenv
 # ---
-project = 'I:/SVG/svg_repo'
-project_www = 'I:/SVG/svg_repo'
+HOME = os.getenv("HOME")
 # ---
-if home_dir:
-    project = home_dir
-    project_www = f"{home_dir}/www"
+env_file_path = f"{HOME}/confs/.env" if (HOME and os.path.exists(f"{HOME}/confs/.env")) else ".env"
 # ---
-TASK_DB_PATH = os.getenv("TASK_DB_PATH", f"{project_www}/tasks.sqlite3")
+load_dotenv(env_file_path)
+# ---
+home_dir = HOME if HOME else os.path.expanduser("~")
+# ---
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
+SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{home_dir}/svg_data")
+LOG_DIR_PATH = os.getenv("LOG_PATH", f"{home_dir}/logs")
+DISABLE_UPLOADS = os.getenv("DISABLE_UPLOADS", "1")
+# ---
+DB_USER = os.getenv("DB_USER", "")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_NAME = os.getenv("DB_NAME", "")
+DB_HOST = os.getenv("DB_HOST", "")
+# ---
+COMMONS_USER = os.getenv("COMMONS_USER", "")
+COMMONS_PASSWORD = os.getenv("COMMONS_PASSWORD", "")
+# ---
 
-user_config_path = f"{project}/confs/user.ini"
-db_config_path = f"{project}/confs/db.ini"
-
-# data_path = Path(__file__).parent.parent / "svg_data"
-data_path = "I:/SVG/svg_data"
-
-if home_dir:
-    data_path = f"{project_www}/svg_data"
-
-svg_data_dir = Path(data_path)
+svg_data_dir = Path(SVG_DATA_PATH)
 svg_data_dir.mkdir(parents=True, exist_ok=True)
 
-config = ConfigParser()
-config.read(f"{project}/confs/db.ini")
-
-db_config_section = config['client'] if 'client' in config else config['DEFAULT']
-
 db_data = {
-    "host": db_config_section.get('host', ""),
-    "user": db_config_section.get('user', ""),
-    "dbname": db_config_section.get('dbname', ""),
-    "password": db_config_section.get('password', ""),
+    "host": DB_HOST,
+    "dbname": DB_NAME,
+
+    "user": DB_USER,
+    "password": DB_PASSWORD,
+}
+
+db_connect_file = os.getenv("DB_CONNECT_FILE", os.path.join(os.path.expanduser('~'), 'replica.my.cnf'))
+
+if os.path.exists(db_connect_file):
+    db_data["db_connect_file"] = db_connect_file
+
+user_data = {
+    "username": COMMONS_USER,
+    "password": COMMONS_PASSWORD
 }

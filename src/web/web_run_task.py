@@ -1,7 +1,6 @@
 #
-# import os
 import re
-# import logging
+import logging
 from pathlib import Path
 from typing import Any, Dict
 
@@ -17,18 +16,31 @@ from web.download_task import download_task
 from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
-from svg_translate.log import logger
 from web.db.task_store_pymysql import TaskStorePyMysql
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _compute_output_dir(title: str) -> Path:
+    """Return the filesystem directory used to store intermediate task output.
+
+    Parameters:
+        title (str): User-provided title for the translation task.
+
+    Returns:
+        pathlib.Path: Directory path under ``svg_data_dir`` named after a
+        sanitized slug derived from ``title``. The directory is created if
+        missing.
+    """
+
     # Align with CLI behavior: store under repo svg_data/<slug>
     # Use last path segment and sanitize for filesystem safety
     name = Path(title).name
     # ---
-    slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", name).strip("._") or "untitled"
+    logger.debug(f"compute_output_dir: {name=}")
+    # ---
+    # name = death rate from obesity
+    slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(name)).strip("._") or "untitled"
     # ---
     out = svg_data_dir / slug
     # ---
@@ -120,6 +132,19 @@ def fail_task(
 
 # --- main pipeline --------------------------------------------
 def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_data: Dict[str, str]) -> None:
+    """Execute the full SVG translation pipeline for a queued task.
+
+    Parameters:
+        db_data (dict): Database connection parameters for the task store.
+        task_id (str): Identifier of the task being processed.
+        title (str): Commons title submitted by the user.
+        args: Namespace-like object returned by :func:`app.parse_args`.
+        user_data (dict): Authentication payload used for upload operations.
+
+    Side Effects:
+        Updates task records, writes files under ``svg_data_dir``, and interacts
+        with external services for downloading and uploading files.
+    """
     output_dir = _compute_output_dir(title)
     task_snapshot: Dict[str, Any] = {
         "title": title,
@@ -135,6 +160,7 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
     store.update_status(task_id, "Running")
 
     def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
+        """Persist the latest state for a workflow stage to the database."""
         state = stage_state if stage_state is not None else stages_list[stage_name]
         store.update_stage(task_id, stage_name, state)
 
@@ -171,6 +197,7 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
     # ----------------------------------------------
     # Stage 4: download SVG files
     def download_progress(stage_state: Dict[str, Any]) -> None:
+        """Forward download progress updates to the task store."""
         state = stage_state if stage_state is not None else stages_list["download"]
         store.update_stage(task_id, "download", state)
 
@@ -202,6 +229,7 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
     no_file_path = len(inject_files) - len(files_to_upload)
 
     def upload_progress(stage_state: Dict[str, Any]) -> None:
+        """Forward upload progress updates to the task store."""
         push_stage("upload", stage_state)
 
     upload_result, stages_list["upload"] = upload_task(
