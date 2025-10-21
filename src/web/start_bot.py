@@ -3,10 +3,10 @@ import html
 from urllib.parse import quote
 import logging
 
-try:
+try:  # pragma: no cover - maintain compatibility with both package layouts
     from svg_translate import get_files, get_wikitext, start_injects, extract
-except ImportError:
-    from src.svg_translate import (
+except ImportError:  # pragma: no cover
+    from src.svg_translate import (  # type: ignore[no-redef]
         get_files,
         get_wikitext,
         start_injects,
