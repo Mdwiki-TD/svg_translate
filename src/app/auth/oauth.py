@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Tuple
+from typing import Tuple
 
 from flask import url_for
 
 from ..config import settings
-
-if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
-    import mwoauth
 
 
 def get_handshaker():

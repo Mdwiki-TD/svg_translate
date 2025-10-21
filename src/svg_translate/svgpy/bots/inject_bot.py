@@ -317,7 +317,8 @@ def _inject(svg_file_path, mapping_files=None, output_file=None, output_dir=None
             logger.error(f"Failed writing {output_file}: {e}")
             tree = None
 
-    logger.debug(f"Saved modified SVG to {output_file}")
+    if save_result and output_file:
+        logger.debug(f"Saved modified SVG to {output_file}")
 
     logger.debug(f"Processed {stats['processed_switches']} switches")
     logger.debug(f"Inserted {stats['inserted_translations']} translations")

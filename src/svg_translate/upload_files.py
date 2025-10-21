@@ -46,7 +46,11 @@ def start_upload(files_to_upload, main_title_link, token_source):
         # ---
         print(f"start uploading file: {file_name}.")
         # ---
-        summary = f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
+        summary = (
+            f"Adding {file_data.get('new_languages')} languages translations from {main_title_link}"
+            if isinstance(file_data, dict) and "new_languages" in file_data
+            else f"Adding translations from {main_title_link}"
+        )
         # ---
         upload = upload_file(file_name, file_path, site=site, summary=summary) or {}
         # ---

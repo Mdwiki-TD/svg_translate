@@ -4,6 +4,7 @@ from collections import namedtuple
 from datetime import datetime
 import threading
 import uuid
+import logging
 from typing import Any, Dict, List
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
@@ -11,13 +12,14 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 from web.web_run_task import run_task
 
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from svg_config import db_data
-from ..users.current import current_user, require_login
+from svg_config import db_data, DISABLE_UPLOADS
+from ..users.current import current_user  # , require_login
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
 
 bp_main = Blueprint("main", __name__)
+logger = logging.getLogger(__name__)
 
 
 def parse_args(request_form):
@@ -26,6 +28,9 @@ def parse_args(request_form):
     upload = bool(request_form.get("upload"))
     # ---
     upload = False
+    # ---
+    if DISABLE_UPLOADS != "1":
+        upload = bool(request_form.get("upload"))
     # ---
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
@@ -210,7 +215,7 @@ def start():
         except TaskAlreadyExistsError as exc:
             existing = exc.task
             return redirect(url_for("main.task1", task_id=existing["id"], title=title, error="task-active"))
-        except Exception as exc:  # noqa: BLE001 — TaskStore may surface heterogeneous DB errors
+        except Exception as exc:
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 

@@ -3,10 +3,11 @@ import html
 from urllib.parse import quote
 import logging
 
-from svg_translate import get_files, get_wikitext, start_injects, extract
+from ..svg_translate import get_files, get_wikitext, start_injects, extract
 from .download_task import download_one_file
 
 logger = logging.getLogger(__name__)
+
 
 def json_save(path, data):
     """

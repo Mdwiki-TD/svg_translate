@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from flask import (Blueprint, Response, current_app, make_response, redirect, request,
                    session, url_for)
 
@@ -13,9 +13,6 @@ from ..users.store import delete_user_token, upsert_user_token
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
 from .oauth import complete_login, start_login
 from .rate_limit import callback_rate_limiter, login_rate_limiter
-
-if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
-    import mwoauth
 
 bp_auth = Blueprint("auth", __name__)
 

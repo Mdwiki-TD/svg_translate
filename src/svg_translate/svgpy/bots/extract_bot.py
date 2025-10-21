@@ -145,7 +145,7 @@ def extract(svg_file_path, case_insensitive=True):
                 translations["old_way"][default_key]['_translations'][lang] = translated_texts
 
             processed_switches += 1
-            logger.warning(f"Processed switch with default texts: {default_texts}")
+            logger.debug(f"Processed switch with default texts: {default_texts}")
 
     logger.debug(f"Extracted translations for {processed_switches} switches")
 
