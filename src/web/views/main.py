@@ -35,6 +35,19 @@ config_logger("DEBUG")
 bp = Blueprint("main", __name__)
 
 
+def get_error_message(error_code: str | None) -> str:
+    if not error_code:
+        return ""
+    # ---
+    messages = {
+        "task-active": "A task for this title is already in progress.",
+        "not-found": "Task not found.",
+        "task-create-failed": "Task creation failed.",
+    }
+    # ---
+    return messages.get(error_code, error_code)
+
+
 def _task_store() -> TaskStorePyMysql:
     return current_app.extensions.setdefault(
         "task_store", TaskStorePyMysql(current_app.config["DB_DATA"])
@@ -45,13 +58,14 @@ def _task_lock() -> threading.Lock:
     return current_app.extensions.setdefault("task_lock", threading.Lock())
 
 
-def parse_args(form_data) -> Any:
-    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
-    upload = bool(form_data.get("upload"))
+def parse_args(request_form) -> Any:
+    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload", "ignore_existing_task"])
+    upload = bool(request_form.get("upload"))
     return Args(
-        titles_limit=form_data.get("titles_limit", 1000, type=int),
-        overwrite=bool(form_data.get("overwrite")),
-        upload=upload,
+        titles_limit=request_form.get("titles_limit", 1000, type=int),
+        overwrite=bool(request_form.get("overwrite")),
+        ignore_existing_task=bool(request_form.get("ignore_existing_task")),
+        upload=upload
     )
 
 
@@ -114,10 +128,7 @@ def healthcheck():
 
 @bp.get("/")
 def index():
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
     return render_template("index.html", form={}, error_message=error_message)
 
 
@@ -129,10 +140,7 @@ def task1():
         task = {"error": "not-found"}
         logger.debug("Task %s not found!!", task_id)
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     return render_template(
         "task1.html",
@@ -152,10 +160,7 @@ def task2():
         task = {"error": "not-found"}
         logger.debug("Task %s not found!!", task_id)
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
@@ -208,7 +213,7 @@ def status(task_id: str):
 
 
 @bp.post("/start")
-@oauth_required
+# @oauth_required
 def start():
     title = request.form.get("title", "").strip()
     if not title:
@@ -216,13 +221,16 @@ def start():
 
     task_id = uuid.uuid4().hex
 
+    args = parse_args(request.form)
+
     with _task_lock():
-        existing_task = _task_store().get_active_task_by_title(title)
-        if existing_task:
-            logger.debug("Task for title '%s' already exists: %s.", title, existing_task["id"])
-            return redirect(
-                url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active")
-            )
+        if not args.ignore_existing_task:
+            existing_task = _task_store().get_active_task_by_title(title)
+            if existing_task:
+                logger.debug("Task for title '%s' already exists: %s.", title, existing_task["id"])
+                return redirect(
+                    url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active")
+                )
 
         try:
             _task_store().create_task(
@@ -239,15 +247,13 @@ def start():
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 
-    credentials = getattr(g, "oauth_credentials", {})
+    credentials = getattr(g, "oauth_credentials", {}) or {}
     auth_payload = {
         "consumer_key": credentials.get("consumer_key"),
         "consumer_secret": credentials.get("consumer_secret"),
         "access_token": credentials.get("access_token"),
         "access_secret": credentials.get("access_secret"),
     }
-
-    args = parse_args(request.form)
 
     thread = threading.Thread(
         target=current_app.extensions.get("run_task", run_task),

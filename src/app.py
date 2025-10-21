@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import threading
 from http.cookies import SimpleCookie
 from typing import Any, Optional
@@ -18,7 +19,7 @@ try:  # pragma: no cover - maintain compatibility with both package layouts
 except ImportError:  # pragma: no cover
     from src.svg_translate.log import config_logger  # type: ignore[no-redef]
 
-from web import cli as web_cli
+# from web import cli as web_cli
 from web.auth import init_app as init_auth
 from web.db.task_store_pymysql import TaskStorePyMysql
 from web.views import main as main_views
@@ -86,7 +87,7 @@ def create_app() -> Flask:
 
     init_auth(app)
     main_views.init_app(app)
-    web_cli.init_app(app)
+    # web_cli.init_app(app)
 
     return app
 
@@ -106,3 +107,7 @@ def get_app() -> Flask:
 app = get_app()
 
 __all__ = ["app", "create_app", "get_app"]
+
+if __name__ == "__main__":
+    debug = "debug" in sys.argv
+    app.run(debug=debug)

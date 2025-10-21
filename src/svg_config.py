@@ -8,6 +8,10 @@ import os
 from typing import Dict, Iterable, Iterator
 
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # ---------------------------------------------------------------------------
 # Base paths and filesystem locations
 # ---------------------------------------------------------------------------

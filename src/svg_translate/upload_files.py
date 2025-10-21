@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-from src.web.upload_task import start_upload as web_start_upload
+from web.upload_task import start_upload as web_start_upload
 
 
 def start_upload(files_to_upload: Dict[str, Dict[str, object]], main_title_link: str, oauth_credentials: Dict[str, str]):
