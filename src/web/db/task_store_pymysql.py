@@ -175,7 +175,10 @@ class TaskStorePyMysql(StageStore):
         """
         Ensure the tasks table and its indexes exist in the MySQL database.
 
-        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and ensures indexes on normalized_title, status, and created_at are present. Index creation is guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS. Logs a warning if schema initialization fails.
+        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and
+        ensures indexes on normalized_title, status, and created_at are present. Index creation is
+        guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS.
+        Logs a warning if schema initialization fails.
         """
         # Use TEXT for JSON fields for wider MySQL compatibility.
         # If your MySQL supports JSON type, you can switch to JSON.
@@ -190,8 +193,8 @@ class TaskStorePyMysql(StageStore):
                 form_json LONGTEXT NULL,
                 data_json LONGTEXT NULL,
                 results_json LONGTEXT NULL,
-                created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """,
             """
@@ -203,7 +206,7 @@ class TaskStorePyMysql(StageStore):
                 stage_status VARCHAR(64) NOT NULL,
                 stage_sub_name LONGTEXT NULL,
                 stage_message LONGTEXT NULL,
-                updated_at DATETIME NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 CONSTRAINT fk_task_stage_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 CONSTRAINT uq_task_stage UNIQUE (task_id, stage_name)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
