@@ -1,6 +1,7 @@
 asgiref
 cryptography
 Flask
+flask-limiter
 gunicorn
 lxml
 mwclient
