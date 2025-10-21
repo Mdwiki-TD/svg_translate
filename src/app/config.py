@@ -62,8 +62,8 @@ class Settings:
 
 def _load_oauth_config() -> Optional[OAuthConfig]:
     mw_uri = os.getenv("OAUTH_MWURI")
-    consumer_key = os.getenv("CONSUMER_KEY")
-    consumer_secret = os.getenv("CONSUMER_SECRET")
+    consumer_key = os.getenv("OAUTH_CONSUMER_KEY")
+    consumer_secret = os.getenv("OAUTH_CONSUMER_SECRET")
     if not (mw_uri and consumer_key and consumer_secret):
         return None
 
