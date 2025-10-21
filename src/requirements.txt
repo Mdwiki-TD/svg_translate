@@ -5,7 +5,10 @@ python-dotenv
 requests
 wikitextparser
 mwclient
+mwoauth
 lxml
 tqdm
 pymysql
 gunicorn
+cryptography
+flask-limiter
