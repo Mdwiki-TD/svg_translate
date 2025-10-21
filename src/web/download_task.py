@@ -64,6 +64,7 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
     if response.status_code == 200:
         logger.info(f"[{i}] Downloaded: {title}")
         out_path.write_bytes(response.content)
+        logger.info(f"[{i}] out_path: {str(out_path)}")
         data["result"] = "success"
         data["path"] = str(out_path)
     else:

@@ -27,7 +27,6 @@
 <div class="alert alert-danger" role="alert">{{ error_message }}</div>
 {% endif %}
 
-{% if not task_id %}
 <form method="post" class="row gy-2 gx-3 align-items-center mb-4">
     <div class="col-12 col-md-6">
         <label for="title" class="form-label">Template Title</label>
@@ -60,14 +59,16 @@
             </label>
         </div>
     </div>
+    <div class="col-6 col-md-3">
+        <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" value="1" id="ignore_existing_task" name="ignore_existing_task"
+                {{ 'checked' if form and form.ignore_existing_task else '' }}>
+            <label class="form-check-label" for="ignore_existing_task">
+                Ignore existing tasks
+            </label>
+        </div>
+    </div>
 </form>
-<div class="alert alert-info" role="alert">
-    This tool automates the translation and preparation of Wikimedia Commons SVG graphics.
-    Given a template title, it fetches the template's wikitext and identifies the SVG files.
-    It then downloads the main graphic, extracts its text, and applies translations to related SVGs.
-    Finally, it saves the updated files and produces stats to help with uploading the translated assets back to Commons.
-</div>
-{% endif %}
 {% if task_id %}
 <div id="progress-section" data-task-id="{{ task_id }}">
     <h2 class="h5">
