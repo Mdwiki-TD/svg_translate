@@ -113,6 +113,7 @@ def _format_task_for_view(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
+        "user": task.get("user"),
     }
 
 
