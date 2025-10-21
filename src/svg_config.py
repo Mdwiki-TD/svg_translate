@@ -35,8 +35,8 @@ svg_data_dir.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 
 OAUTH_MWURI = os.getenv("OAUTH_MWURI", "")
-OAUTH_CONSUMER_KEY = os.getenv("CONSUMER_KEY", "")
-OAUTH_CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", "")
+OAUTH_CONSUMER_KEY = os.getenv("OAUTH_CONSUMER_KEY", "")
+OAUTH_CONSUMER_SECRET = os.getenv("OAUTH_CONSUMER_SECRET", "")
 OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY", "")
 
 db_data = {

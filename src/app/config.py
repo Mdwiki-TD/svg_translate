@@ -74,7 +74,7 @@ def _load_oauth_config() -> Optional[OAuthConfig]:
         user_agent=os.getenv(
             "USER_AGENT", "SVGTranslate/1.0 (svgtranslate@example.org)"
         ),
-        api_host=os.getenv("OAUTH_API_HOST", "commons.wikimedia.org"),
+        api_host=os.getenv("OAUTH_API_HOST", "commons.m.wikimedia.org"),
         api_path=os.getenv("OAUTH_API_PATH", "/w/"),
     )
 
@@ -108,7 +108,7 @@ def get_settings() -> Settings:
 
     if use_mw_oauth and oauth_config is None:
         raise RuntimeError(
-            "MediaWiki OAuth configuration is incomplete. Set OAUTH_MWURI, CONSUMER_KEY, and CONSUMER_SECRET."
+            "MediaWiki OAuth configuration is incomplete. Set OAUTH_MWURI, OAUTH_CONSUMER_KEY, and OAUTH_CONSUMER_SECRET."
         )
 
     return Settings(

@@ -28,3 +28,4 @@ web_sh/new_update.sh
 **/old/**
 src/.env
 /0
+src/test_site.py

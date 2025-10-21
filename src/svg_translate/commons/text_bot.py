@@ -11,7 +11,7 @@ def get_wikitext(title, project="commons.m.wikimedia.org"):
     Fetch raw wikitext of a page from Wikimedia projects.
     Args:
         title (str): Page title (e.g. 'Template:OWID/Parkinsons prevalence')
-        project (str): Domain of wiki (default: commons.wikimedia.org)
+        project (str): Domain of wiki (default: commons.m.wikimedia.org)
     Returns:
         str: wikitext content or None if not found
     """

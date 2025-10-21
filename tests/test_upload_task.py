@@ -11,8 +11,8 @@ import pytest
 
 os.environ.setdefault("FLASK_SECRET_KEY", "test-secret")
 os.environ.setdefault("OAUTH_ENCRYPTION_KEY", Fernet.generate_key().decode("utf-8"))
-os.environ.setdefault("CONSUMER_KEY", "test-consumer-key")
-os.environ.setdefault("CONSUMER_SECRET", "test-consumer-secret")
+os.environ.setdefault("OAUTH_CONSUMER_KEY", "test-consumer-key")
+os.environ.setdefault("OAUTH_CONSUMER_SECRET", "test-consumer-secret")
 os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
 
 from src.web.upload_task import _safe_invoke_callback, start_upload, upload_task

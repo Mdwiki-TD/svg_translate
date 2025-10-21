@@ -11,8 +11,8 @@ from typing import Iterable, Mapping, MutableMapping, Optional
 
 os.environ.setdefault("FLASK_SECRET_KEY", "test-secret")
 os.environ.setdefault("OAUTH_ENCRYPTION_KEY", base64.urlsafe_b64encode(b"0" * 32).decode())
-os.environ.setdefault("CONSUMER_KEY", "test-consumer-key")
-os.environ.setdefault("CONSUMER_SECRET", "test-consumer-secret")
+os.environ.setdefault("OAUTH_CONSUMER_KEY", "test-consumer-key")
+os.environ.setdefault("OAUTH_CONSUMER_SECRET", "test-consumer-secret")
 os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
 
 SRC_ROOT = Path(__file__).resolve().parents[3] / "src"
