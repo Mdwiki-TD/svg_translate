@@ -38,7 +38,7 @@ class Database:
             )
         except pymysql.MySQLError as e:
             logger.debug(f"Error connecting to the database: {e}")
-            exit()
+            raise
 
     def execute_query(self, sql_query, params=None):
         """
