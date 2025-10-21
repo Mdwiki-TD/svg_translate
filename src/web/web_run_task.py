@@ -131,15 +131,21 @@ def fail_task(
 
 
 # --- main pipeline --------------------------------------------
-def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_data: Dict[str, str]) -> None:
+def run_task(
+    db_data: Dict[str, str],
+    task_id: str,
+    title: str,
+    args: Any,
+    oauth_credentials: Dict[str, str] | None,
+) -> None:
     """Execute the full SVG translation pipeline for a queued task.
 
     Parameters:
         db_data (dict): Database connection parameters for the task store.
         task_id (str): Identifier of the task being processed.
         title (str): Commons title submitted by the user.
-        args: Namespace-like object returned by :func:`app.parse_args`.
-        user_data (dict): Authentication payload used for upload operations.
+        args: Namespace-like object returned by :func:`web.views.main.parse_args`.
+        oauth_credentials (dict | None): Authentication payload used for upload operations.
 
     Side Effects:
         Updates task records, writes files under ``svg_data_dir``, and interacts
@@ -237,7 +243,7 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
         files_to_upload,
         main_title,
         do_upload=args.upload,
-        user=user_data,
+        oauth_credentials=oauth_credentials or {},
         progress_updater=upload_progress,
     )
     push_stage("upload")
