@@ -13,8 +13,8 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, R
 # from asgiref.wsgi import WsgiToAsgi
 
 from svg_config import SECRET_KEY, db_data, DISABLE_UPLOADS, user_data
-from log import logger  # , config_logger
-# config_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
+from log import logger  # , config_console_logger
+# config_console_logger("DEBUG")  # DEBUG # ERROR # CRITICAL
 
 from web.web_run_task import run_task
 # from uvicorn.main import logger

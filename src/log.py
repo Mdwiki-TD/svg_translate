@@ -13,7 +13,7 @@ all_log_path = log_dir / "app.log"
 error_log_path = log_dir / "errors.log"
 
 # Create main logger
-logger = logging.getLogger()
+logger = logging.getLogger("svg_translate")
 logger.setLevel(logging.INFO)
 
 # Handler for all logs
@@ -39,18 +39,7 @@ logger.addHandler(error_handler)
 logger.addHandler(console_handler)
 
 
-def config_logger(level=None):
-    """Configure the module-level logger with a standard formatter and level.
-
-    Parameters:
-        level (int | str | None): Logging level to apply. When None, the level is
-            derived from command-line arguments (DEBUG when "DEBUG" is present,
-            otherwise INFO). Accepts either numeric levels or their string names.
-
-    Side Effects:
-        Calls :func:`logging.basicConfig` to configure the root logger and updates
-        this module's ``logger`` accordingly.
-    """
+def config_console_logger(level=None):
     _nameToLevel = [
         'CRITICAL',
         'FATAL',
@@ -62,9 +51,4 @@ def config_logger(level=None):
         'NOTSET',
     ]
     level = level or logging.INFO
-
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S'
-    )
+    console_handler.setLevel(level)
