@@ -54,14 +54,10 @@ class Site:
         pass
 
 
-def upload_file(file_name, file_path, site: Site=None, summary=None):
+def upload_file(file_name, file_path, site: Site, summary=None):
     """
     Upload an SVG file to Wikimedia Commons using mwclient.
     """
-
-    if not site:
-        return ValueError("No site provided")
-
     # Check if file exists
     page = site.page(f"File:{file_name}")
 
