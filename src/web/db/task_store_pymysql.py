@@ -266,7 +266,7 @@ class TaskStorePyMysql(StageStore):
         normalized_title = _normalize_title(title)
         # Application-level guard to ensure at most one active task per normalized_title.
         # with self._lock:
-        if not form.get("ignore_existing_task"):
+        if not form or not form.get("ignore_existing_task"):
             # Check for an existing active task
             rows = self.db.fetch_query(
                 """
