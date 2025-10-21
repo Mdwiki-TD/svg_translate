@@ -1,10 +1,12 @@
 import json
 import html
 from urllib.parse import quote
+import logging
 
-from svg_translate import get_files, get_wikitext, start_injects, extract, logger
+from svg_translate import get_files, get_wikitext, start_injects, extract
 from .download_task import download_one_file
 
+logger = logging.getLogger(__name__)
 
 def json_save(path, data):
     """
@@ -16,7 +18,7 @@ def json_save(path, data):
         path (str | os.PathLike): Destination file path where JSON will be written.
         data: JSON-serializable Python object to persist (e.g., dict, list).
     """
-    logger.info(f"Saving json to: {path}")
+    logger.debug(f"Saving json to: {path}")
 
     if not data or data is None:
         logger.error(f"Empty data to save to: {path}")
@@ -59,7 +61,7 @@ def save_files_stats(data, output_dir):
     files_stats_path = output_dir / "files_stats.json"
     json_save(files_stats_path, data)
 
-    logger.info(f"files_stats at: {files_stats_path}")
+    logger.debug(f"files_stats at: {files_stats_path}")
 
 
 def make_results_summary(len_files, files_to_upload_count, no_file_path, injects_result, translations, main_title, upload_result):
@@ -193,7 +195,7 @@ def translations_task(stages, main_title, output_dir_main):
     stages["status"] = "Failed" if not translations else "Completed"
 
     if not translations:
-        logger.info(f"Couldn't load translations from main file: {main_title}")
+        logger.debug(f"Couldn't load translations from main file: {main_title}")
         stages["message"] = "Couldn't load translations from main file"
         # ---
         return translations, stages

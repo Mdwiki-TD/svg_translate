@@ -41,7 +41,7 @@ class Database:
             self._connect()
         except pymysql.MySQLError as exc:  # pragma: no cover - defensive
             logger.error("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
-            logger.info(f"Error connecting to the database: {exc}")
+            logger.debug(f"Error connecting to the database: {exc}")
             exit()
 
     # ------------------------------------------------------------------
@@ -104,7 +104,7 @@ class Database:
 
     def _log_retry(self, event: str, attempt: int, exc: BaseException, elapsed_ms: int) -> None:
         code = exc.args[0] if getattr(exc, "args", None) else None
-        logger.info(
+        logger.debug(
             "event=%s attempt=%s code=%s elapsed_ms=%s", event, attempt, code, elapsed_ms
         )
 
@@ -174,13 +174,13 @@ class Database:
         try:
             cursor.execute("SET SESSION MAX_EXECUTION_TIME=%s", (milliseconds,))
         except pymysql.MySQLError:
-            logger.debug("event=db_set_timeout_failed timeout_ms=%s", milliseconds)
+            logger.warning("event=db_set_timeout_failed timeout_ms=%s", milliseconds)
 
     def _reset_query_timeout(self, cursor) -> None:
         try:
             cursor.execute("SET SESSION MAX_EXECUTION_TIME=0")
         except pymysql.MySQLError:
-            logger.debug("event=db_reset_timeout_failed")
+            logger.warning("event=db_reset_timeout_failed")
 
     def _maybe_commit(self) -> None:
         if self.connection is None:
@@ -299,8 +299,8 @@ class Database:
             return self.fetch_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_fetch_failed sql=%s error=%s", sql_query, e)
-            logger.info(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
-            logger.info(params)
+            logger.debug(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.debug(params)
             return []
 
     def execute_query_safe(self, sql_query, params=None, *, timeout_override: float | None = None):
@@ -309,8 +309,8 @@ class Database:
             return self.execute_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_execute_failed sql=%s error=%s", sql_query, e)
-            logger.info(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
-            logger.info(params)
+            logger.debug(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.debug(params)
             if sql_query.strip().lower().startswith("select"):
                 return []
             return 0

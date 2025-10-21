@@ -47,7 +47,7 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
                 ignore=True  # skip warnings like "file exists"
             )
 
-        logger.info(f"Successfully uploaded {file_name} to Wikimedia Commons")
+        logger.debug(f"Successfully uploaded {file_name} to Wikimedia Commons")
         return response
     except requests.exceptions.HTTPError:
         logger.error("HTTP error occurred while uploading file")

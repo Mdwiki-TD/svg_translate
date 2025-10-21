@@ -1,8 +1,9 @@
+import sys
 import os
 import logging
 from pathlib import Path
 
-home_dir = os.getenv("HOME") if os.getenv("HOME") else 'I:/SVG/svg_repo'
+home_dir = os.getenv("HOME") if os.getenv("HOME") else 'I:/SVG'
 
 # Create log directory if needed
 log_dir = Path(f"{home_dir}/logs")
@@ -14,23 +15,29 @@ error_log_path = log_dir / "errors.log"
 
 # Create main logger
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Handler for all logs
-all_handler = logging.FileHandler(all_log_path)
+all_handler = logging.FileHandler(all_log_path, encoding="utf-8")
 all_handler.setLevel(logging.INFO)  # INFO, WARNING, etc.
 all_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 all_handler.setFormatter(all_formatter)
 
 # Handler for only ERROR and CRITICAL
-error_handler = logging.FileHandler(error_log_path)
+error_handler = logging.FileHandler(error_log_path, encoding="utf-8")
 error_handler.setLevel(logging.ERROR)
 error_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 error_handler.setFormatter(error_formatter)
 
+# Console (stdout) handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+
 # Attach handlers
 logger.addHandler(all_handler)
 logger.addHandler(error_handler)
+logger.addHandler(console_handler)
 
 
 def config_logger(level=None):

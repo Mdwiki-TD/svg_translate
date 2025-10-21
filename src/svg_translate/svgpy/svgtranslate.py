@@ -50,7 +50,7 @@ def svg_extract_and_inject(extract_file, inject_file, output_file=None, data_out
     with open(data_output_file, 'w', encoding='utf-8') as f:
         json.dump(translations, f, indent=2, ensure_ascii=False)
 
-    logger.info(f"Saved translations to {data_output_file}")
+    logger.debug(f"Saved translations to {data_output_file}")
 
     if not output_file:
         # output_dir = Path.cwd() / "translated"

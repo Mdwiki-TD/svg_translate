@@ -1,7 +1,6 @@
 #
-# import os
 import re
-# import logging
+import logging
 from pathlib import Path
 from typing import Any, Dict
 
@@ -17,10 +16,9 @@ from web.download_task import download_task
 from web.upload_task import upload_task
 
 from svg_config import svg_data_dir
-from svg_translate import logger
 from web.db.task_store_pymysql import TaskStorePyMysql
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _compute_output_dir(title: str) -> Path:
@@ -39,7 +37,7 @@ def _compute_output_dir(title: str) -> Path:
     # Use last path segment and sanitize for filesystem safety
     name = Path(title).name
     # ---
-    logger.info(f"compute_output_dir: {name=}")
+    logger.debug(f"compute_output_dir: {name=}")
     # ---
     # name = death rate from obesity
     slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(name)).strip("._") or "untitled"
