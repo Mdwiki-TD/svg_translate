@@ -1,8 +1,15 @@
+"""
 
+https://chatgpt.com/c/68f74419-c23c-832a-bb77-3a825c71c0eb
+
+"""
 import requests
 from pathlib import Path
 import logging
 import os
+
+from requests_oauthlib import OAuth1
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,72 +38,139 @@ class FileExists:
 
 
 class Site:
+    """
+    Minimal MediaWiki OAuth1 client for Commons uploads.
+
+    - Uses OAuth1 (consumer + access tokens).
+    - Provides:
+        * page(title): return {"exists": bool, "title": str, "pageid": int|None}
+        * upload(file, filename, comment, ignore=True): upload file with CSRF
+    """
+
     def __init__(self, consumer_token, consumer_secret, access_token, access_secret):
         self.consumer_token = consumer_token
         self.consumer_secret = consumer_secret
         self.access_token = access_token
         self.access_secret = access_secret
 
-    def page(title):
-        data = {
-            "exists": False,
+        self.api = f"https://{UPLOAD_END_POINT}/w/api.php"
+        self._session = requests.Session()
+        self._session.headers.update({"User-Agent": USER_AGENT})
+        self._session.auth = OAuth1(
+            client_key=self.consumer_token,
+            client_secret=self.consumer_secret,
+            resource_owner_key=self.access_token,
+            resource_owner_secret=self.access_secret,
+            signature_type="auth_header",
+        )
+        self._csrf_token = None
+
+    def _csrf(self) -> str:
+        """Fetch and cache a CSRF token."""
+        if self._csrf_token:
+            return self._csrf_token
+
+        params = {
+            "action": "query",
+            "meta": "tokens",
+            "type": "csrf",
+            "format": "json",
         }
-        # ---
-        # ---
-        return data
+        r = self._session.get(self.api, params=params, timeout=30)
+        r.raise_for_status()
+        data = r.json()
+        token = data.get("query", {}).get("tokens", {}).get("csrftoken")
+        if not token:
+            raise InsufficientPermission()
+        self._csrf_token = token
+        return token
 
-    def upload(
-        file,
-            filename,
-            comment,
-            ignore=True  # skip warnings like "file exists"
-    ):
-        pass
+    def page(self, title: str) -> dict:
+        """Return minimal page info and existence flag."""
+        params = {
+            "action": "query",
+            "titles": title,
+            "prop": "info",
+            "format": "json",
+        }
+        r = self._session.get(self.api, params=params, timeout=30)
+        r.raise_for_status()
+        data = r.json()
 
+        pages = data.get("query", {}).get("pages", {})
+        if not pages:
+            return {"exists": False, "title": title, "pageid": None}
 
-def upload_file(file_name, file_path, site: Site, summary=None):
-    """
-    Upload an SVG file to Wikimedia Commons using mwclient.
-    """
-    # Check if file exists
-    page = site.page(f"File:{file_name}")
+        page_obj = next(iter(pages.values()))
+        exists = "missing" not in page_obj
+        return {
+            "exists": exists,
+            "title": page_obj.get("title", title),
+            "pageid": None if not exists else int(page_obj.get("pageid", 0) or 0),
+        }
 
-    if not page.get("exists"):
-        logger.error(f"Warning: File {file_name} not exists on Commons")
-        return False
+    def upload(self, file, filename: str, comment: str, ignore: bool = True):
+        """
+        Upload a file to Commons.
 
-    file_path = Path(str(file_path))
+        Parameters:
+            file: file-like object opened in binary mode.
+            filename (str): Destination filename at Commons without "File:" prefix.
+            comment (str): Upload summary.
+            ignore (bool): If True, pass ignorewarnings=1 to overwrite or bypass warnings.
 
-    if not file_path.exists():
-        # raise FileNotFoundError(f"File not found: {file_path}")
-        logger.error(f"File not found: {file_path}")
-        return False
+        Returns:
+            dict on success (API response). Raises on fatal conditions.
+        """
+        token = self._csrf()
 
-    try:
-        with open(file_path, 'rb') as f:
-            # Perform the upload
-            response = site.upload(
-                # file=(os.path.basename(file_path), file_content, 'image/svg+xml'),
-                file=f,
-                filename=file_name,
-                comment=summary or "",
-                ignore=True  # skip warnings like "file exists"
-            )
+        files = {
+            "file": (filename, file, "image/svg+xml"),
+        }
+        data = {
+            "action": "upload",
+            "filename": filename,
+            "format": "json",
+            "token": token,
+            "comment": comment or "",
+        }
+        if ignore:
+            data["ignorewarnings"] = 1
 
-        logger.debug(f"Successfully uploaded {file_name} to Wikimedia Commons")
-        return response
-    except requests.exceptions.HTTPError:
-        logger.error("HTTP error occurred while uploading file")
-    except FileExists:
-        logger.error("File already exists on Wikimedia Commons")
-    except InsufficientPermission:
-        logger.error("User does not have sufficient permissions to perform an action")
-    except Exception as e:
-        logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
-        logger.error(f"{e}")
-        # ---
-        if 'ratelimited' in str(e):
-            print("You've exceeded your rate limit. Please wait some time and try again.")
-            return {"result": "ratelimited"}
+        # Use POST multipart for uploads
+        r = self._session.post(self.api, data=data, files=files, timeout=120)
+        r.raise_for_status()
+        resp = r.json()
 
-    return False
+        # Handle standard API error envelope
+        if "error" in resp:
+            code = resp["error"].get("code", "")
+            info = resp["error"].get("info", "")
+            # Rate limit surface for caller
+            if code in {"ratelimited", "throttled"} or "rate" in code:
+                raise Exception("ratelimited: " + info)
+            # Permission issues
+            if code in {"permissiondenied", "badtoken", "mwoauth-invalid-authorization"}:
+                raise InsufficientPermission()
+            raise Exception(f"upload error: {code}: {info}")
+
+        upload = resp.get("upload", {})
+        result = upload.get("result")
+
+        # Warnings handling
+        warnings = upload.get("warnings", {})
+        if warnings and not ignore:
+            if "exists" in warnings or "duplicate" in warnings:
+                raise FileExists(filename)
+
+        # Success
+        if result == "Success":
+            return resp
+
+        # Non-success without explicit error
+        # Check common warning-only paths when ignore=True
+        if result in {"Warning", None} and ignore:
+            return resp
+
+        # Fallback: raise a generic error with payload
+        raise Exception(f"Unexpected upload response: {resp}")
