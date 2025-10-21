@@ -266,27 +266,27 @@ class TaskStorePyMysql(StageStore):
         normalized_title = _normalize_title(title)
         # Application-level guard to ensure at most one active task per normalized_title.
         # with self._lock:
-        try:
+        if not form or not form.get("ignore_existing_task"):
             # Check for an existing active task
             rows = self.db.fetch_query(
                 """
-                SELECT
-                    t.*,
-                    ts.stage_name AS stage_name,
-                    ts.stage_number AS stage_number,
-                    ts.stage_status AS stage_status,
-                    ts.stage_sub_name AS stage_sub_name,
-                    ts.stage_message AS stage_message,
-                    ts.updated_at AS stage_updated_at
-                FROM (
-                    SELECT * FROM tasks
-                    WHERE normalized_title = %s AND status NOT IN (%s, %s)
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                ) AS t
-                LEFT JOIN task_stages ts ON t.id = ts.task_id
-                ORDER BY COALESCE(ts.stage_number, 0) ASC
-                """,
+                    SELECT
+                        t.*,
+                        ts.stage_name AS stage_name,
+                        ts.stage_number AS stage_number,
+                        ts.stage_status AS stage_status,
+                        ts.stage_sub_name AS stage_sub_name,
+                        ts.stage_message AS stage_message,
+                        ts.updated_at AS stage_updated_at
+                    FROM (
+                        SELECT * FROM tasks
+                        WHERE normalized_title = %s AND status NOT IN (%s, %s)
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    ) AS t
+                    LEFT JOIN task_stages ts ON t.id = ts.task_id
+                    ORDER BY COALESCE(ts.stage_number, 0) ASC
+                    """,
                 [normalized_title, *TERMINAL_STATUSES],
             )
             if rows:
@@ -297,7 +297,7 @@ class TaskStorePyMysql(StageStore):
                     stages=stage_map.get(existing_task_row["id"], {}),
                 )
                 raise TaskAlreadyExistsError(existing_task)
-
+        try:
             # Insert new task
             self.db.execute_query(
                 """

@@ -6,10 +6,10 @@
 <h1 class="mb-4">SVG Translate Bot</h1>
 
 {% if error_message %}
-<div class="alert alert-info" role="alert">{{ error_message }}</div>
+<div class="alert alert-danger" role="alert">{{ error_message }}</div>
 {% endif %}
 
-<form method="post" class="row gy-2 gx-3 align-items-center mb-4">
+<form method="post" action="/" class="row gy-2 gx-3 align-items-center mb-4">
     <div class="col-12 col-md-6">
         <label for="title" class="form-label">Template Title</label>
         <input type="text" class="form-control" id="title" name="title"
@@ -38,6 +38,15 @@
                 {{ 'checked' if form and form.upload else '' }}>
             <label class="form-check-label" for="upload">
                 Upload New translations
+            </label>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" value="1" id="ignore_existing_task"
+                name="ignore_existing_task" {{ 'checked' if form and form.ignore_existing_task else '' }}>
+            <label class="form-check-label" for="ignore_existing_task">
+                Ignore existing tasks
             </label>
         </div>
     </div>

@@ -43,7 +43,7 @@ def parse_args(request_form: Dict[str, Any]) -> Any:
         and `upload` (bool) flags consumed by the background task runner.
     """
 
-    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload"])
+    Args = namedtuple("Args", ["titles_limit", "overwrite", "upload", "ignore_existing_task"])
     # ---
     upload = False
     # ---
@@ -53,6 +53,7 @@ def parse_args(request_form: Dict[str, Any]) -> Any:
     result = Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
         overwrite=bool(request_form.get("overwrite")),
+        ignore_existing_task=bool(request_form.get("ignore_existing_task")),
         upload=upload
     )
     # ---
@@ -112,6 +113,7 @@ def _format_task_for_view(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
+        "user": task.get("user"),
     }
 
 
@@ -136,6 +138,19 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     return ordered
 
 
+def get_error_message(error_code: str | None) -> str:
+    if not error_code:
+        return ""
+    # ---
+    messages = {
+        "task-active": "A task for this title is already in progress.",
+        "not-found": "Task not found.",
+        "task-create-failed": "Task creation failed.",
+    }
+    # ---
+    return messages.get(error_code, error_code)
+
+
 @app.get("/task1")
 def task1() -> Response:
     """Render the task detail page for the first step of the workflow.
@@ -152,10 +167,7 @@ def task1() -> Response:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     return render_template(
         "task1.html",
@@ -175,10 +187,7 @@ def index() -> Response:
         with an error message when a duplicate task submission was attempted.
     """
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     return render_template(
         "index.html",
@@ -204,10 +213,7 @@ def task2() -> Response:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
@@ -240,14 +246,18 @@ def start() -> Response:
     if not title:
         return redirect(url_for("index"))
 
+    args = parse_args(request.form)
+
     task_id = uuid.uuid4().hex
 
     with TASKS_LOCK:
-        existing_task = TASK_STORE.get_active_task_by_title(title)
+        logger.info(f"ignore_existing_task: {args.ignore_existing_task}")
+        if not args.ignore_existing_task:
+            existing_task = TASK_STORE.get_active_task_by_title(title)
 
-        if existing_task:
-            logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-            return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
+            if existing_task:
+                logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
+                return redirect(url_for("task1", task_id=existing_task["id"], title=title, error="task-active"))
 
         try:
             TASK_STORE.create_task(
@@ -262,7 +272,6 @@ def start() -> Response:
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("index", title=title, error="task-create-failed"))
 
-    args = parse_args(request.form)
     # ---
     t = threading.Thread(
         target=run_task,
