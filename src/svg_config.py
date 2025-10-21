@@ -40,7 +40,7 @@ OAUTH_CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", "")
 OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY", "")
 
 AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "svg_translate_user")
-AUTH_COOKIE_MAX_AGE = os.getenv("AUTH_COOKIE_MAX_AGE", 30 * 24 * 60 * 60)
+AUTH_COOKIE_MAX_AGE = int(os.getenv("AUTH_COOKIE_MAX_AGE", 0)) or 30 * 24 * 60 * 60
 REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "oauth_request_token")
 STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
 COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")

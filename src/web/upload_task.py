@@ -5,19 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-import mwclient
-from tqdm import tqdm
+import os
 import logging
-
-try:
-    from mwclient.auth import OAuthAuthentication
-except (ImportError, AttributeError):  # pragma: no cover - optional dependency in tests
-    OAuthAuthentication = None  # type: ignore[assignment]
+from tqdm import tqdm
 
 try:  # pragma: no cover - maintain compatibility with both package layouts
     from svg_translate.commons.upload_bot import upload_file
 except ImportError:  # pragma: no cover - fallback when running from src package
     from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
+
+from .auth import make_site
 
 logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
@@ -73,21 +70,7 @@ def start_upload(
             - "not_done" (int): number of files that failed to upload.
             - "errors" (List[Any]): collected error messages from failed uploads.
     """
-    if OAuthAuthentication is None:
-        raise RuntimeError("mwclient OAuth support is unavailable")
-
-    auth = OAuthAuthentication(
-        oauth_credentials.get("consumer_key"),
-        oauth_credentials.get("consumer_secret"),
-        oauth_credentials.get("access_token"),
-        oauth_credentials.get("access_secret"),
-    )
-    site = mwclient.Site(
-        ("https", "commons.wikimedia.org"),
-        clients_useragent="svgtranslate/1.0",
-        path="/w/",
-        auth=auth,
-    )
+    site = make_site(oauth_credentials)
 
     done = 0
     not_done = 0
