@@ -4,7 +4,7 @@ from urllib.parse import quote
 import logging
 
 try:
-    from svg_translate import get_files, get_wikitext, start_injects, extract
+    from ..svg_translate import get_files, get_wikitext, start_injects, extract
 except ImportError:
     from src.svg_translate import (
         get_files,
