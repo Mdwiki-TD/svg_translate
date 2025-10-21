@@ -46,6 +46,8 @@ STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
 COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
 STATE_SALT = os.getenv("STATE_SALT", "svg-translate-state")
 
+USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)")
+
 db_data = {
     "host": DB_HOST,
     "dbname": DB_NAME,
@@ -65,6 +67,7 @@ user_data = {
 }
 
 __all__ = [
+    "USER_AGENT",
     "SECRET_KEY",
     "SVG_DATA_PATH",
     "LOG_DIR_PATH",

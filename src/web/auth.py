@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
+from urllib.parse import urlencode
 
 from flask import (
     Blueprint,
@@ -22,11 +23,19 @@ from flask import (
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+
 from svg_config import (
     OAUTH_CONSUMER_KEY,
     OAUTH_CONSUMER_SECRET,
     OAUTH_ENCRYPTION_KEY,
     OAUTH_MWURI,
+    AUTH_COOKIE_NAME,
+    AUTH_COOKIE_MAX_AGE,
+    REQUEST_TOKEN_SESSION_KEY,
+    STATE_SESSION_KEY,
+    COOKIE_SALT,
+    STATE_SALT,
+    USER_AGENT,
 )
 
 from web.db.user_store import UserTokenStore
@@ -38,13 +47,6 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
 
 logger = logging.getLogger(__name__)
 bp = Blueprint("auth", __name__)
-
-AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "svg_translate_user")
-AUTH_COOKIE_MAX_AGE = os.getenv("AUTH_COOKIE_MAX_AGE", 30 * 24 * 60 * 60)
-REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "oauth_request_token")
-STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
-COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
-STATE_SALT = os.getenv("STATE_SALT", "svg-translate-state")
 
 
 @dataclass(frozen=True)
@@ -125,7 +127,7 @@ def _build_handshaker() -> Optional[object]:
 
     try:
         consumer_token = mwoauth.ConsumerToken(OAUTH_CONSUMER_KEY, OAUTH_CONSUMER_SECRET)
-        return mwoauth.Handshaker(OAUTH_MWURI, consumer_token=consumer_token)
+        return mwoauth.Handshaker(OAUTH_MWURI, consumer_token=consumer_token, user_agent=USER_AGENT)
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.exception("Failed to construct OAuth handshaker", exc_info=exc)
         return None
@@ -249,7 +251,9 @@ def login() -> Response | WerkzeugResponse:
     state = secrets.token_urlsafe(16)
     session[STATE_SESSION_KEY] = state
     state_token = _state_serializer().dumps({"state": state})
+
     callback_url = url_for("auth.callback", _external=True)
+    callback_url = f"{callback_url}?state={state_token}"
     try:
         redirect_url, request_token = handshaker.initiate(
             callback=callback_url,
@@ -275,11 +279,16 @@ def callback() -> Response | WerkzeugResponse:
     if not handshaker:
         return redirect(url_for("main.index", error="oauth-disabled"))
 
+    # print(request.args) ImmutableMultiDict([('oauth_verifier', '...'), ('oauth_token', '...')])
+
+    # print(session) <SecureCookieSession {'oauth_request_token': ('.', '.'), 'oauth_state': '.'}>
+
     token_data = session.pop(REQUEST_TOKEN_SESSION_KEY, None)
     if not token_data:
-        return redirect(url_for("main.index", error="oauth-missing-state"))
+        return redirect(url_for("main.index", error="oauth-missing-session-key"))
 
     saved_state = session.pop(STATE_SESSION_KEY, None)
+
     raw_state = request.args.get("state")
     if not saved_state or not raw_state:
         return redirect(url_for("main.index", error="oauth-missing-state"))

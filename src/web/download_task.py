@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
@@ -10,12 +11,12 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 
+from svg_config import USER_AGENT
+
 logger = logging.getLogger(__name__)
 
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
-
-USER_AGENT = "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)"
 
 
 def download_commons_svgs(
