@@ -307,7 +307,8 @@ def callback() -> Response | WerkzeugResponse:
         return redirect(url_for("main.index", error="oauth-missing-verifier"))
 
     try:
-        access_token = handshaker.complete(request_token, request.args)
+        query_string = urlencode(request.args)
+        access_token = handshaker.complete(request_token, query_string)
     except Exception as exc:  # pragma: no cover - network interaction
         logger.exception("OAuth callback completion failed", exc_info=exc)
         return redirect(url_for("main.index", error="oauth-complete-failed"))
