@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+import os
 import logging
 from dataclasses import dataclass
 from functools import wraps
@@ -38,12 +39,12 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
 logger = logging.getLogger(__name__)
 bp = Blueprint("auth", __name__)
 
-AUTH_COOKIE_NAME = "svg_translate_user"
-AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60
-REQUEST_TOKEN_SESSION_KEY = "oauth_request_token"
-STATE_SESSION_KEY = "oauth_state"
-COOKIE_SALT = "svg-translate-user"
-STATE_SALT = "svg-translate-state"
+AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "svg_translate_user")
+AUTH_COOKIE_MAX_AGE = os.getenv("AUTH_COOKIE_MAX_AGE", 30 * 24 * 60 * 60)
+REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "oauth_request_token")
+STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
+COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
+STATE_SALT = os.getenv("STATE_SALT", "svg-translate-state")
 
 
 @dataclass(frozen=True)
@@ -248,14 +249,15 @@ def login() -> Response | WerkzeugResponse:
     state = secrets.token_urlsafe(16)
     session[STATE_SESSION_KEY] = state
     state_token = _state_serializer().dumps({"state": state})
-
+    callback_url = url_for("auth.callback", _external=True)
     try:
         redirect_url, request_token = handshaker.initiate(
-            callback=url_for("auth.callback", _external=True),
-            params={"state": state_token},
+            callback=callback_url,
+            # params={"state": state_token},
         )
     except Exception as exc:  # pragma: no cover - network interaction
         logger.exception("Failed to initiate OAuth handshake", exc_info=exc)
+        print(f"callback_url:{callback_url}")
         return redirect(url_for("main.index", error="oauth-init-failed"))
 
     try:

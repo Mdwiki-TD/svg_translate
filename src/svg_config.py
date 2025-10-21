@@ -39,6 +39,13 @@ OAUTH_CONSUMER_KEY = os.getenv("CONSUMER_KEY", "")
 OAUTH_CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", "")
 OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY", "")
 
+AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "svg_translate_user")
+AUTH_COOKIE_MAX_AGE = os.getenv("AUTH_COOKIE_MAX_AGE", 30 * 24 * 60 * 60)
+REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "oauth_request_token")
+STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
+COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
+STATE_SALT = os.getenv("STATE_SALT", "svg-translate-state")
+
 db_data = {
     "host": DB_HOST,
     "dbname": DB_NAME,
@@ -76,4 +83,10 @@ __all__ = [
     "OAUTH_CONSUMER_KEY",
     "OAUTH_CONSUMER_SECRET",
     "OAUTH_ENCRYPTION_KEY",
+    "AUTH_COOKIE_NAME",
+    "AUTH_COOKIE_MAX_AGE",
+    "REQUEST_TOKEN_SESSION_KEY",
+    "STATE_SESSION_KEY",
+    "COOKIE_SALT",
+    "STATE_SALT"
 ]
