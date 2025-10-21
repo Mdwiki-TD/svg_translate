@@ -14,7 +14,7 @@ from flask_limiter.util import get_remote_address
 
 from svg_config import SECRET_KEY, db_data
 
-# from web import cli as web_cli
+from web import cli as web_cli
 from web.auth import init_app as init_auth
 from web.db.task_store_pymysql import TaskStorePyMysql
 from web.views import main as main_views
@@ -80,7 +80,7 @@ def create_app() -> Flask:
 
     init_auth(app)
     main_views.init_app(app)
-    # web_cli.init_app(app)
+    web_cli.init_app(app)
 
     return app
 
