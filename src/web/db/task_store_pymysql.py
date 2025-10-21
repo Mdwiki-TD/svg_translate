@@ -175,7 +175,10 @@ class TaskStorePyMysql(StageStore):
         """
         Ensure the tasks table and its indexes exist in the MySQL database.
 
-        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and ensures indexes on normalized_title, status, and created_at are present. Index creation is guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS. Logs a warning if schema initialization fails.
+        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and
+        ensures indexes on normalized_title, status, and created_at are present. Index creation is
+        guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS.
+        Logs a warning if schema initialization fails.
         """
         # Use TEXT for JSON fields for wider MySQL compatibility.
         # If your MySQL supports JSON type, you can switch to JSON.
