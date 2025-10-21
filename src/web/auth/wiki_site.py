@@ -2,11 +2,56 @@
 import requests
 from pathlib import Path
 import logging
-
-
-from web.auth.wiki_site import Site, FileExists, InsufficientPermission
+import os
 
 logger = logging.getLogger(__name__)
+
+USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)")
+
+UPLOAD_END_POINT = os.getenv("UPLOAD_END_POINT", "commons.wikimedia.org")
+
+
+class InsufficientPermission:
+    pass
+
+
+class FileExists:
+    """
+    Raised when trying to upload a file that already exists.
+
+    See also: https://www.mediawiki.org/wiki/API:Upload#Upload_warnings
+    """
+
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def __str__(self):
+        return ('The file "{0}" already exists. Set ignore=True to overwrite it.'
+                .format(self.file_name))
+
+
+class Site:
+    def __init__(self, consumer_token, consumer_secret, access_token, access_secret):
+        self.consumer_token = consumer_token
+        self.consumer_secret = consumer_secret
+        self.access_token = access_token
+        self.access_secret = access_secret
+
+    def page(title):
+        data = {
+            "exists": False,
+        }
+        # ---
+        # ---
+        return data
+
+    def upload(
+        file,
+            filename,
+            comment,
+            ignore=True  # skip warnings like "file exists"
+    ):
+        pass
 
 
 def upload_file(file_name, file_path, site: Site=None, summary=None):

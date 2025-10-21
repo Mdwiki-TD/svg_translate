@@ -14,7 +14,7 @@ try:  # pragma: no cover - maintain compatibility with both package layouts
 except ImportError:  # pragma: no cover - fallback when running from src package
     from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
 
-from .auth import build_site
+from .auth import Site
 
 logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
@@ -70,7 +70,12 @@ def start_upload(
             - "not_done" (int): number of files that failed to upload.
             - "errors" (List[Any]): collected error messages from failed uploads.
     """
-    site = build_site(oauth_credentials)
+    consumer_token=oauth_credentials.get("consumer_key")
+    consumer_secret=oauth_credentials.get("consumer_secret")
+    access_token=oauth_credentials.get("access_token")
+    access_secret=oauth_credentials.get("access_secret")
+
+    site = Site(consumer_token, consumer_secret, access_token, access_secret)
 
     done = 0
     not_done = 0
