@@ -287,8 +287,8 @@ class TaskStorePyMysql(StageStore):
                     LEFT JOIN task_stages ts ON t.id = ts.task_id
                     ORDER BY COALESCE(ts.stage_number, 0) ASC
                     """,
-                    [normalized_title, *TERMINAL_STATUSES],
-                )
+                [normalized_title, *TERMINAL_STATUSES],
+            )
             if rows:
                 task_rows, stage_map = self._rows_to_tasks_with_stages(rows)
                 existing_task_row = task_rows[0]
