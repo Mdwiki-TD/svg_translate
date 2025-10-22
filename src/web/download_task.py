@@ -153,3 +153,13 @@ def download_task(
     )
 
     return files, stages
+
+
+def download_commons_svgs(titles, files_dir):
+    files = []
+    for n, title in enumerate(titles, 1):
+        # download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None)
+        file = download_one_file(title, files_dir, n)
+        if file.get("path"):
+            files.append(file["path"])
+    return files

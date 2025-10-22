@@ -1,7 +1,6 @@
 
 
-from svg_translate import download_commons_svgs
-
+from src.web.download_task import download_one_file
 
 from pathlib import Path
 tests_files_dir = Path(__file__).parent.parent / "tests_files"
@@ -12,4 +11,6 @@ titles = [
     "parkinsons-disease-prevalence-ihme,North America,1991.svg",
 ]
 
-download_commons_svgs(titles, tests_files_dir / "downloaded_svgs")
+for n, title in enumerate(titles, 1):
+    # download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None)
+    download_one_file(title, tests_files_dir, n)
