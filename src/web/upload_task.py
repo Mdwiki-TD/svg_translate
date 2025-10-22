@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-from tqdm import tqdm
 import logging
+from tqdm import tqdm
 
 try:  # pragma: no cover - maintain compatibility with both package layouts
     from svg_translate.commons.upload_bot import upload_file
