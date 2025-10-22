@@ -4,7 +4,7 @@ set -euo pipefail
 
 BRANCH="${1:-main}"
 
-REPO_URL="https://github.com/Mdwiki-TD/svg_translate.git"
+REPO_URL="https://github.com/Mdwiki-TD/svg_translate_web.git"
 
 TARGET_DIR="$HOME/www/python/src"
 
