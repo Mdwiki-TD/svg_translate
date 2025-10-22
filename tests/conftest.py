@@ -1,16 +1,17 @@
 import sys
+import requests
 import types
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
-COMPAT = ROOT / "tests" / "compat"
+
+print(f"{ROOT}\n"*200)
 
 if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT/"src"))
     sys.path.insert(0, str(ROOT))
 
-if COMPAT.exists() and str(COMPAT) not in sys.path:
-    sys.path.insert(0, str(COMPAT))
+from src import svg_config  # load_dotenv()
 
 if "requests" not in sys.modules:
     requests_stub = types.ModuleType("requests")
@@ -165,5 +166,3 @@ if "mwoauth" not in sys.modules:
     mwoauth_stub.Handshaker = _Handshaker
 
     sys.modules["mwoauth"] = mwoauth_stub
-
-
