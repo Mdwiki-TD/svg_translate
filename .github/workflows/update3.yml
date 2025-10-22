@@ -13,7 +13,7 @@ jobs:
 
       - name: Test workspace
         run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" # /home/runner/work/svg_translate/svg_translate # ls -al
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE" # /home/runner/work/svg_translate_web/svg_translate_web # ls -al
 
       - name: Copy files to server
         uses: appleboy/scp-action@v0.1.4
