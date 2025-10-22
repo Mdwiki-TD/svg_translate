@@ -53,11 +53,13 @@ def upload_file(file_name, file_path, site=None, summary=None):
     except Exception as e:
         print(f"type(e):{type(e)}\n"*50)
         logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
-        logger.error(f"{e}")
         # ---
+        if "fileexists-no-change" in str(e):
+            logger.debug("Upload result: fileexists-no-change")
+            return {"result": "fileexists-no-change"}
         # ---
         if 'ratelimited' in str(e):
-            print("You've exceeded your rate limit. Please wait some time and try again.")
+            logger.debug("You've exceeded your rate limit. Please wait some time and try again.")
             return {"result": "ratelimited"}
 
     return False

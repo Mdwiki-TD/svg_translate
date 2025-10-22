@@ -101,9 +101,12 @@ def start_upload(
         result = upload.get("result") if isinstance(upload, dict) else None
         print(f"upload: {result}")
 
-        status = "success" if result == "Success" else "failed"
+        status = "success" if result in ["Success", "fileexists-no-change"] else "failed"
+
         if result == "Success":
             done += 1
+        elif result == "fileexists-no-change":
+            no_changes += 1
         else:
             not_done += 1
             if isinstance(upload, dict) and "error" in upload:
