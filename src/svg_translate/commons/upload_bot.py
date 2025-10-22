@@ -16,7 +16,7 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
 
     if not site:
         if username and password:
-            site = mwclient.Site('commons.m.wikimedia.org')
+            site = mwclient.Site('commons.wikimedia.org')
             site.login(username, password)
         else:
             # skip raise here

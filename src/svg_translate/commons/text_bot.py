@@ -6,12 +6,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_wikitext(title, project="commons.m.wikimedia.org"):
+def get_wikitext(title, project="commons.wikimedia.org"):
     """
     Fetch raw wikitext of a page from Wikimedia projects.
     Args:
         title (str): Page title (e.g. 'Template:OWID/Parkinsons prevalence')
-        project (str): Domain of wiki (default: commons.m.wikimedia.org)
+        project (str): Domain of wiki (default: commons.wikimedia.org)
     Returns:
         str: wikitext content or None if not found
     """
