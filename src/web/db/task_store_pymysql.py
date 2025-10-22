@@ -71,26 +71,40 @@ class StageStore:
         except Exception as exc:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
 
-    def update_stage_column(self, task_id, stage_name, column_name, column_value) -> None:
+    def update_stage_column(
+        self,
+        task_id: str,
+        stage_name: str,
+        column_name: str,
+        column_value: Any,
+    ) -> None:
         """
+        Update a single column for a task stage (e.g., stage_message or stage_status).
+        Only a fixed set of columns is allowed to prevent SQL injection.
         """
+        # Allow-list permissible stage columns
+        allowed_cols = {
+            "stage_number",
+            "stage_status",
+            "stage_sub_name",
+            "stage_message",
+        }
+        if column_name not in allowed_cols:
+            logger.error(f"Illegal stage column: {column_name!r}")
+
         now = _current_ts()
         try:
-            self.db.execute_query(
-                f"""
-                UPDATE task_stages
-                set {column_name} = %s,
-                updated_at = %s
-                WHERE stage_id = %s
-                """,
-                [
-                    column_value,
-                    now,
-                    f"{task_id}:{stage_name}",
-                ],
+            sql = (
+                "UPDATE task_stages "
+                f"SET {column_name} = %s, updated_at = %s "
+                "WHERE stage_id = %s"
             )
-        except Exception as exc:
-            logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
+            self.db.execute_query(
+                sql,
+                [column_value, now, f"{task_id}:{stage_name}"],
+            )
+        except Exception:
+            logger.error("Failed to update stage '%s' for task %s", stage_name, task_id)
 
     def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
         """Replace all stages for a task with the provided mapping.

@@ -25,8 +25,6 @@ logger = logging.getLogger(__name__)
 def parse_args(request_form):
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload", "ignore_existing_task"])
     # ---
-    upload = bool(request_form.get("upload"))
-    # ---
     upload = False
     # ---
     if DISABLE_UPLOADS != "1":
@@ -210,13 +208,14 @@ def start():
             store.create_task(
                 task_id,
                 title,
+                username=(user.username if user else ""),
                 form=request.form.to_dict(flat=True)
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
             return redirect(url_for("main.task1", task_id=existing["id"], title=title, error="task-active"))
-        except Exception as exc:
-            logger.exception("Failed to create task", exc_info=exc)
+        except Exception:
+            logger.exception("Failed to create task")
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 
     user_payload: Dict[str, Any] = {}

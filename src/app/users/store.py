@@ -70,10 +70,10 @@ def ensure_user_token_table() -> None:
     """Create the user_tokens table if it does not already exist."""
 
     db = _get_db()
-    db.execute_query(
+    db.execute_query_safe(
         """
             CREATE TABLE IF NOT EXISTS user_tokens (
-                user_id VARCHAR(255) PRIMARY KEY,
+                user_id INT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
                 access_token VARBINARY(1024) NOT NULL,
                 access_secret VARBINARY(1024) NOT NULL,
@@ -84,34 +84,25 @@ def ensure_user_token_table() -> None:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """,
     )
-    try:
-        db.execute_query(
+
+    # Ensure username index exists
+    existing_idx = db.fetch_query_safe(
+        "SHOW INDEX FROM user_tokens WHERE Key_name = %s",
+        ("idx_user_tokens_username",),
+    )
+    if not existing_idx:
+        db.execute_query_safe(
             """
             CREATE INDEX /*IF NOT EXISTS*/ idx_user_tokens_username ON user_tokens(username)
             """
         )
-    except Exception:
-        logger.error("Failed to ensure last_used_at column exists")
-
-    try:
-        db.execute_query(
-            "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ last_used_at TIMESTAMP NULL",
-        )
-    except Exception:
-        logger.error("Failed to ensure last_used_at column exists")
-    try:
-        db.execute_query(
-            "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ rotated_at TIMESTAMP NULL",
-        )
-    except Exception:
-        logger.error("Failed to ensure rotated_at column exists")
 
 
 def upsert_user_token(*, user_id: int, username: str, access_key: str, access_secret: str) -> None:
     """Insert or update the encrypted OAuth credentials for a user."""
 
     db = _get_db()
-    db.execute_query(
+    db.execute_query_safe(
         """
         INSERT INTO user_tokens (
             user_id,
@@ -142,7 +133,7 @@ def delete_user_token(user_id: int) -> None:
     """Remove the stored OAuth credentials for the given user id."""
 
     db = _get_db()
-    db.execute_query("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
+    db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
 
 
 def get_user_token(user_id: int) -> Optional[UserTokenRecord]:
