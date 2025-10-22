@@ -62,9 +62,6 @@ class Site:
             signature_type="auth_header",
         )
         self._csrf_token = None
-
-        print(self._csrf())
-
         self._userinfo()
 
     def _userinfo(self):
@@ -84,8 +81,6 @@ class Site:
         self.userinfo = data.get("query", {}).get("userinfo", {})
         return self.userinfo
 
-    # def login(self):
-
     def _csrf(self) -> str:
         """Fetch and cache a CSRF token."""
         if self._csrf_token:
@@ -100,7 +95,6 @@ class Site:
         r = self._session.get(self.api, params=params, timeout=30)
         r.raise_for_status()
         data = r.json()
-        print(data)
         token = data.get("query", {}).get("tokens", {}).get("csrftoken")
         if not token:
             raise InsufficientPermission()
