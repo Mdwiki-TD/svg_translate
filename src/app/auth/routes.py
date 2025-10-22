@@ -62,35 +62,33 @@ def callback() -> Response:
         return redirect(url_for("main.index"))
 
     if not callback_rate_limiter.allow(_client_key()):
-        return "Too many login attempts. Please try again later.", 429
+        return redirect(url_for("main.index", error="Too many login attempts"))
 
     expected_state = session.pop("oauth_state_nonce", None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
-        return "Invalid OAuth state", 400
+        return redirect(url_for("main.index", error="Invalid OAuth state"))
 
     verified_state = verify_state_token(returned_state)
     if verified_state != expected_state:
-        return "Invalid OAuth state", 400
+        return redirect(url_for("main.index", error="Invalid OAuth state"))
 
     raw_request_token = session.pop("request_token", None)
     oauth_verifier = request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
-        return "Invalid OAuth state", 400
+        return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
     try:
         request_token = _load_request_token(raw_request_token)
     except ValueError:
-        return "Invalid OAuth state", 400
+        return redirect(url_for("main.index", error="Invalid request token"))
 
     response_qs = urlencode(request.args)
 
     try:
         access_token, identity = complete_login(request_token, response_qs)
     except OAuthIdentityError:
-        return "Failed to verify OAuth identity", 400
-                                 
-        
+        return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
 
     token_key = getattr(access_token, "key", None)
     token_secret = getattr(access_token, "secret", None)
@@ -100,11 +98,11 @@ def callback() -> Response:
 
     if not (token_key and token_secret):
         current_app.logger.error("OAuth access token missing key/secret")
-        return "OAuth response missing credentials", 400
+        return redirect(url_for("main.index", error="Missing credentials"))
 
     username = identity.get("username") or identity.get("name")
     if not username:
-        return "OAuth response missing username", 400
+        return redirect(url_for("main.index", error="Missing username"))
 
     user_identifier = (
         identity.get("sub")
@@ -113,12 +111,12 @@ def callback() -> Response:
         or identity.get("user_id")
     )
     if not user_identifier:
-        return "OAuth response missing user identifier", 400
+        return redirect(url_for("main.index", error="Missing user identifier"))
 
     try:
         user_id = int(user_identifier)
     except (TypeError, ValueError):
-        return "OAuth response returned invalid user identifier", 400
+        return redirect(url_for("main.index", error="Invalid user identifier"))
 
     upsert_user_token(
         user_id=user_id,
