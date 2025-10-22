@@ -38,7 +38,7 @@ def start_upload(
     main_title_link: str,
     site,
     stages,
-    progress_updater: PerFileCallback = None,
+    message_updater: PerFileCallback = None,
 ):
     """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
@@ -97,8 +97,8 @@ def start_upload(
 
         stages["message"] = f"{prefix} {index:,}/{total:,}"
 
-        if progress_updater:
-            progress_updater(stages)
+        if message_updater:
+            message_updater(stages["message"])
 
     return {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
 
@@ -179,12 +179,15 @@ def upload_task(
 
     main_title_link = f"[[:File:{main_title}]]"
 
+    def message_updater(value: str) -> None:
+        store.update_stage_column(task_id, "upload", "stage_message", value)
+
     upload_result = start_upload(
         files_to_upload,
         main_title_link,
         site,
         stages,
-        progress_updater=progress_updater,
+        message_updater,
     )
 
     stages["message"] = (

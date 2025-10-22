@@ -51,8 +51,6 @@ def upload_file(file_name, file_path, site: Site=None, summary=None):
     except InsufficientPermission:
         logger.error("User does not have sufficient permissions to perform an action")
     except Exception as e:
-        logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
-        logger.error(f"{e}")
         # ---
         if "fileexists-no-change" in str(e):
             logger.debug("Upload result: fileexists-no-change")
@@ -61,5 +59,8 @@ def upload_file(file_name, file_path, site: Site=None, summary=None):
         if 'ratelimited' in str(e):
             logger.debug("You've exceeded your rate limit. Please wait some time and try again.")
             return {"result": "ratelimited"}
+        # ---
+        logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
+        logger.error(f"{e}")
 
     return False
