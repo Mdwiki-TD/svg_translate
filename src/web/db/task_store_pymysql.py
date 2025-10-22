@@ -71,6 +71,41 @@ class StageStore:
         except Exception as exc:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
 
+    def update_stage_column(
+        self,
+        task_id: str,
+        stage_name: str,
+        column_name: str,
+        column_value: Any,
+    ) -> None:
+        """
+        Update a single column for a task stage (e.g., stage_message or stage_status).
+        Only a fixed set of columns is allowed to prevent SQL injection.
+        """
+        # Allow-list permissible stage columns
+        allowed_cols = {
+            "stage_number",
+            "stage_status",
+            "stage_sub_name",
+            "stage_message",
+        }
+        if column_name not in allowed_cols:
+            logger.error(f"Illegal stage column: {column_name!r}")
+
+        now = _current_ts()
+        try:
+            sql = (
+                "UPDATE task_stages "
+                f"SET {column_name} = %s, updated_at = %s "
+                "WHERE stage_id = %s"
+            )
+            self.db.execute_query(
+                sql,
+                [column_value, now, f"{task_id}:{stage_name}"],
+            )
+        except Exception:
+            logger.error("Failed to update stage '%s' for task %s", stage_name, task_id)
+
     def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
         """Replace all stages for a task with the provided mapping.
 
@@ -170,6 +205,16 @@ class TaskStorePyMysql(StageStore):
         """
         self.db = Database(db_data)
         self._init_schema()
+
+    def close(self) -> None:
+        """Close the underlying database connection."""
+        self.db.close()
+
+    def __enter__(self) -> "TaskStorePyMysql":
+        return self
+
+    def __exit__(self, exc_type, exc, exc_tb) -> None:
+        self.close()
 
     def _init_schema(self) -> None:
         """

@@ -97,6 +97,16 @@ class Database:
                 finally:
                     self.connection = None
 
+    def close(self) -> None:
+        """Close the underlying PyMySQL connection."""
+        self._close_connection()
+
+    def __enter__(self) -> "Database":
+        return self
+
+    def __exit__(self, exc_type, exc, exc_tb) -> None:
+        self.close()
+
     # ------------------------------------------------------------------
     # Retry utilities
     # ------------------------------------------------------------------
