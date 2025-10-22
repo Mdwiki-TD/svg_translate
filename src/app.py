@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 import sys
-from app import create_app
 
 import svg_config  # load_dotenv()
+
+from app import create_app
 
 app = create_app()
 
