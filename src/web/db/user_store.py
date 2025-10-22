@@ -77,7 +77,7 @@ class UserTokenStore:
 
         ddl = """
             CREATE TABLE IF NOT EXISTS user_tokens (
-                user_id VARCHAR(255) PRIMARY KEY,
+                user_id INT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
                 access_token VARBINARY(1024) NOT NULL,
                 access_secret VARBINARY(1024) NOT NULL,
