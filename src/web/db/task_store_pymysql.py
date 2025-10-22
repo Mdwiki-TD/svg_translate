@@ -206,6 +206,16 @@ class TaskStorePyMysql(StageStore):
         self.db = Database(db_data)
         self._init_schema()
 
+    def close(self) -> None:
+        """Close the underlying database connection."""
+        self.db.close()
+
+    def __enter__(self) -> "TaskStorePyMysql":
+        return self
+
+    def __exit__(self, exc_type, exc, exc_tb) -> None:
+        self.close()
+
     def _init_schema(self) -> None:
         """
         Ensure the tasks table and its indexes exist in the MySQL database.
