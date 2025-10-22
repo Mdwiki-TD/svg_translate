@@ -88,7 +88,7 @@ def callback() -> Response:
     try:
         access_token, identity = complete_login(request_token, response_qs)
     except OAuthIdentityError:
-        current_app.logger.exception("Failed to verify OAuth identity")
+        current_app.logger.error("Failed to verify OAuth identity: %s", exc_info=True)
         return (
             render_template(
                 "index.html",
