@@ -13,7 +13,8 @@ try:  # pragma: no cover - maintain compatibility with both package layouts
 except ImportError:  # pragma: no cover - fallback when running from src package
     from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
 
-from .auth import Site
+# from .auth import Site
+from .auth import build_site
 
 logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
@@ -74,7 +75,8 @@ def start_upload(
     access_token=oauth_credentials.get("access_token")
     access_secret=oauth_credentials.get("access_secret")
 
-    site = Site(consumer_token, consumer_secret, access_token, access_secret)
+    site = build_site(oauth_credentials)
+    # site = Site(consumer_token, consumer_secret, access_token, access_secret)
 
     done = 0
     not_done = 0
