@@ -228,9 +228,9 @@ def upload_task(
 
     stages["message"] = (
         f"Total Files: {total:,}, "
-        f"uploaded {upload_result['done']:,}, "
-        f"no changes: {upload_result['no_changes']:,}, "
-        f"not uploaded: {upload_result['not_done']:,}"
+        f"uploaded {upload_result.get('done', 0):,}, "
+        f"no changes: {upload_result.get('no_changes', 0):,}, "
+        f"not uploaded: {upload_result.get('not_done', 0):,}"
     )
 
     if upload_result["not_done"]:
