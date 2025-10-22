@@ -196,16 +196,12 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
 
     # ----------------------------------------------
     # Stage 4: download SVG files
-    def download_progress(stage_state: Dict[str, Any]) -> None:
-        """Forward download progress updates to the task store."""
-        state = stage_state if stage_state is not None else stages_list["download"]
-        store.update_stage(task_id, "download", state)
-
     files, stages_list["download"] = download_task(
+        task_id,
         stages_list["download"],
         output_dir_main,
         titles,
-        progress_updater=download_progress,
+        store
     )
     push_stage("download")
 

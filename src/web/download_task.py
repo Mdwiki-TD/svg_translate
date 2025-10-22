@@ -5,18 +5,16 @@ from __future__ import annotations
 import os
 import logging
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable
 from urllib.parse import quote
 
 import requests
 from tqdm import tqdm
+from .db.task_store_pymysql import TaskStorePyMysql
 
 USER_AGENT = os.getenv("USER_AGENT", "")
 
 logger = logging.getLogger(__name__)
-
-PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
-ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
 
 def download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None):
@@ -77,10 +75,11 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
 
 
 def download_task(
+    task_id: str,
     stages: Dict[str, Any],
     output_dir_main: Path,
     titles: Iterable[str],
-    progress_updater: ProgressUpdater = None,
+    store: TaskStorePyMysql =None,
 ):
     """
     Orchestrates downloading a set of Wikimedia Commons SVGs while updating a mutable stages dict and an optional progress updater.
@@ -89,7 +88,6 @@ def download_task(
         stages (Dict[str, str]): Mutable mapping that will be updated with "message" and "status" to reflect current progress and final outcome.
         output_dir_main (Path): Directory where downloaded files will be saved.
         titles (Iterable[str]): Iterable of file titles to download.
-        progress_updater (Optional[Callable[[], None]]): Optional callable invoked after each file update and once at the end to notify external progress observers.
 
     Returns:
         (files, stages) (Tuple[List[str], Dict[str, str]]): `files` is the list of downloaded file paths (as strings); `stages` is the same dict passed in, updated with a final "status" of "Completed" or "Failed" and a final "message" summarizing processed and failed counts.
@@ -100,10 +98,7 @@ def download_task(
     stages["message"] = f"Downloading 0/{total:,}"
     stages["status"] = "Running"
 
-    if progress_updater:
-        progress_updater(stages)
-
-    counts = {"success": 0, "existing": 0, "failed": 0}
+    store.update_stage(task_id, "download", stages)
 
     out_dir = Path(str(output_dir_main))
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -114,45 +109,46 @@ def download_task(
         "User-Agent": USER_AGENT,
     })
 
+    def message_updater(value: str) -> None:
+        store.update_stage_column(task_id, "download", "stage_message", value)
+
     files = []
+
+    done = 0
+    not_done = 0
+    existing = 0
 
     for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
         result = download_one_file(title, out_dir, i, session)
         if result["result"] == "success":
-            counts["success"] += 1
+            done += 1
         elif result["result"] == "existing":
-            counts["existing"] += 1
+            existing += 1
         else:
-            counts["failed"] += 1
+            not_done += 1
 
         stages["message"] = f"Downloading {i:,}/{len(titles):,}"
 
         if result["path"]:
             files.append(result["path"])
 
-        if progress_updater and i % 10 == 0:
-            progress_updater(stages)
+        stages["message"] = (
+            f"Total Files: {total:,}, "
+            f"Downloaded {done:,}, "
+            f"skip existing {existing:,}, "
+            f"failed to download: {not_done:,}"
+        )
+        message_updater(stages["message"])
 
     logger.debug("files: %s", len(files))
 
+    stages["status"] = "Failed" if not_done else "Completed"
+
     logger.debug(
         "Downloaded %s files, skipped %s existing files, failed to download %s files",
-        counts["success"],
-        counts["existing"],
-        counts["failed"],
+        done,
+        existing,
+        not_done,
     )
-
-    processed = counts["success"] + counts["existing"]
-    if counts["failed"]:
-        stages["status"] = "Failed"
-        stages["message"] = (
-            f"Downloaded {processed:,}/{total:,} (Failed: {counts['failed']:,})"
-        )
-    else:
-        stages["status"] = "Completed"
-        stages["message"] = f"Downloaded {processed:,}/{total:,}"
-
-    if progress_updater:
-        progress_updater(stages)
 
     return files, stages

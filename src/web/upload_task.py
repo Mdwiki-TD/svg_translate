@@ -55,8 +55,6 @@ def start_upload(
         if username:
             logger.debug(f"<<yellow>>logged in as {username}.")
 
-    counts = {"success": 0, "failed": 0}
-
     for index, (file_name, file_data) in enumerate(
         tqdm(items, desc="uploading files", total=total),
         start=1,
@@ -74,10 +72,10 @@ def start_upload(
             site=site,
             summary=summary,
         ) or {}
-        result = upload.get("result") if isinstance(upload, dict) else None
-        logger.debug(f"upload: {result}")
 
-        status = "success" if result in ["Success", "fileexists-no-change"] else "failed"
+        result = upload.get("result") if isinstance(upload, dict) else None
+
+        logger.debug(f"upload result: {result}")
 
         if result == "Success":
             done += 1
@@ -88,19 +86,20 @@ def start_upload(
             if isinstance(upload, dict) and "error" in upload:
                 errors.append(upload.get("error"))
 
-        if status == "success":
-            counts["success"] += 1
-            prefix = "Uploaded"
-        else:
-            counts["failed"] += 1
-            prefix = "Failed"
-
-        stages["message"] = f"{prefix} {index:,}/{total:,}"
-
+        stages["message"] = (
+            f"Total Files: {total:,}, "
+            f"uploaded {done:,}, "
+            f"no changes: {no_changes:,}, "
+            f"not uploaded: {not_done:,}"
+        )
         if message_updater:
             message_updater(stages["message"])
 
-    return {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
+    stages["status"] = "Failed" if not_done else "Completed"
+
+    upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
+
+    return upload_result, stages
 
 
 def upload_task(
@@ -182,26 +181,12 @@ def upload_task(
     def message_updater(value: str) -> None:
         store.update_stage_column(task_id, "upload", "stage_message", value)
 
-    upload_result = start_upload(
+    upload_result, stages = start_upload(
         files_to_upload,
         main_title_link,
         site,
         stages,
         message_updater,
     )
-
-    stages["message"] = (
-        f"Total Files: {total:,}, "
-        f"uploaded {upload_result.get('done', 0):,}, "
-        f"no changes: {upload_result.get('no_changes', 0):,}, "
-        f"not uploaded: {upload_result.get('not_done', 0):,}"
-    )
-
-    if upload_result["not_done"]:
-        stages["status"] = "Failed"
-    else:
-        stages["status"] = "Completed"
-
-    progress_updater(stages)
 
     return upload_result, stages
