@@ -55,6 +55,14 @@ class Database:
             logger.exception("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
             raise
 
+    def __enter__(self) -> "Database":
+        """Enter a runtime context for the database connection."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """Exit the runtime context, ensuring the connection is closed."""
+        self._close_connection()
+
     # ------------------------------------------------------------------
     # Connection helpers
     # ------------------------------------------------------------------
