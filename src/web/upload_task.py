@@ -70,6 +70,7 @@ def start_upload(
 
     done = 0
     not_done = 0
+    no_changes = 0
     errors = []
 
     items = list(files_to_upload.items())
@@ -111,7 +112,7 @@ def start_upload(
         target_path = Path(file_path) if file_path else Path(file_name)
         _safe_invoke_callback(per_file_callback, index, total, target_path, status)
 
-    return {"done": done, "not_done": not_done, "errors": errors}
+    return {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
 
 
 def upload_task(
@@ -241,6 +242,7 @@ def upload_task(
     stages["message"] = (
         f"Total Files: {total:,}, "
         f"Files uploaded {upload_result['done']:,}, "
+        f"Files no changes: {upload_result['no_changes']:,}"
         f"Files not uploaded: {upload_result['not_done']:,}"
     )
 
