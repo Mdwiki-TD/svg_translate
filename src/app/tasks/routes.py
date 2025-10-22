@@ -141,10 +141,10 @@ def task1():
 @bp_main.get("/")
 def index():
     error_code = request.args.get("error")
-    error_message = None
+    error_message = error_code
     if error_code == "task-active":
         error_message = "A task for this title is already in progress."
-
+    
     return render_template(
         "index.html",
         form={},

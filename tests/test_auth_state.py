@@ -16,6 +16,7 @@ os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
 
 from src.app import create_app
 from src.app.auth.cookie import sign_state_token, verify_state_token
+from src.app.auth.oauth import IDENTITY_ERROR_MESSAGE, OAuthIdentityError
 
 
 @pytest.fixture
@@ -91,3 +92,27 @@ def test_callback_accepts_signed_state(client):
     mock_complete.assert_called_once()
     mock_upsert.assert_called_once_with(user_id=123, username="Tester", access_key="token", access_secret="secret")
     assert response.headers["Location"] in {"/", "http://example.com/"}
+
+
+def test_callback_handles_identity_error(client):
+    signed_state = sign_state_token("expected-nonce")
+
+    with client.session_transaction() as session:
+        session["oauth_state_nonce"] = "expected-nonce"
+        session["request_token"] = ["request-key", "request-secret"]
+
+    with (
+        patch("src.app.auth.routes.callback_rate_limiter.allow", return_value=True),
+        patch(
+            "src.app.auth.routes.complete_login",
+            side_effect=OAuthIdentityError(IDENTITY_ERROR_MESSAGE),
+        ),
+    ):
+        response = client.get(
+            "/callback",
+            query_string={"state": signed_state, "oauth_verifier": "code"},
+        )
+
+    assert response.status_code == 502
+    body = response.get_data(as_text=True)
+    assert IDENTITY_ERROR_MESSAGE in body

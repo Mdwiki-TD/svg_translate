@@ -8,9 +8,26 @@ from flask import url_for
 
 from ..config import settings
 
+try:  # pragma: no cover - dependency may be unavailable during tests
+    import mwoauth  # type: ignore[import-not-found]
+except ModuleNotFoundError:  # pragma: no cover - handled when functions are used
+    mwoauth = None  # type: ignore[assignment]
+
+
+class OAuthIdentityError(Exception):
+    """Raised when MediaWiki OAuth identity verification fails."""
+
+    def __init__(self, message: str, *, original_exception: Exception | None = None) -> None:
+        super().__init__(message)
+        self.original_exception = original_exception
+
+
+IDENTITY_ERROR_MESSAGE = "We couldn’t verify your MediaWiki identity. Please try again."
+
 
 def get_handshaker():
-    import mwoauth
+    if mwoauth is None:  # pragma: no cover - handled when dependency missing
+        raise RuntimeError("MediaWiki OAuth dependency is not installed")
 
     if not settings.oauth:
         raise RuntimeError("MediaWiki OAuth configuration is incomplete")
@@ -41,5 +58,10 @@ def complete_login(request_token, response_qs: str):
 
     handshaker = get_handshaker()
     access_token = handshaker.complete(request_token, response_qs)
-    identity = handshaker.identify(access_token)
+    try:
+        identity = handshaker.identify(access_token)
+    except Exception as exc:  # type: ignore[union-attr]
+        raise OAuthIdentityError(
+            IDENTITY_ERROR_MESSAGE, original_exception=exc
+        ) from exc
     return access_token, identity
