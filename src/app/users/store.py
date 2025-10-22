@@ -91,20 +91,20 @@ def ensure_user_token_table() -> None:
             """
         )
     except Exception:
-        logger.exception("Failed to ensure last_used_at column exists")
+        logger.error("Failed to ensure last_used_at column exists")
 
     try:
         db.execute_query(
             "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ last_used_at TIMESTAMP NULL",
         )
     except Exception:
-        logger.exception("Failed to ensure last_used_at column exists")
+        logger.error("Failed to ensure last_used_at column exists")
     try:
         db.execute_query(
             "ALTER TABLE user_tokens ADD COLUMN /*IF NOT EXISTS*/ rotated_at TIMESTAMP NULL",
         )
     except Exception:
-        logger.exception("Failed to ensure rotated_at column exists")
+        logger.error("Failed to ensure rotated_at column exists")
 
 
 def upsert_user_token(*, user_id: int, username: str, access_key: str, access_secret: str) -> None:
