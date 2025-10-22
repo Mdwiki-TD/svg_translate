@@ -11,7 +11,7 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 
-from svg_config import USER_AGENT
+USER_AGENT = os.getenv("USER_AGENT", "")
 
 logger = logging.getLogger(__name__)
 

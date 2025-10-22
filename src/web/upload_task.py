@@ -80,17 +80,23 @@ def start_upload(
 
     done = 0
     not_done = 0
+    no_changes = 0
     errors = []
 
     items = list(files_to_upload.items())
     total = len(items)
+
+    if getattr(site, "logged_in", False):
+        username = getattr(site, "username", "")
+        if username:
+            logger.debug(f"<<yellow>>logged in as {username}.")
 
     for index, (file_name, file_data) in enumerate(
         tqdm(items, desc="uploading files", total=total),
         start=1,
     ):
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
-        print(f"start uploading file: {file_name}.")
+        logger.debug(f"start uploading file: {file_name}.")
         summary = (
             f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
             if isinstance(file_data, dict) and "new_languages" in file_data
@@ -103,11 +109,14 @@ def start_upload(
             summary=summary,
         ) or {}
         result = upload.get("result") if isinstance(upload, dict) else None
-        print(f"upload: {result}")
+        logger.debug(f"upload: {result}")
 
-        status = "success" if result == "Success" else "failed"
+        status = "success" if result in ["Success", "fileexists-no-change"] else "failed"
+
         if result == "Success":
             done += 1
+        elif result == "fileexists-no-change":
+            no_changes += 1
         else:
             not_done += 1
             if isinstance(upload, dict) and "error" in upload:
@@ -116,7 +125,7 @@ def start_upload(
         target_path = Path(file_path) if file_path else Path(file_name)
         _safe_invoke_callback(per_file_callback, index, total, target_path, status)
 
-    return {"done": done, "not_done": not_done, "errors": errors}
+    return {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
 
 
 def upload_task(
@@ -220,8 +229,9 @@ def upload_task(
 
     stages["message"] = (
         f"Total Files: {total:,}, "
-        f"Files uploaded {upload_result['done']:,}, "
-        f"Files not uploaded: {upload_result['not_done']:,}"
+        f"uploaded {upload_result['done']:,}, "
+        f"no changes: {upload_result['no_changes']:,}, "
+        f"not uploaded: {upload_result['not_done']:,}"
     )
 
     if upload_result["not_done"]:
