@@ -62,7 +62,6 @@ class Site:
             signature_type="auth_header",
         )
         self._csrf_token = None
-
         self._userinfo()
 
     def _userinfo(self):
@@ -81,8 +80,6 @@ class Site:
         data = r.json()
         self.userinfo = data.get("query", {}).get("userinfo", {})
         return self.userinfo
-
-    # def login(self):
 
     def _csrf(self) -> str:
         """Fetch and cache a CSRF token."""

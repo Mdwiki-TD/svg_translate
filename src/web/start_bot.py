@@ -16,7 +16,6 @@ from .download_task import download_one_file
 
 logger = logging.getLogger(__name__)
 
-
 def json_save(path, data):
     """
     Save Python data to a file as pretty-printed UTF-8 JSON.
