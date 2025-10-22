@@ -76,17 +76,17 @@ def start_upload(
     items = list(files_to_upload.items())
     total = len(items)
 
-    if getattr(site, "logged_in", False):  # pragma: no cover - informational log
+    if getattr(site, "logged_in", False):
         username = getattr(site, "username", "")
         if username:
-            print(f"<<yellow>>logged in as {username}.")
+            logger.debug(f"<<yellow>>logged in as {username}.")
 
     for index, (file_name, file_data) in enumerate(
         tqdm(items, desc="uploading files", total=total),
         start=1,
     ):
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
-        print(f"start uploading file: {file_name}.")
+        logger.debug(f"start uploading file: {file_name}.")
         summary = (
             f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
             if isinstance(file_data, dict) and "new_languages" in file_data
@@ -99,7 +99,7 @@ def start_upload(
             summary=summary,
         ) or {}
         result = upload.get("result") if isinstance(upload, dict) else None
-        print(f"upload: {result}")
+        logger.debug(f"upload: {result}")
 
         status = "success" if result in ["Success", "fileexists-no-change"] else "failed"
 

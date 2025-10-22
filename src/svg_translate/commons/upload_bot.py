@@ -52,6 +52,7 @@ def upload_file(file_name, file_path, site=None, summary=None):
         logger.error("User does not have sufficient permissions to perform an action")
     except Exception as e:
         logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
+        logger.error(f"{e}")
         # ---
         if "fileexists-no-change" in str(e):
             logger.debug("Upload result: fileexists-no-change")
