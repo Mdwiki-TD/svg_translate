@@ -154,8 +154,6 @@ def upload_task(
             "reason": "missing-token",
         }, stages
 
-    user_id = user.get("id") if isinstance(user, dict) else None
-
     try:
         site = build_oauth_site(access_token, access_secret)
     except Exception as exc:  # pragma: no cover - network interaction
@@ -169,6 +167,8 @@ def upload_task(
             "skipped": True,
             "reason": "oauth-auth-failed",
         }, stages
+
+    user_id = user.get("id") if isinstance(user, dict) else None
 
     if isinstance(user_id, int):
         try:

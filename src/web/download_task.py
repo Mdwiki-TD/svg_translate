@@ -112,22 +112,23 @@ def download_task(
     def message_updater(value: str) -> None:
         store.update_stage_column(task_id, "download", "stage_message", value)
 
-    files = []
+    files: list[str] = []
 
     done = 0
     not_done = 0
     existing = 0
 
-    for i, title in tqdm(enumerate(titles, 1), total=len(titles), desc="Downloading files"):
-        result = download_one_file(title, out_dir, i, session)
-        if result["result"] == "success":
+    for index, title in enumerate(tqdm(titles, total=len(titles), desc="Downloading files"), 1):
+        result = download_one_file(title, out_dir, index, session)
+        status = result["result"] or "failed"
+        if status == "success":
             done += 1
-        elif result["result"] == "existing":
+        elif status == "existing":
             existing += 1
         else:
             not_done += 1
 
-        stages["message"] = f"Downloading {i:,}/{len(titles):,}"
+        stages["message"] = f"Downloading {index:,}/{len(titles):,}"
 
         if result["path"]:
             files.append(result["path"])
