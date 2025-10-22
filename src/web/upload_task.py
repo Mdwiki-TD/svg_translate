@@ -8,10 +8,7 @@ from typing import Any, Callable, Dict, Optional
 import logging
 from tqdm import tqdm
 
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.commons.upload_bot import upload_file
-except ImportError:  # pragma: no cover - fallback when running from src package
-    from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
+from .upload.upload_bot import upload_file
 
 from app.users.store import mark_token_used
 from app.wiki_client import build_oauth_site
@@ -88,7 +85,7 @@ def start_upload(
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
         logger.debug(f"start uploading file: {file_name}.")
         summary = (
-            f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
+            f"Adding {file_data.get('new_languages')} languages translations from {main_title_link}"
             if isinstance(file_data, dict) and "new_languages" in file_data
             else f"Adding translations from {main_title_link}"
         )
