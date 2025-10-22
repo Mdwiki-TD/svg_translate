@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_wikitext(title, project="commons.m.wikimedia.org"):
+def get_wikitext(title, project="commons.wikimedia.org"):
     """
     Fetch raw wikitext of a page from Wikimedia projects.
     Args:
