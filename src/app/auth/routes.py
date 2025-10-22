@@ -88,15 +88,9 @@ def callback() -> Response:
     try:
         access_token, identity = complete_login(request_token, response_qs)
     except OAuthIdentityError:
-        current_app.logger.error("Failed to verify OAuth identity: %s", exc_info=True)
-        return (
-            render_template(
-                "index.html",
-                form={},
-                error_message=IDENTITY_ERROR_MESSAGE,
-            ),
-            400,
-        )
+        return "Failed to verify OAuth identity", 400
+                                 
+        
 
     token_key = getattr(access_token, "key", None)
     token_secret = getattr(access_token, "secret", None)
