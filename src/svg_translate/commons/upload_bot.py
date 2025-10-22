@@ -51,7 +51,6 @@ def upload_file(file_name, file_path, site=None, summary=None):
     except mwclient.errors.InsufficientPermission:
         logger.error("User does not have sufficient permissions to perform an action")
     except Exception as e:
-        print(f"type(e):{type(e)}\n"*50)
         logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
         # ---
         if "fileexists-no-change" in str(e):
