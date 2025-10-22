@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)")
 
-UPLOAD_END_POINT = os.getenv("UPLOAD_END_POINT", "commons.wikimedia.org")
-
 
 class InsufficientPermission(Exception):
     pass
@@ -43,13 +41,17 @@ class Site:
         * upload(file, filename, comment, ignore=True): upload file with CSRF
     """
 
-    def __init__(self, consumer_token, consumer_secret, access_token, access_secret):
+    def __init__(self, consumer_token, consumer_secret, access_token, access_secret, end_point):
+        self.end_point = end_point
         self.consumer_token = consumer_token
         self.consumer_secret = consumer_secret
         self.access_token = access_token
         self.access_secret = access_secret
+        self.userinfo = {}
+        self.username = ""
+        self.logged_in = False
 
-        self.api = f"https://{UPLOAD_END_POINT}/w/api.php"
+        self.api = f"https://{end_point}/w/api.php"
         self._session = requests.Session()
         self._session.headers.update({"User-Agent": USER_AGENT})
         self._session.auth = OAuth1(
@@ -60,6 +62,29 @@ class Site:
             signature_type="auth_header",
         )
         self._csrf_token = None
+
+        print(self._csrf())
+
+        self._userinfo()
+
+    def _userinfo(self):
+        """Fetch and cache user info."""
+        if self.userinfo:
+            return self.userinfo
+
+        params = {
+            "action": "query",
+            "meta": "userinfo",
+            "uiprop": "groups|rights",
+            "format": "json",
+        }
+        r = self._session.get(self.api, params=params, timeout=30)
+        r.raise_for_status()
+        data = r.json()
+        self.userinfo = data.get("query", {}).get("userinfo", {})
+        return self.userinfo
+
+    # def login(self):
 
     def _csrf(self) -> str:
         """Fetch and cache a CSRF token."""
@@ -75,6 +100,7 @@ class Site:
         r = self._session.get(self.api, params=params, timeout=30)
         r.raise_for_status()
         data = r.json()
+        print(data)
         token = data.get("query", {}).get("tokens", {}).get("csrftoken")
         if not token:
             raise InsufficientPermission()
