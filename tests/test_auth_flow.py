@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.web.auth import AUTH_COOKIE_NAME, REQUEST_TOKEN_SESSION_KEY, STATE_SESSION_KEY
+from src.svg_config import AUTH_COOKIE_NAME, REQUEST_TOKEN_SESSION_KEY, STATE_SESSION_KEY
 
 
 @pytest.fixture

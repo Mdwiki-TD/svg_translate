@@ -1,9 +1,11 @@
 import datetime
+import threading
 from typing import Dict, Tuple
 from unittest.mock import MagicMock
 
 import pytest
 
+from src.web.db.db_class import Database
 from src.web.db.task_store_pymysql import (
     TaskAlreadyExistsError,
     TaskStorePyMysql,
@@ -254,3 +256,56 @@ def test_create_task_duplicate_detection_uses_join(store_and_db):
     assert exc.value.task["stages"]["download"]["message"] == "starting"
     db.execute_query.assert_not_called()
     store.fetch_stages.assert_not_called()
+
+
+def test_task_store_close_delegates_to_database(store_and_db):
+    store, db = store_and_db
+
+    store.close()
+
+    db.close.assert_called_once()
+
+
+def test_task_store_context_manager_closes_database():
+    store = TaskStorePyMysql.__new__(TaskStorePyMysql)
+    db_mock = MagicMock()
+    store.db = db_mock
+
+    with store as ctx:
+        assert ctx is store
+
+    db_mock.close.assert_called_once()
+
+
+def test_database_close_calls_internal_close():
+    db = Database.__new__(Database)
+    close_mock = MagicMock()
+    db._close_connection = close_mock  # type: ignore[method-assign]
+
+    db.close()
+
+    close_mock.assert_called_once()
+
+
+def test_database_close_closes_connection_object():
+    db = Database.__new__(Database)
+    db._lock = threading.RLock()
+    connection_mock = MagicMock()
+    db.connection = connection_mock
+
+    db.close()
+
+    connection_mock.close.assert_called_once()
+    assert db.connection is None
+
+
+def test_database_context_manager_closes_on_exit():
+    db = Database.__new__(Database)
+    db._lock = threading.RLock()
+    connection_mock = MagicMock()
+    db.connection = connection_mock
+
+    with db as ctx:
+        assert ctx is db
+
+    connection_mock.close.assert_called_once()

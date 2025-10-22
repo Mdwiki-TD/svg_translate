@@ -24,7 +24,6 @@ if "tqdm" not in sys.modules:
 
 
 from src.web.upload_task import (  # noqa: E402  # isort:skip
-    _safe_invoke_callback,
     start_upload,
     upload_task,
 )
@@ -46,21 +45,6 @@ def oauth_credentials() -> dict:
         "access_token": "atk",
         "access_secret": "ats",
     }
-
-
-class TestSafeInvokeCallback:
-    def test_callback_is_none_no_error(self) -> None:
-        _safe_invoke_callback(None, 1, 2, Path("dummy"), "success")
-
-    def test_callback_invoked(self) -> None:
-        callback = MagicMock()
-        target_path = Path("dummy")
-        _safe_invoke_callback(callback, 1, 2, target_path, "success")
-        callback.assert_called_once_with(1, 2, target_path, "success")
-
-    def test_callback_exception_is_caught(self) -> None:
-        callback = MagicMock(side_effect=RuntimeError("boom"))
-        _safe_invoke_callback(callback, 1, 1, Path("dummy"), "failed")
 
 
 class TestStartUpload:
