@@ -11,7 +11,7 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 
-USER_AGENT = os.getenv("USER_AGENT", "")
+USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)")
 
 logger = logging.getLogger(__name__)
 

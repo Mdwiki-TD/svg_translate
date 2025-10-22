@@ -8,18 +8,13 @@ from dotenv import load_dotenv
 # ---
 _HOME = os.getenv("HOME")
 # ---
-_env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/confs/.env")) else ".env"
+_env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/confs/.env")) else str(Path(__file__).parent / ".env")
 # ---
 load_dotenv(_env_file_path)
 # ---
 _HOME = _HOME or os.getenv("MAIN_DIR")
 # ---
 _home_dir = _HOME if _HOME else os.path.expanduser("~")
-# ---
-SVG_TRANSLATE_REPO_PATH = os.getenv("SVG_TRANSLATE_REPO_PATH", f"{_home_dir}/svg_translate")
-# ---
-if "svg_translate" not in sys.modules and Path(SVG_TRANSLATE_REPO_PATH).is_dir():
-    sys.path.append(str(Path(SVG_TRANSLATE_REPO_PATH).parent))
 # ---
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{_home_dir}/svg_data")
@@ -48,7 +43,10 @@ OAUTH_CONSUMER_SECRET = os.getenv("OAUTH_CONSUMER_SECRET", "")
 OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY", "")
 
 AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "svg_translate_user")
-AUTH_COOKIE_MAX_AGE = int(os.getenv("AUTH_COOKIE_MAX_AGE", 0)) or 30 * 24 * 60 * 60
+try:
+    AUTH_COOKIE_MAX_AGE = int(os.getenv("AUTH_COOKIE_MAX_AGE", "0")) or 30 * 24 * 60 * 60
+except ValueError:
+    AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60
 REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "oauth_request_token")
 STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
 COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
