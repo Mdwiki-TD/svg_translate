@@ -1,13 +1,15 @@
 
 import requests
-import mwclient
 from pathlib import Path
 import logging
+
+
+from web.auth.wiki_site import Site, FileExists, InsufficientPermission
 
 logger = logging.getLogger(__name__)
 
 
-def upload_file(file_name, file_path, site=None, summary=None):
+def upload_file(file_name, file_path, site: Site=None, summary=None):
     """
     Upload an SVG file to Wikimedia Commons using mwclient.
     """
@@ -16,9 +18,9 @@ def upload_file(file_name, file_path, site=None, summary=None):
         return ValueError("No site provided")
 
     # Check if file exists
-    page = site.Pages[f"File:{file_name}"]
+    page = site.page(f"File:{file_name}")
 
-    if not page.exists:
+    if not page.get("exists"):
         logger.error(f"Warning: File {file_name} not exists on Commons")
         return False
 
@@ -44,9 +46,9 @@ def upload_file(file_name, file_path, site=None, summary=None):
         return response
     except requests.exceptions.HTTPError:
         logger.error("HTTP error occurred while uploading file")
-    except mwclient.errors.FileExists:
+    except FileExists:
         logger.error("File already exists on Wikimedia Commons")
-    except mwclient.errors.InsufficientPermission:
+    except InsufficientPermission:
         logger.error("User does not have sufficient permissions to perform an action")
     except Exception as e:
         logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
