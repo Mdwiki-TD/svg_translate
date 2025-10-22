@@ -3,8 +3,8 @@ import html
 from urllib.parse import quote
 import logging
 
-from svg_translate import get_files, get_wikitext, start_injects, extract
-
+from CopySvgTranslate import start_injects, extract
+from .commons import get_files, get_wikitext
 from .download_task import download_one_file
 
 logger = logging.getLogger(__name__)
