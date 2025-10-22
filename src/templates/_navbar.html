@@ -6,7 +6,7 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav me-auto">
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}"
                         {% if request.endpoint == 'main.index' %}aria-current="page" {% endif %}
@@ -17,17 +17,17 @@
                         {% if request.endpoint == 'main.tasks' %}aria-current="page" {% endif %}
                         href="{{ url_for('main.tasks') }}">All Tasks</a>
                 </li>
-                <li class="nav-item ms-lg-3 d-flex align-items-center">
-                    {% if is_authenticated %}
-                    <span class="navbar-text text-white-50 me-2">
-                        {{ current_user.username or 'Logged in' }}
-                    </span>
-                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.logout') }}">Log out</a>
-                    {% else %}
-                    <a class="btn btn-success btn-sm" href="{{ url_for('auth.login') }}">Log in</a>
-                    {% endif %}
-                </li>
             </ul>
+            <div class="d-flex align-items-center">
+                {% if is_authenticated %}
+                <span class="navbar-text me-3">
+                    {{ current_user.username or 'Logged in' }}
+                </span>
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Log out</a>
+                {% else %}
+                <a class="btn btn-success btn-sm" href="{{ url_for('auth.login') }}">Login</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>
