@@ -182,7 +182,7 @@ def task2():
 
 
 @bp_main.post("/")
-# @require_login
+@require_login
 def start():
     user = current_user()
     title = request.form.get("title", "").strip()
