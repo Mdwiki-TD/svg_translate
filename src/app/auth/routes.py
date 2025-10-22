@@ -95,7 +95,7 @@ def callback() -> Response:
                 form={},
                 error_message=IDENTITY_ERROR_MESSAGE,
             ),
-            502,
+            400,
         )
 
     token_key = getattr(access_token, "key", None)
