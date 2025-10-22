@@ -67,7 +67,7 @@ def start_upload(
             - "not_done" (int): number of files that failed to upload.
             - "errors" (List[Any]): collected error messages from failed uploads.
     """
-    site = mwclient.Site("commons.m.wikimedia.org")
+    site = mwclient.Site("commons.wikimedia.org")
 
     try:
         site.login(username_value, password_value)
