@@ -71,6 +71,27 @@ class StageStore:
         except Exception as exc:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
 
+    def update_stage_column(self, task_id, stage_name, column_name, column_value) -> None:
+        """
+        """
+        now = _current_ts()
+        try:
+            self.db.execute_query(
+                f"""
+                UPDATE task_stages
+                set {column_name} = %s,
+                updated_at = %s
+                WHERE stage_id = %s
+                """,
+                [
+                    column_value,
+                    now,
+                    f"{task_id}:{stage_name}",
+                ],
+            )
+        except Exception as exc:
+            logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
+
     def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
         """Replace all stages for a task with the provided mapping.
 

@@ -202,16 +202,12 @@ def run_task(
 
     # ----------------------------------------------
     # Stage 4: download SVG files
-    def download_progress(stage_state: Dict[str, Any]) -> None:
-        """Forward download progress updates to the task store."""
-        state = stage_state if stage_state is not None else stages_list["download"]
-        store.update_stage(task_id, "download", state)
-
     files, stages_list["download"] = download_task(
+        task_id,
         stages_list["download"],
         output_dir_main,
         titles,
-        progress_updater=download_progress,
+        store
     )
     push_stage("download")
 
@@ -234,18 +230,16 @@ def run_task(
 
     no_file_path = len(inject_files) - len(files_to_upload)
 
-    def upload_progress(stage_state: Dict[str, Any]) -> None:
-        """Forward upload progress updates to the task store."""
-        push_stage("upload", stage_state)
-
     upload_result, stages_list["upload"] = upload_task(
         stages_list["upload"],
         files_to_upload,
         main_title,
         do_upload=args.upload,
         oauth_credentials=oauth_credentials or {},
-        progress_updater=upload_progress,
+        store=store,
+        task_id=task_id,
     )
+
     push_stage("upload")
 
     # ----------------------------------------------
