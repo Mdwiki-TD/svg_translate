@@ -13,7 +13,7 @@ from svg_config import db_data, DISABLE_UPLOADS
 from web.web_run_task import run_task
 
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from ..users.current import current_user  # , require_login
+from ..users.current import current_user, require_login
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
@@ -38,6 +38,19 @@ def parse_args(request_form):
     )
     # ---
     return result
+
+
+def get_error_message(error_code: str | None) -> str:
+    if not error_code:
+        return ""
+    # ---
+    messages = {
+        "task-active": "A task for this title is already in progress.",
+        "not-found": "Task not found.",
+        "task-create-failed": "Task creation failed.",
+    }
+    # ---
+    return messages.get(error_code, error_code)
 
 
 def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
@@ -124,10 +137,7 @@ def task1():
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     return render_template(
         "task1.html",
@@ -140,11 +150,8 @@ def task1():
 
 @bp_main.get("/")
 def index():
-    error_code = request.args.get("error")
-    error_message = error_code
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
-    
+    error_message = get_error_message(request.args.get("error"))
+
     return render_template(
         "index.html",
         form={},
@@ -163,10 +170,7 @@ def task2():
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
-    error_code = request.args.get("error")
-    error_message = None
-    if error_code == "task-active":
-        error_message = "A task for this title is already in progress."
+    error_message = get_error_message(request.args.get("error"))
 
     stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
 
