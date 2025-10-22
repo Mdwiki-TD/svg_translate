@@ -36,12 +36,12 @@ def _get_db() -> Database:
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""
 
-    db = _get_db()
     try:
-        db.execute_query(
-            "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
-            (user_id,),
-        )
+        with _get_db() as db:
+            db.execute_query(
+                "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
+                (user_id,),
+            )
     except Exception:
         logger.exception("Failed to update last_used_at for user %s", user_id)
 
@@ -69,9 +69,9 @@ class UserTokenRecord:
 def ensure_user_token_table() -> None:
     """Create the user_tokens table if it does not already exist."""
 
-    db = _get_db()
-    db.execute_query_safe(
-        """
+    with _get_db() as db:
+        return db.execute_query_safe(
+            """
             CREATE TABLE IF NOT EXISTS user_tokens (
                 user_id INT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
@@ -83,7 +83,7 @@ def ensure_user_token_table() -> None:
                 rotated_at DATETIME DEFAULT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """,
-    )
+        )
 
     # Ensure username index exists
     existing_idx = db.fetch_query_safe(
@@ -101,9 +101,9 @@ def ensure_user_token_table() -> None:
 def upsert_user_token(*, user_id: int, username: str, access_key: str, access_secret: str) -> None:
     """Insert or update the encrypted OAuth credentials for a user."""
 
-    db = _get_db()
-    db.execute_query_safe(
-        """
+    with _get_db() as db:
+        return db.execute_query_safe(
+            """
         INSERT INTO user_tokens (
             user_id,
             username,
@@ -120,20 +120,20 @@ def upsert_user_token(*, user_id: int, username: str, access_key: str, access_se
             rotated_at = CURRENT_TIMESTAMP,
             last_used_at = NULL
         """,
-        (
-            user_id,
-            username,
-            encrypt_value(access_key),
-            encrypt_value(access_secret),
-        ),
-    )
+            (
+                user_id,
+                username,
+                encrypt_value(access_key),
+                encrypt_value(access_secret),
+            ),
+        )
 
 
 def delete_user_token(user_id: int) -> None:
     """Remove the stored OAuth credentials for the given user id."""
 
-    db = _get_db()
-    db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
+    with _get_db() as db:
+        return db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
 
 
 def get_user_token(user_id: int) -> Optional[UserTokenRecord]:
