@@ -1,6 +1,7 @@
 """
 Central configuration for the SVG Translate web application.
 """
+import sys
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -11,7 +12,14 @@ _env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/co
 # ---
 load_dotenv(_env_file_path)
 # ---
+_HOME = _HOME or os.getenv("MAIN_DIR")
+# ---
 _home_dir = _HOME if _HOME else os.path.expanduser("~")
+# ---
+SVG_TRANSLATE_REPO_PATH = os.getenv("SVG_TRANSLATE_REPO_PATH", f"{_home_dir}/svg_translate")
+# ---
+if "svg_translate" not in sys.modules and Path(SVG_TRANSLATE_REPO_PATH).is_dir():
+    sys.path.append(str(Path(SVG_TRANSLATE_REPO_PATH).parent))
 # ---
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{_home_dir}/svg_data")
