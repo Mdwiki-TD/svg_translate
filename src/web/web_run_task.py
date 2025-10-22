@@ -228,18 +228,16 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
 
     no_file_path = len(inject_files) - len(files_to_upload)
 
-    def upload_progress(stage_state: Dict[str, Any]) -> None:
-        """Forward upload progress updates to the task store."""
-        push_stage("upload", stage_state)
-
     upload_result, stages_list["upload"] = upload_task(
         stages_list["upload"],
         files_to_upload,
         main_title,
         do_upload=args.upload,
         user=user_data,
-        progress_updater=upload_progress,
+        store=store,
+        task_id=task_id,
     )
+
     push_stage("upload")
 
     # ----------------------------------------------
