@@ -6,13 +6,18 @@ import secrets
 from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlencode
-from flask import (Blueprint, Response, current_app, make_response, redirect, request,
-                   session, url_for)
+from flask import (Blueprint, Response, current_app, make_response, redirect, render_template,
+                   request, session, url_for)
 
 from ..config import settings
 from ..users.store import delete_user_token, upsert_user_token
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
-from .oauth import complete_login, start_login
+from .oauth import (
+    IDENTITY_ERROR_MESSAGE,
+    OAuthIdentityError,
+    complete_login,
+    start_login,
+)
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 
 bp_auth = Blueprint("auth", __name__)
@@ -80,7 +85,18 @@ def callback() -> Response:
 
     response_qs = urlencode(request.args)
 
-    access_token, identity = complete_login(request_token, response_qs)
+    try:
+        access_token, identity = complete_login(request_token, response_qs)
+    except OAuthIdentityError:
+        current_app.logger.exception("Failed to verify OAuth identity")
+        return (
+            render_template(
+                "index.html",
+                form={},
+                error_message=IDENTITY_ERROR_MESSAGE,
+            ),
+            502,
+        )
 
     token_key = getattr(access_token, "key", None)
     token_secret = getattr(access_token, "secret", None)
