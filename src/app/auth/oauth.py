@@ -60,7 +60,7 @@ def complete_login(request_token, response_qs: str):
     access_token = handshaker.complete(request_token, response_qs)
     try:
         identity = handshaker.identify(access_token)
-    except mwoauth.MWOAuthException as exc:  # type: ignore[union-attr]
+    except Exception as exc:  # type: ignore[union-attr]
         raise OAuthIdentityError(
             IDENTITY_ERROR_MESSAGE, original_exception=exc
         ) from exc
