@@ -13,7 +13,7 @@ all_log_path = log_dir / "app.log"
 error_log_path = log_dir / "errors.log"
 
 # Create main logger
-logger = logging.getLogger("svg_translate")
+logger = logging.getLogger("copy-svg-langs")
 logger.setLevel(logging.INFO)
 
 # Handler for all logs

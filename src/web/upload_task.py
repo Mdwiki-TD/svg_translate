@@ -9,11 +9,7 @@ import mwclient
 from tqdm import tqdm
 import logging
 
-
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.commons.upload_bot import upload_file
-except ImportError:  # pragma: no cover - fallback when running from src package
-    from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
+from .upload.upload_bot import upload_file
 
 logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
