@@ -44,54 +44,32 @@ def _safe_invoke_callback(
 def start_upload(
     files_to_upload: Dict[str, Dict[str, object]],
     main_title_link: str,
-    username_value: str,
-    password_value: str,
+    site,
     per_file_callback: PerFileCallback = None,
 ):
-    """
-    Upload multiple files to Wikimedia Commons and invoke a per-file progress callback.
-
-    Parameters:
-        files_to_upload (Dict[str, Dict[str, object]]): Mapping from target file name to metadata. Each value may include:
-            - "file_path" (str): local path to the file to upload.
-            - "new_languages" (Any): optional value used to build the upload summary.
-        main_title_link (str): Wiki-file link (e.g., "[[:File:Title]]") used in the upload summary.
-        username_value (str): Wikimedia username used to authenticate the upload.
-        password_value (str): Wikimedia password used to authenticate the upload.
-        per_file_callback (Optional[Callable[[int, int, Path, str], None]]): Optional callback invoked after each file with
-            parameters (index, total, target_path, status) where status is "success" or "failed".
-
-    Returns:
-        dict: Summary of the upload run with keys:
-            - "done" (int): number of successfully uploaded files.
-            - "not_done" (int): number of files that failed to upload.
-            - "errors" (List[Any]): collected error messages from failed uploads.
-    """
-    site = mwclient.Site("commons.wikimedia.org")
-
-    try:
-        site.login(username_value, password_value)
-    except mwclient.errors.LoginError as exc:  # pragma: no cover - network interaction
-        print(f"Could not login error: {exc}")
-
-    if site.logged_in:
-        print(f"<<yellow>>logged in as {site.username}.")
+    """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
     done = 0
     not_done = 0
+    no_changes = 0
     errors = []
 
     items = list(files_to_upload.items())
     total = len(items)
+
+    if getattr(site, "logged_in", False):
+        username = getattr(site, "username", "")
+        if username:
+            logger.debug(f"<<yellow>>logged in as {username}.")
 
     for index, (file_name, file_data) in enumerate(
         tqdm(items, desc="uploading files", total=total),
         start=1,
     ):
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
-        print(f"start uploading file: {file_name}.")
+        logger.debug(f"start uploading file: {file_name}.")
         summary = (
-            f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
+            f"Adding {file_data.get('new_languages')} languages translations from {main_title_link}"
             if isinstance(file_data, dict) and "new_languages" in file_data
             else f"Adding translations from {main_title_link}"
         )
@@ -99,16 +77,17 @@ def start_upload(
             file_name,
             file_path,
             site=site,
-            username=username_value,
-            password=password_value,
             summary=summary,
         ) or {}
         result = upload.get("result") if isinstance(upload, dict) else None
-        print(f"upload: {result}")
+        logger.debug(f"upload: {result}")
 
-        status = "success" if result == "Success" else "failed"
+        status = "success" if result in ["Success", "fileexists-no-change"] else "failed"
+
         if result == "Success":
             done += 1
+        elif result == "fileexists-no-change":
+            no_changes += 1
         else:
             not_done += 1
             if isinstance(upload, dict) and "error" in upload:
@@ -117,7 +96,7 @@ def start_upload(
         target_path = Path(file_path) if file_path else Path(file_name)
         _safe_invoke_callback(per_file_callback, index, total, target_path, status)
 
-    return {"done": done, "not_done": not_done, "errors": errors}
+    return {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
 
 
 def upload_task(
@@ -171,13 +150,34 @@ def upload_task(
     if not user.get("username") or not user.get("password"):
         stages["status"] = "Failed"
         stages["message"] += " (Missing credentials)"
+        # ---
         if progress_updater:
             progress_updater(stages)
+        # ---
         return {
             "done": 0,
             "not_done": total,
             "skipped": True,
             "reason": "missing-creds",
+        }, stages
+
+    site = mwclient.Site("commons.wikimedia.org")
+
+    try:
+        site.login(user.get("username"), user.get("password"))
+    except mwclient.errors.LoginError as exc:  # pragma: no cover - network interaction
+        logger.exception("Could not login error", exc_info=exc)
+        stages["status"] = "Failed"
+        stages["message"] += " (Login Failed)"
+        # ---
+        if progress_updater:
+            progress_updater(stages)
+        # ---
+        return {
+            "done": 0,
+            "not_done": total,
+            "skipped": True,
+            "reason": "login-failed",
         }, stages
 
     main_title_link = f"[[:File:{main_title}]]"
@@ -213,8 +213,7 @@ def upload_task(
     upload_result = start_upload(
         files_to_upload,
         main_title_link,
-        user.get("username"),
-        user.get("password"),
+        site,
         per_file_callback=per_file_callback,
     )
 

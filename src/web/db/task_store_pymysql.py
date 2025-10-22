@@ -175,7 +175,10 @@ class TaskStorePyMysql(StageStore):
         """
         Ensure the tasks table and its indexes exist in the MySQL database.
 
-        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and ensures indexes on normalized_title, status, and created_at are present. Index creation is guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS. Logs a warning if schema initialization fails.
+        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and
+        ensures indexes on normalized_title, status, and created_at are present. Index creation is
+        guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS.
+        Logs a warning if schema initialization fails.
         """
         # Use TEXT for JSON fields for wider MySQL compatibility.
         # If your MySQL supports JSON type, you can switch to JSON.
@@ -248,6 +251,7 @@ class TaskStorePyMysql(StageStore):
         task_id: str,
         title: str,
         status: str = "Pending",
+        username: str = "",
         form: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
@@ -303,12 +307,13 @@ class TaskStorePyMysql(StageStore):
             self.db.execute_query(
                 """
                 INSERT INTO tasks
-                    (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
+                    (id, username, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
                 VALUES
-                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 [
                     task_id,
+                    username,
                     title,
                     normalized_title,
                     status,
@@ -539,6 +544,7 @@ class TaskStorePyMysql(StageStore):
 
         return {
             "id": row["id"],
+            "username": row.get("username", ""),
             "title": row["title"],
             "normalized_title": row["normalized_title"],
             "status": row["status"],

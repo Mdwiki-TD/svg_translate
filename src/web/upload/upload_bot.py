@@ -7,20 +7,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def upload_file(file_name, file_path, site=None, username=None, password=None, summary=None):
+def upload_file(file_name, file_path, site=None, summary=None):
     """
     Upload an SVG file to Wikimedia Commons using mwclient.
-
-    Args:
     """
 
     if not site:
-        if username and password:
-            site = mwclient.Site('commons.m.wikimedia.org')
-            site.login(username, password)
-        else:
-            # skip raise here
-            return ValueError("No site or credentials provided")
+        return ValueError("No site provided")
 
     # Check if file exists
     page = site.Pages[f"File:{file_name}"]
@@ -59,8 +52,12 @@ def upload_file(file_name, file_path, site=None, username=None, password=None, s
         logger.error(f"Unexpected error uploading {file_name} to Wikimedia Commons:")
         logger.error(f"{e}")
         # ---
+        if "fileexists-no-change" in str(e):
+            logger.debug("Upload result: fileexists-no-change")
+            return {"result": "fileexists-no-change"}
+        # ---
         if 'ratelimited' in str(e):
-            print("You've exceeded your rate limit. Please wait some time and try again.")
+            logger.debug("You've exceeded your rate limit. Please wait some time and try again.")
             return {"result": "ratelimited"}
 
     return False
