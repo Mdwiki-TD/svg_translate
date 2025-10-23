@@ -71,6 +71,41 @@ class StageStore:
         except Exception as exc:
             logger.error("Failed to update stage '%s' for task %s: %s", stage_name, task_id, exc)
 
+    def update_stage_column(
+        self,
+        task_id: str,
+        stage_name: str,
+        column_name: str,
+        column_value: Any,
+    ) -> None:
+        """
+        Update a single column for a task stage (e.g., stage_message or stage_status).
+        Only a fixed set of columns is allowed to prevent SQL injection.
+        """
+        # Allow-list permissible stage columns
+        allowed_cols = {
+            "stage_number",
+            "stage_status",
+            "stage_sub_name",
+            "stage_message",
+        }
+        if column_name not in allowed_cols:
+            logger.error(f"Illegal stage column: {column_name!r}")
+
+        now = _current_ts()
+        try:
+            sql = (
+                "UPDATE task_stages "
+                f"SET {column_name} = %s, updated_at = %s "
+                "WHERE stage_id = %s"
+            )
+            self.db.execute_query(
+                sql,
+                [column_value, now, f"{task_id}:{stage_name}"],
+            )
+        except Exception:
+            logger.error("Failed to update stage '%s' for task %s", stage_name, task_id)
+
     def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
         """Replace all stages for a task with the provided mapping.
 
@@ -171,11 +206,24 @@ class TaskStorePyMysql(StageStore):
         self.db = Database(db_data)
         self._init_schema()
 
+    def close(self) -> None:
+        """Close the underlying database connection."""
+        self.db.close()
+
+    def __enter__(self) -> "TaskStorePyMysql":
+        return self
+
+    def __exit__(self, exc_type, exc, exc_tb) -> None:
+        self.close()
+
     def _init_schema(self) -> None:
         """
         Ensure the tasks table and its indexes exist in the MySQL database.
 
-        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and ensures indexes on normalized_title, status, and created_at are present. Index creation is guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS. Logs a warning if schema initialization fails.
+        Creates the tasks table (with text-based JSON columns for broad MySQL compatibility) and
+        ensures indexes on normalized_title, status, and created_at are present. Index creation is
+        guarded for compatibility with MySQL versions that do not support CREATE INDEX IF NOT EXISTS.
+        Logs a warning if schema initialization fails.
         """
         # Use TEXT for JSON fields for wider MySQL compatibility.
         # If your MySQL supports JSON type, you can switch to JSON.
@@ -183,14 +231,15 @@ class TaskStorePyMysql(StageStore):
             """
             CREATE TABLE IF NOT EXISTS tasks (
                 id VARCHAR(128) PRIMARY KEY,
+                username TEXT NULL,
                 title TEXT NOT NULL,
                 normalized_title VARCHAR(512) NOT NULL,
                 status VARCHAR(64) NOT NULL,
                 form_json LONGTEXT NULL,
                 data_json LONGTEXT NULL,
                 results_json LONGTEXT NULL,
-                created_at DATETIME NOT NULL,
-                updated_at DATETIME NOT NULL
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """,
             """
@@ -202,7 +251,7 @@ class TaskStorePyMysql(StageStore):
                 stage_status VARCHAR(64) NOT NULL,
                 stage_sub_name LONGTEXT NULL,
                 stage_message LONGTEXT NULL,
-                updated_at DATETIME NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 CONSTRAINT fk_task_stage_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                 CONSTRAINT uq_task_stage UNIQUE (task_id, stage_name)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -247,6 +296,7 @@ class TaskStorePyMysql(StageStore):
         task_id: str,
         title: str,
         status: str = "Pending",
+        username: str = "",
         form: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
@@ -302,12 +352,13 @@ class TaskStorePyMysql(StageStore):
             self.db.execute_query(
                 """
                 INSERT INTO tasks
-                    (id, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
+                    (id, username, title, normalized_title, status, form_json, data_json, results_json, created_at, updated_at)
                 VALUES
-                    (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 [
                     task_id,
+                    username,
                     title,
                     normalized_title,
                     status,
@@ -538,6 +589,7 @@ class TaskStorePyMysql(StageStore):
 
         return {
             "id": row["id"],
+            "username": row.get("username", ""),
             "title": row["title"],
             "normalized_title": row["normalized_title"],
             "status": row["status"],

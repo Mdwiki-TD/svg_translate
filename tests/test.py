@@ -1,6 +1,6 @@
 
 import sys
-from svg_translate import svg_extract_and_inject
+from CopySvgTranslate import svg_extract_and_inject
 
 from pathlib import Path
 tests_files_dir = Path(__file__).parent.parent / "tests_files"

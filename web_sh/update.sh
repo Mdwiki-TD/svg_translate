@@ -4,7 +4,7 @@ set -euo pipefail
 
 BRANCH="${1:-main}"
 
-REPO_URL="https://github.com/Mdwiki-TD/svg_translate.git"
+REPO_URL="https://github.com/Mdwiki-TD/svg_translate_web.git"
 
 TARGET_DIR="$HOME/www/python/src"
 
@@ -60,14 +60,14 @@ else
     echo "Failed to activate virtual environment" >&2
 fi
 
-# toolforge-webservice python3.11 restart
+# toolforge-webservice python3.13 restart
 
 
 # become copy-svg-langs
-# toolforge-webservice python3.11 shell
+# toolforge-webservice python3.13 shell
 # source "$HOME/www/python/venv/bin/activate"
 # pip install -r $HOME/www/python/src/requirements.txt
 
 
-# toolforge-jobs run updatex --image python3.11 --command "$HOME/web_sh/update.sh webservice-sql" --wait
-# toolforge-webservice python3.11 restart
+# toolforge-jobs run updatex --image python3.13 --command "$HOME/web_sh/update.sh webservice-sql" --wait
+# toolforge-webservice python3.13 restart

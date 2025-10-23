@@ -131,7 +131,13 @@ def fail_task(
 
 
 # --- main pipeline --------------------------------------------
-def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_data: Dict[str, str]) -> None:
+def run_task(
+    db_data: Dict[str, str],
+    task_id: str,
+    title: str,
+    args: Any,
+    user_data: Dict[str, str]
+) -> None:
     """Execute the full SVG translation pipeline for a queued task.
 
     Parameters:
@@ -150,124 +156,118 @@ def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_
         "title": title,
     }
 
-    store = TaskStorePyMysql(db_data)
+    # store = TaskStorePyMysql(db_data)
+    with TaskStorePyMysql(db_data) as store:
+        stages_list = make_stages()
 
-    stages_list = make_stages()
+        # store.replace_stages(task_id, stages_list)
 
-    # store.replace_stages(task_id, stages_list)
+        store.update_data(task_id, task_snapshot)
+        store.update_status(task_id, "Running")
 
-    store.update_data(task_id, task_snapshot)
-    store.update_status(task_id, "Running")
+        def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
+            """Persist the latest state for a workflow stage to the database."""
+            state = stage_state if stage_state is not None else stages_list[stage_name]
+            store.update_stage(task_id, stage_name, state)
 
-    def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
-        """Persist the latest state for a workflow stage to the database."""
-        state = stage_state if stage_state is not None else stages_list[stage_name]
-        store.update_stage(task_id, stage_name, state)
+        # ----------------------------------------------
+        # Stage 1: extract text
+        text, stages_list["text"] = text_task(stages_list["text"], title)
+        push_stage("text")
+        if not text:
+            return fail_task(store, task_id, stages_list, "No text extracted")
 
-    # ----------------------------------------------
-    # Stage 1: extract text
-    text, stages_list["text"] = text_task(stages_list["text"], title)
-    push_stage("text")
-    if not text:
-        return fail_task(store, task_id, stages_list, "No text extracted")
+        # ----------------------------------------------
+        # Stage 2: extract titles
+        titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
+        push_stage("titles")
 
-    # ----------------------------------------------
-    # Stage 2: extract titles
-    titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
-    push_stage("titles")
+        main_title, titles = titles_result["main_title"], titles_result["titles"]
 
-    main_title, titles = titles_result["main_title"], titles_result["titles"]
+        if not titles:
+            return fail_task(store, task_id, stages_list, "No titles found")
 
-    if not titles:
-        return fail_task(store, task_id, stages_list, "No titles found")
+        if not main_title:
+            return fail_task(store, task_id, stages_list, "No main title found")
+        # ----------------------------------------------
+        # Stage 3: get translations
+        output_dir_main = output_dir / "files"
+        output_dir_main.mkdir(parents=True, exist_ok=True)
 
-    if not main_title:
-        return fail_task(store, task_id, stages_list, "No main title found")
-    # ----------------------------------------------
-    # Stage 3: get translations
-    output_dir_main = output_dir / "files"
-    output_dir_main.mkdir(parents=True, exist_ok=True)
+        translations, stages_list["translations"] = translations_task(stages_list["translations"], main_title, output_dir_main)
+        push_stage("translations")
 
-    translations, stages_list["translations"] = translations_task(stages_list["translations"], main_title, output_dir_main)
-    push_stage("translations")
+        if not translations:
+            return fail_task(store, task_id, stages_list, "No translations available")
 
-    if not translations:
-        return fail_task(store, task_id, stages_list, "No translations available")
+        # ----------------------------------------------
+        # Stage 4: download SVG files
+        files, stages_list["download"] = download_task(
+            task_id,
+            stages_list["download"],
+            output_dir_main,
+            titles,
+            store
+        )
+        push_stage("download")
 
-    # ----------------------------------------------
-    # Stage 4: download SVG files
-    def download_progress(stage_state: Dict[str, Any]) -> None:
-        """Forward download progress updates to the task store."""
-        state = stage_state if stage_state is not None else stages_list["download"]
-        store.update_stage(task_id, "download", state)
+        if not files:
+            return fail_task(store, task_id, stages_list, "No files downloaded")
 
-    files, stages_list["download"] = download_task(
-        stages_list["download"],
-        output_dir_main,
-        titles,
-        progress_updater=download_progress,
-    )
-    push_stage("download")
+        # ----------------------------------------------
+        # Stage 5: inject translations
+        injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
+        push_stage("inject")
 
-    if not files:
-        return fail_task(store, task_id, stages_list, "No files downloaded")
+        if not injects_result or injects_result.get("saved_done", 0) == 0:
+            return fail_task(store, task_id, stages_list, "Injection saved 0 files")
 
-    # ----------------------------------------------
-    # Stage 5: inject translations
-    injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
-    push_stage("inject")
+        inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
-    if not injects_result or injects_result.get("saved_done", 0) == 0:
-        return fail_task(store, task_id, stages_list, "Injection saved 0 files")
+        # ----------------------------------------------
+        # Stage 6: upload results
+        files_to_upload = {x: v for x, v in inject_files.items() if v.get("file_path")}
 
-    inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
+        no_file_path = len(inject_files) - len(files_to_upload)
 
-    # ----------------------------------------------
-    # Stage 6: upload results
-    files_to_upload = {x: v for x, v in inject_files.items() if v.get("file_path")}
+        upload_result, stages_list["upload"] = upload_task(
+            stages_list["upload"],
+            files_to_upload,
+            main_title,
+            do_upload=args.upload,
+            user=user_data,
+            store=store,
+            task_id=task_id,
+        )
 
-    no_file_path = len(inject_files) - len(files_to_upload)
+        push_stage("upload")
 
-    def upload_progress(stage_state: Dict[str, Any]) -> None:
-        """Forward upload progress updates to the task store."""
-        push_stage("upload", stage_state)
+        # ----------------------------------------------
+        # Stage 7: save stats and mark done
+        data = {
+            "main_title": main_title,
+            "translations": translations or {},
+            "titles": titles,
+            "files": files,
+            "injects_result": injects_result,
+        }
 
-    upload_result, stages_list["upload"] = upload_task(
-        stages_list["upload"],
-        files_to_upload,
-        main_title,
-        do_upload=args.upload,
-        user=user_data,
-        progress_updater=upload_progress,
-    )
-    push_stage("upload")
+        save_files_stats(data, output_dir)
 
-    # ----------------------------------------------
-    # Stage 7: save stats and mark done
-    data = {
-        "main_title": main_title,
-        "translations": translations or {},
-        "titles": titles,
-        "files": files,
-        "injects_result": injects_result,
-    }
+        results = make_results_summary(
+            len(files),
+            len(files_to_upload),
+            no_file_path,
+            injects_result,
+            translations,
+            main_title,
+            upload_result
+        )
 
-    save_files_stats(data, output_dir)
+        store.update_results(task_id, results)
 
-    results = make_results_summary(
-        len(files),
-        len(files_to_upload),
-        no_file_path,
-        injects_result,
-        translations,
-        main_title,
-        upload_result
-    )
+        final_status = "Failed" if any(s.get("status") == "Failed" for s in stages_list.values()) else "Completed"
+        stages_list["initialize"]["status"] = "Completed"
+        push_stage("initialize")
 
-    store.update_results(task_id, results)
-
-    final_status = "Failed" if any(s.get("status") == "Failed" for s in stages_list.values()) else "Completed"
-    stages_list["initialize"]["status"] = "Completed"
-    push_stage("initialize")
-
-    store.update_status(task_id, final_status)
+        store.update_status(task_id, final_status)

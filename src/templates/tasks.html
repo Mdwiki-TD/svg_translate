@@ -50,7 +50,7 @@
                     </code>
                 </td>
                 <td class="text-break">
-                    <a href="{{ url_for('task1', task_id=task.id) }}" class="text-decoration-none">
+                    <a href="{{ url_for('main.task1', task_id=task.id) }}" class="text-decoration-none">
                         {{ task.title }}
                     </a>
                 </td>
@@ -62,7 +62,7 @@
                 <td>{{ task.new_translations_count }}</td>
                 <td data-order="{{ task.created_at_sort }}">{{ task.created_at_display }}</td>
                 <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td>
-                <td>{{ task.user or "" }}</td>
+                <td>{{ task.username or "" }}</td>
             </tr>
             {% endfor %}
         </tbody>

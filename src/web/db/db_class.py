@@ -12,6 +12,10 @@ import pymysql
 logger = logging.getLogger(__name__)
 
 
+class MaxUserConnectionsError(Exception):
+    pass
+
+
 class Database:
     """Thin wrapper around a PyMySQL connection with convenience helpers."""
 
@@ -51,8 +55,12 @@ class Database:
         try:
             self._connect()
         except pymysql.MySQLError as exc:  # pragma: no cover - defensive
-            logger.info(f"Error connecting to the database: {exc}")
-            logger.exception("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
+            if self._exception_code(exc) == 1203:
+                logger.error("max_user_connections")
+                raise MaxUserConnectionsError from exc
+            else:
+                logger.info(f"Error connecting to the database: {exc}")
+                logger.exception("event=db_connect_failed host=%s db=%s", self.host, self.dbname)
             raise
 
     # ------------------------------------------------------------------
@@ -97,17 +105,31 @@ class Database:
                 finally:
                     self.connection = None
 
+    def close(self) -> None:
+        """Close the underlying PyMySQL connection."""
+        self._close_connection()
+
+    def __enter__(self) -> "Database":
+        return self
+
+    def __exit__(self, exc_type, exc, exc_tb) -> None:
+        self.close()
+
     # ------------------------------------------------------------------
     # Retry utilities
     # ------------------------------------------------------------------
-    def _should_retry(self, exc: BaseException) -> bool:
+    def _exception_code(self, exc: BaseException) -> int | None:
         if isinstance(exc, (pymysql.err.OperationalError, pymysql.err.InterfaceError)):
             try:
                 code = exc.args[0]
+                return code
             except (IndexError, TypeError):
-                return False
-            return code in self.RETRYABLE_ERROR_CODES
-        return False
+                return None
+        return None
+
+    def _should_retry(self, exc: BaseException) -> bool:
+        code = self._exception_code(exc)
+        return code in self.RETRYABLE_ERROR_CODES
 
     def _compute_backoff(self, attempt: int) -> float:
         return self.BASE_BACKOFF * (2 ** (attempt - 1)) + random.uniform(0, 0.1)

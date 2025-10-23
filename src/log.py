@@ -13,7 +13,7 @@ all_log_path = log_dir / "app.log"
 error_log_path = log_dir / "errors.log"
 
 # Create main logger
-logger = logging.getLogger("svg_translate")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Handler for all logs
@@ -28,15 +28,10 @@ error_handler.setLevel(logging.ERROR)
 error_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 error_handler.setFormatter(error_formatter)
 
-# Console (stdout) handler
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
 
 # Attach handlers
 logger.addHandler(all_handler)
 logger.addHandler(error_handler)
-logger.addHandler(console_handler)
 
 
 def config_console_logger(level=None):
@@ -51,4 +46,11 @@ def config_console_logger(level=None):
         'NOTSET',
     ]
     level = level or logging.INFO
+
+    # Console (stdout) handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    logger.addHandler(console_handler)
+
     console_handler.setLevel(level)

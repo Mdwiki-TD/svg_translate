@@ -5,97 +5,64 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-import mwclient
-from tqdm import tqdm
 import logging
+from tqdm import tqdm
 
+from .upload.upload_bot import upload_file
 
-try:  # pragma: no cover - maintain compatibility with both package layouts
-    from svg_translate.commons.upload_bot import upload_file
-except ImportError:  # pragma: no cover - fallback when running from src package
-    from src.svg_translate.commons.upload_bot import upload_file  # type: ignore[no-redef]
+from app.users.store import mark_token_used
+from app.wiki_client import build_upload_site
+
+from .db.task_store_pymysql import TaskStorePyMysql
 
 logger = logging.getLogger(__name__)
 PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
-ProgressUpdater = Optional[Callable[[Dict[str, Any]], None]]
 
 
-def _safe_invoke_callback(
-    callback: PerFileCallback,
-    index: int,
-    total: int,
-    target_path: Path,
-    status: str,
-) -> None:
-    """
-    Invoke a per-file progress callback if one is provided, catching and logging any exceptions.
-
-    Parameters:
-        callback (Optional[Callable[[int, int, Path, str], None]]): The per-file callback to invoke; may be None.
-        index (int): 1-based index of the file within the total upload batch.
-        total (int): Total number of files being uploaded.
-        target_path (Path): Path to the file that was (attempted to be) uploaded.
-        status (str): Upload status for the file (e.g., "success" or "failed").
-    """
-    if not callback:
-        return
-    try:
-        callback(index, total, target_path, status)
-    except Exception:  # pragma: no cover - defensive logging
-        logger.exception("Error while executing progress callback")
+def _coerce_encrypted(value: object) -> bytes | None:
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, bytearray):
+        return bytes(value)
+    if isinstance(value, memoryview):
+        return value.tobytes()
+    if isinstance(value, str):
+        return value.encode("utf-8")
+    return None
 
 
 def start_upload(
     files_to_upload: Dict[str, Dict[str, object]],
     main_title_link: str,
-    username_value: str,
-    password_value: str,
-    per_file_callback: PerFileCallback = None,
+    site,
+    stages,
+    message_updater: PerFileCallback = None,
 ):
-    """
-    Upload multiple files to Wikimedia Commons and invoke a per-file progress callback.
-
-    Parameters:
-        files_to_upload (Dict[str, Dict[str, object]]): Mapping from target file name to metadata. Each value may include:
-            - "file_path" (str): local path to the file to upload.
-            - "new_languages" (Any): optional value used to build the upload summary.
-        main_title_link (str): Wiki-file link (e.g., "[[:File:Title]]") used in the upload summary.
-        username_value (str): Wikimedia username used to authenticate the upload.
-        password_value (str): Wikimedia password used to authenticate the upload.
-        per_file_callback (Optional[Callable[[int, int, Path, str], None]]): Optional callback invoked after each file with
-            parameters (index, total, target_path, status) where status is "success" or "failed".
-
-    Returns:
-        dict: Summary of the upload run with keys:
-            - "done" (int): number of successfully uploaded files.
-            - "not_done" (int): number of files that failed to upload.
-            - "errors" (List[Any]): collected error messages from failed uploads.
-    """
-    site = mwclient.Site("commons.m.wikimedia.org")
-
-    try:
-        site.login(username_value, password_value)
-    except mwclient.errors.LoginError as exc:  # pragma: no cover - network interaction
-        print(f"Could not login error: {exc}")
-
-    if site.logged_in:
-        print(f"<<yellow>>logged in as {site.username}.")
+    """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
     done = 0
     not_done = 0
+    no_changes = 0
     errors = []
 
     items = list(files_to_upload.items())
     total = len(items)
+
+    if getattr(site, "logged_in", False):
+        username = getattr(site, "username", "")
+        if username:
+            logger.debug(f"<<yellow>>logged in as {username}.")
 
     for index, (file_name, file_data) in enumerate(
         tqdm(items, desc="uploading files", total=total),
         start=1,
     ):
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
-        print(f"start uploading file: {file_name}.")
+        logger.debug(f"start uploading file: {file_name}.")
         summary = (
-            f"Adding {file_data['new_languages']} languages translations from {main_title_link}"
+            f"Adding {file_data.get('new_languages')} languages translations from {main_title_link}"
             if isinstance(file_data, dict) and "new_languages" in file_data
             else f"Adding translations from {main_title_link}"
         )
@@ -103,25 +70,36 @@ def start_upload(
             file_name,
             file_path,
             site=site,
-            username=username_value,
-            password=password_value,
             summary=summary,
         ) or {}
-        result = upload.get("result") if isinstance(upload, dict) else None
-        print(f"upload: {result}")
 
-        status = "success" if result == "Success" else "failed"
+        result = upload.get("result") if isinstance(upload, dict) else None
+
+        logger.debug(f"upload result: {result}")
+
         if result == "Success":
             done += 1
+        elif result == "fileexists-no-change":
+            no_changes += 1
         else:
             not_done += 1
             if isinstance(upload, dict) and "error" in upload:
                 errors.append(upload.get("error"))
 
-        target_path = Path(file_path) if file_path else Path(file_name)
-        _safe_invoke_callback(per_file_callback, index, total, target_path, status)
+        stages["message"] = (
+            f"Total Files: {total:,}, "
+            f"uploaded {done:,}, "
+            f"no changes: {no_changes:,}, "
+            f"not uploaded: {not_done:,}"
+        )
+        if message_updater:
+            message_updater(stages["message"])
 
-    return {"done": done, "not_done": not_done, "errors": errors}
+    stages["status"] = "Failed" if not_done else "Completed"
+
+    upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
+
+    return upload_result, stages
 
 
 def upload_task(
@@ -130,110 +108,85 @@ def upload_task(
     main_title: str,
     do_upload: Optional[bool] = None,
     user: Dict[str, str] = None,
-    progress_updater: ProgressUpdater = None,
+    store: TaskStorePyMysql =None,
+    task_id: str = "",
 ):
     """
     Coordinate and run the file upload process, updating stage status and progress as files are processed.
-
-    Parameters:
-        stages (Dict[str, str]): Mutable stage state; this function updates "status" and "message" to reflect progress and final outcome.
-        files_to_upload (Dict[str, Dict[str, object]]): Mapping of filenames to their upload metadata; determines the total files to process.
-        main_title (str): Title used to construct the main file link included in upload summaries.
-        do_upload (Optional[bool]): Feature flag that enables or disables performing uploads; falsy values cause the task to skip uploading.
-        progress_updater (Optional[Callable[[], None]]): Optional callback invoked after each per-file progress update and once at completion; exceptions from this callback are caught and logged.
-
-    Returns:
-        upload_result (Dict[str, object]), stages (Dict[str, str]):
-                - upload_result: Summary of upload outcomes with keys:
-                        - "done" (int): number of successfully uploaded files.
-                        - "not_done" (int): number of files that were not uploaded.
-                        - "errors" (List[str], optional): collected error messages from failed uploads.
-                        - "skipped" (bool, optional): true when the upload was skipped and "reason" provides why.
-                - stages: The final stage state dictionary (same object passed in) with updated "status" and "message".
     """
+
+    def progress_updater(stage_state: Dict[str, Any]) -> None:
+        """Forward upload progress updates to the task store."""
+        store.update_stage(task_id, "upload", stage_state or stages)
+
     total = len(files_to_upload)
     stages["status"] = "Running"
     stages["message"] = f"Uploading files 0/{total:,}"
 
-    if progress_updater:
-        progress_updater(stages)
+    progress_updater(stages)
 
     if not do_upload:
         stages["status"] = "Skipped"
         stages["message"] += " (Upload disabled)"
-        if progress_updater:
-            progress_updater(stages)
+        progress_updater(stages)
         return {"done": 0, "not_done": total, "skipped": True, "reason": "disabled"}, stages
 
     if not files_to_upload:
         stages["status"] = "Skipped"
         stages["message"] += " (No files to upload)"
-        if progress_updater:
-            progress_updater(stages)
+        progress_updater(stages)
         return {"done": 0, "not_done": 0, "skipped": True, "reason": "no-input"}, stages
 
-    if not user.get("username") or not user.get("password"):
+    user = user or {}
+    access_token = _coerce_encrypted(user.get("access_token"))
+    access_secret = _coerce_encrypted(user.get("access_secret"))
+
+    if not access_token or not access_secret:
         stages["status"] = "Failed"
-        stages["message"] += " (Missing credentials)"
-        if progress_updater:
-            progress_updater(stages)
+        stages["message"] += " (Missing OAuth credentials)"
+        # ---
+        progress_updater(stages)
+        # ---
         return {
             "done": 0,
             "not_done": total,
             "skipped": True,
-            "reason": "missing-creds",
+            "reason": "missing-token",
         }, stages
+
+    try:
+        site = build_upload_site(access_token, access_secret)
+    except Exception as exc:  # pragma: no cover - network interaction
+        logger.exception("Failed to build OAuth site", exc_info=exc)
+        stages["status"] = "Failed"
+        stages["message"] += " (OAuth authentication failed)"
+        progress_updater(stages)
+        return {
+            "done": 0,
+            "not_done": total,
+            "skipped": True,
+            "reason": "oauth-auth-failed",
+        }, stages
+
+    user_id = user.get("id") if isinstance(user, dict) else None
+
+    if isinstance(user_id, int):
+        try:
+            mark_token_used(user_id)
+        except Exception:  # pragma: no cover - defensive logging
+            logger.exception("Failed to record token usage", extra={"user_id": user_id})
 
     main_title_link = f"[[:File:{main_title}]]"
 
-    counts = {"success": 0, "failed": 0}
+    def message_updater(value: str) -> None:
+        store.update_stage_column(task_id, "upload", "stage_message", value)
 
-    def per_file_callback(index: int, total_items: int, _path: Path, status: str) -> None:
-        """
-        Update upload counters and the stage message for a single file, then invoke the progress updater if provided.
-
-        Parameters:
-            index (int): 1-based index of the current file in the upload sequence.
-            total_items (int): Total number of files being uploaded.
-            _path (Path): Path of the file; accepted for callback signature compatibility and not used.
-            status (str): Upload outcome for the file; expected values include "success" or other strings indicating failure.
-
-        Notes:
-            - Increments the appropriate counter for success or failure and sets the stage message to reflect the current progress (for example, "Uploaded 3/10" or "Failed 2/10").
-            - If a progress_updater is provided, it will be called; exceptions from the updater are caught and logged.
-        """
-        if status == "success":
-            counts["success"] += 1
-            prefix = "Uploaded"
-        else:
-            counts["failed"] += 1
-            prefix = "Failed"
-
-        stages["message"] = f"{prefix} {index:,}/{total_items:,}"
-
-        if progress_updater:
-            progress_updater(stages)
-
-    upload_result = start_upload(
+    upload_result, stages = start_upload(
         files_to_upload,
         main_title_link,
-        user.get("username"),
-        user.get("password"),
-        per_file_callback=per_file_callback,
+        site,
+        stages,
+        message_updater,
     )
-
-    stages["message"] = (
-        f"Total Files: {total:,}, "
-        f"Files uploaded {upload_result['done']:,}, "
-        f"Files not uploaded: {upload_result['not_done']:,}"
-    )
-
-    if upload_result["not_done"]:
-        stages["status"] = "Failed"
-    else:
-        stages["status"] = "Completed"
-
-    if progress_updater:
-        progress_updater(stages)
 
     return upload_result, stages
