@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from os import error
 import secrets
 from collections.abc import Sequence
 from typing import Any
@@ -51,13 +52,19 @@ def login() -> Response:
         return redirect(url_for("main.index"))
 
     if not login_rate_limiter.allow(_client_key()):
-        return "Too many login attempts. Please try again later.", 429
+        time_left = login_rate_limiter.try_after(_client_key()).total_seconds()
+        time_left = str(time_left).split(".")[0]
+        return redirect(url_for("main.index", error=f"Too many login attempts. Please try again after {time_left}s."))
 
     state_nonce = secrets.token_urlsafe(32)
     session[settings.STATE_SESSION_KEY] = state_nonce
+    try:
+        redirect_url, request_token = start_login(sign_state_token(state_nonce))
+    except Exception:
+        logger.exception("Failed to start OAuth login")
+        return redirect(url_for("main.index", error="Failed to initiate OAuth login"))
 
-    redirect_url, request_token = start_login(sign_state_token(state_nonce))
-    session["request_token"] = list(request_token)
+    session["request_token"]=list(request_token)
     return redirect(redirect_url)
 
 
@@ -79,50 +86,50 @@ def callback() -> Response:
     if not callback_rate_limiter.allow(_client_key()):
         return redirect(url_for("main.index", error="Too many login attempts"))
 
-    expected_state = session.pop(settings.STATE_SESSION_KEY, None)
-    returned_state = request.args.get("state")
+    expected_state=session.pop(settings.STATE_SESSION_KEY, None)
+    returned_state=request.args.get("state")
     if not expected_state or not returned_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
 
-    verified_state = verify_state_token(returned_state)
+    verified_state=verify_state_token(returned_state)
     if verified_state != expected_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
 
-    raw_request_token = session.pop("request_token", None)
-    oauth_verifier = request.args.get("oauth_verifier")
+    raw_request_token=session.pop("request_token", None)
+    oauth_verifier=request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
     try:
-        request_token = _load_request_token(raw_request_token)
+        request_token=_load_request_token(raw_request_token)
     except ValueError:
         logger.exception("Invalid OAuth request token")
         return redirect(url_for("main.index", error="Invalid request token"))
 
-    response_qs = urlencode(request.args)
+    response_qs=urlencode(request.args)
 
     try:
-        access_token, identity = complete_login(request_token, response_qs)
+        access_token, identity=complete_login(request_token, response_qs)
     except OAuthIdentityError:
         logger.exception("OAuth identity verification failed")
         return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
 
-    token_key = getattr(access_token, "key", None)
-    token_secret = getattr(access_token, "secret", None)
+    token_key=getattr(access_token, "key", None)
+    token_secret=getattr(access_token, "secret", None)
     if not (token_key and token_secret) and isinstance(access_token, Sequence):
-        token_key = access_token[0]
-        token_secret = access_token[1]
+        token_key=access_token[0]
+        token_secret=access_token[1]
 
     if not (token_key and token_secret):
         current_app.logger.error("OAuth access token missing key/secret")
 
         return redirect(url_for("main.index", error="Missing credentials"))
 
-    username = identity.get("username") or identity.get("name")
+    username=identity.get("username") or identity.get("name")
     if not username:
         return redirect(url_for("main.index", error="Missing username"))
 
-    user_identifier = (
+    user_identifier=(
         identity.get("sub")
         or identity.get("id")
         or identity.get("central_id")
@@ -132,7 +139,7 @@ def callback() -> Response:
         return redirect(url_for("main.index", error="Missing user identifier"))
 
     try:
-        user_id = int(user_identifier)
+        user_id=int(user_identifier)
     except (TypeError, ValueError):
         logger.exception("Invalid user identifier")
         return redirect(url_for("main.index", error="Invalid user identifier"))
@@ -144,10 +151,10 @@ def callback() -> Response:
         access_secret=str(token_secret),
     )
 
-    session["uid"] = user_id
-    session["username"] = username
+    session["uid"]=user_id
+    session["username"]=username
 
-    response = make_response(
+    response=make_response(
         redirect(session.pop("post_login_redirect", url_for("main.index")))
     )
     response.set_cookie(
@@ -164,17 +171,17 @@ def callback() -> Response:
 
 @bp_auth.get("/logout")
 def logout() -> Response:
-    user_id = session.pop("uid", None)
+    user_id=session.pop("uid", None)
     session.pop("username", None)
 
     if user_id is None:
-        signed = request.cookies.get(settings.cookie.name)
+        signed=request.cookies.get(settings.cookie.name)
         if signed:
-            user_id = extract_user_id(signed)
+            user_id=extract_user_id(signed)
 
     if isinstance(user_id, int):
         delete_user_token(user_id)
 
-    response = make_response(redirect(url_for("main.index")))
+    response=make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
     return response

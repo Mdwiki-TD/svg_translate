@@ -30,6 +30,19 @@ class RateLimiter:
             hits.append(now)
             return True
 
+    def try_after(self, key: str) -> timedelta:
+        """Return the time until the key is allowed to proceed."""
+
+        now = datetime.now(timezone.utc)
+        with self._lock:
+            hits = self._hits.setdefault(key, deque())
+            while hits and now - hits[0] > self._period:
+                hits.popleft()
+            if len(hits) >= self._limit:
+                time_left = self._period - (now - hits[0])
+                return time_left
+            return timedelta(0)
+
 
 login_rate_limiter = RateLimiter(limit=5, period=timedelta(minutes=1))
 callback_rate_limiter = RateLimiter(limit=10, period=timedelta(minutes=1))
