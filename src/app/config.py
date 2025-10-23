@@ -44,8 +44,7 @@ class OAuthConfig:
     consumer_key: str
     consumer_secret: str
     user_agent: str
-    api_host: str
-    api_path: str
+    upload_host: str
 
 
 @dataclass(frozen=True)
@@ -74,8 +73,7 @@ def _load_oauth_config() -> Optional[OAuthConfig]:
         user_agent=os.getenv(
             "USER_AGENT", "SVGTranslate/1.0 (svgtranslate@example.org)"
         ),
-        api_host=os.getenv("OAUTH_API_HOST", "commons.wikimedia.org"),
-        api_path=os.getenv("OAUTH_API_PATH", "/w/"),
+        upload_host=os.getenv("UPLOAD_END_POINT", "commons.wikimedia.org"),
     )
 
 

@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .upload.upload_bot import upload_file
 
 from app.users.store import mark_token_used
-from app.wiki_client import build_oauth_site
+from app.wiki_client import build_upload_site
 
 from .db.task_store_pymysql import TaskStorePyMysql
 
@@ -155,7 +155,7 @@ def upload_task(
         }, stages
 
     try:
-        site = build_oauth_site(access_token, access_secret)
+        site = build_upload_site(access_token, access_secret)
     except Exception as exc:  # pragma: no cover - network interaction
         logger.exception("Failed to build OAuth site", exc_info=exc)
         stages["status"] = "Failed"

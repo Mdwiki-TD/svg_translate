@@ -101,7 +101,7 @@ class TestStartUpload:
 
 class TestUploadTask:
     @patch("src.web.upload_task.mark_token_used")
-    @patch("src.web.upload_task.build_oauth_site")
+    @patch("src.web.upload_task.build_upload_site")
     @patch("src.web.upload_task.start_upload")
     def test_upload_task_success(
         self,
@@ -149,7 +149,7 @@ class TestUploadTask:
         assert "Missing OAuth credentials" in updated_stages["message"]
 
     @patch("src.web.upload_task.mark_token_used")
-    @patch("src.web.upload_task.build_oauth_site", side_effect=RuntimeError("boom"))
+    @patch("src.web.upload_task.build_upload_site", side_effect=RuntimeError("boom"))
     def test_upload_task_oauth_failure(
         self, mock_build_site, mock_mark_token_used, sample_files_to_upload
     ):
@@ -169,7 +169,7 @@ class TestUploadTask:
         mock_mark_token_used.assert_not_called()
 
     @patch("src.web.upload_task.mark_token_used")
-    @patch("src.web.upload_task.build_oauth_site")
+    @patch("src.web.upload_task.build_upload_site")
     @patch("src.web.upload_task.start_upload")
     def test_upload_task_updates_message(
         self,
