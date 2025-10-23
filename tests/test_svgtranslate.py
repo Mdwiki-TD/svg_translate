@@ -10,7 +10,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from svg_translate import extract, inject, normalize_text, generate_unique_id
+from CopySvgTranslate import extract, inject
+from CopySvgTranslate.text_utils import normalize_text, generate_unique_id
 
 
 class TestSVGTranslate(unittest.TestCase):
