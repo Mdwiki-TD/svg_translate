@@ -18,7 +18,7 @@ def get_wikitext(title, project="commons.wikimedia.org"):
     api_url = f"https://{project}/w/api.php"
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "WikiMedBot/1.0 (https://meta.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)"
+        "User-Agent": "WikiMedBot/1.0 (https://commons.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)"
     })
 
     params = {
