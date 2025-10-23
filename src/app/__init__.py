@@ -10,6 +10,8 @@ from .tasks.routes import bp_main
 from .users.current import context_user
 from .users.store import ensure_user_token_table
 
+from .cookies import CookieHeaderClient
+
 
 def create_app() -> Flask:
     app = Flask(
@@ -17,6 +19,7 @@ def create_app() -> Flask:
         template_folder="../templates",
         static_folder="../static",
     )
+    app.test_client_class = CookieHeaderClient
     app.secret_key = settings.secret_key
     app.config.update(
         SESSION_COOKIE_HTTPONLY=settings.session_cookie_httponly,
