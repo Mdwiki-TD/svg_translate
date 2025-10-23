@@ -2,9 +2,10 @@ import json
 import html
 from urllib.parse import quote
 import logging
-
+from typing import Any
 from CopySvgTranslate import start_injects, extract
 from .commons import get_files, get_wikitext
+
 from .download_task import download_one_file
 
 logger = logging.getLogger(__name__)
@@ -209,25 +210,16 @@ def translations_task(stages, main_title, output_dir_main):
     return translations, stages
 
 
-def inject_task(stages, files, translations, output_dir=None, overwrite=False):
+def inject_task(
+    stages: dict,
+    files: list[str],
+    translations,
+    output_dir=None,
+    overwrite=False
+) -> tuple[dict, dict]:
     # ---
     """
     Perform translation injection on a list of files and write translated outputs under output_dir/translated.
-
-    Parameters:
-        stages (dict): Mutable status object updated in-place with keys like "status", "message", and "sub_name".
-        files (Sequence[pathlib.Path] or list): Iterable of file paths to process.
-        translations (dict): Mapping of translation data used for injections.
-        output_dir (pathlib.Path): Directory where a "translated" subdirectory will be created to store outputs.
-        overwrite (bool): If true, existing translated files may be overwritten.
-
-    Returns:
-        tuple: (injects_result, stages)
-            injects_result (dict): Summary of injection outcomes containing at least:
-                - "saved_done" (int): number of files written.
-                - "no_save" (int): number of files skipped.
-                - "nested_files" (int): number of nested files encountered.
-            stages (dict): The same stages object passed in, updated with final status and message.
     """
     if output_dir is None:
         stages["status"] = "Failed"
@@ -240,7 +232,7 @@ def inject_task(stages, files, translations, output_dir=None, overwrite=False):
     output_dir_translated = output_dir / "translated"
     output_dir_translated.mkdir(parents=True, exist_ok=True)
     # ---
-    injects_result = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
+    injects_result: dict[str, Any] = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
     # ---
     stages["message"] = f"inject ({len(files):,}) files: Done {injects_result['saved_done']:,}, Skipped {injects_result['no_save']:,}, nested files: {injects_result['nested_files']:,}"
     # ---

@@ -131,7 +131,7 @@ def download_task(
         stages["message"] = f"Downloading {index:,}/{len(titles):,}"
 
         if result["path"]:
-            files.append(result["path"])
+            files.append(str(result["path"]))
 
         stages["message"] = (
             f"Total Files: {total:,}, "
