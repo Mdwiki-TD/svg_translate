@@ -91,6 +91,7 @@ class StageStore:
         }
         if column_name not in allowed_cols:
             logger.error(f"Illegal stage column: {column_name!r}")
+            return
 
         now = _current_ts()
         try:

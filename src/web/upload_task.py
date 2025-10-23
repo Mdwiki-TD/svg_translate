@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .upload import upload_file
 
 # from .auth import Site
-from .auth import build_site
+from ..app.auth import build_site
 
 from .db.task_store_pymysql import TaskStorePyMysql
 

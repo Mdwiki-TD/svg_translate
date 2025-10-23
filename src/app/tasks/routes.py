@@ -23,7 +23,7 @@ from flask import (
 
 from svg_config import db_data
 
-from web.auth import oauth_required
+from app.auth import oauth_required
 from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from web.web_run_task import run_task
 
