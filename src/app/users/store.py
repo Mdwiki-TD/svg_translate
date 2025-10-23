@@ -70,7 +70,7 @@ def ensure_user_token_table() -> None:
     """Create the user_tokens table if it does not already exist."""
 
     with _get_db() as db:
-        return db.execute_query_safe(
+        db.execute_query_safe(
             """
             CREATE TABLE IF NOT EXISTS user_tokens (
                 user_id INT PRIMARY KEY,
