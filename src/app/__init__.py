@@ -8,9 +8,9 @@ from flask import Flask
 
 from .auth.routes import bp_auth
 from .config import settings
-from .tasks.routes import bp_main
+from .tasks.routes import bp_main, close_task_store
 from .users.current import context_user
-from .users.store import ensure_user_token_table
+from .users.store import ensure_user_token_table, close_cached_db
 
 from .cookies import CookieHeaderClient
 
@@ -43,5 +43,10 @@ def create_app() -> Flask:
         return context_user()
 
     app.jinja_env.globals.setdefault("USE_MW_OAUTH", settings.use_mw_oauth)
+
+    @app.teardown_appcontext
+    def _cleanup_connections(exception: Exception | None) -> None:  # pragma: no cover - teardown
+        close_cached_db()
+        close_task_store()
 
     return app

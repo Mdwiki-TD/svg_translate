@@ -67,6 +67,13 @@ def _task_store() -> TaskStorePyMysql:
     return TASK_STORE
 
 
+def close_task_store() -> None:
+    """Close the cached :class:`TaskStorePyMysql` instance if present."""
+
+    if TASK_STORE is not None:
+        TASK_STORE.close()
+
+
 def _task_lock() -> threading.Lock:
     global TASKS_LOCK
     if TASKS_LOCK is None:
