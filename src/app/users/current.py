@@ -44,7 +44,7 @@ def current_user() -> Optional[UserTokenRecord]:
     return user
 
 
-def require_login(func: F) -> F:
+def oauth_required(func: F) -> F:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
         if settings.use_mw_oauth and not current_user():
