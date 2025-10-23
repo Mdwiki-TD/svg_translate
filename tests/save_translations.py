@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from svg_translate import extract
+from CopySvgTranslate import extract
 import json
 
 from pathlib import Path

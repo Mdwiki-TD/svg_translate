@@ -5,8 +5,8 @@ import random
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
-from svg_translate.user_info import username, password
-from svg_translate import upload_file
+from CopySvgTranslate.user_info import username, password
+from CopySvgTranslate import upload_file
 
 files_stats_path = Path(__file__).parent.parent.parent / "svg_data/files_stats.json"
 

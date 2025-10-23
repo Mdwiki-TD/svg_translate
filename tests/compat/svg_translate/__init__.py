@@ -6,7 +6,7 @@ import json
 import shutil
 from typing import Iterable, Mapping, MutableMapping, Optional
 
-_pkg = import_module("src.svg_translate")
+_pkg = import_module("src.CopySvgTranslate")
 
 __all__ = list(getattr(_pkg, "__all__", []))
 __doc__ = getattr(_pkg, "__doc__", None)
@@ -15,7 +15,7 @@ for name in __all__:
     globals()[name] = getattr(_pkg, name)
 
 # Ensure both the installed package path and this compatibility wrapper are
-# searched when importing submodules (e.g. ``svg_translate.commons``).
+# searched when importing submodules (e.g. ``CopySvgTranslate.commons``).
 _current_dir = Path(__file__).resolve().parent
 _pkg_path = list(getattr(_pkg, "__path__", []))
 if str(_current_dir) not in _pkg_path:
@@ -36,7 +36,7 @@ for name, value in _pkg.__dict__.items():
 _core_extract = getattr(_pkg, "extract")
 
 try:  # pragma: no cover - protective import, mirrors runtime layout
-    from src.svg_translate.svgpy.bots.inject_bot import _inject as _core_inject
+    from src.CopySvgTranslate.svgpy.bots.inject_bot import _inject as _core_inject
 except Exception as exc:  # pragma: no cover - executed only if layout changes
     raise ImportError("The compatibility layer could not import the SVG inject implementation") from exc
 
@@ -70,7 +70,7 @@ def _simplify_translations(data: Mapping[str, object]) -> MutableMapping[str, Mu
 
 
 def extract(svg_file_path, output_path=None, *, case_insensitive=False):
-    """Test-friendly wrapper around :func:`src.svg_translate.extract`."""
+    """Test-friendly wrapper around :func:`src.CopySvgTranslate.extract`."""
 
     result = _core_extract(svg_file_path, case_insensitive=case_insensitive)
     if result is None:

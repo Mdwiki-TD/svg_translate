@@ -1,5 +1,5 @@
 
-from svg_translate import get_files
+from CopySvgTranslate import get_files
 
 from pathlib import Path
 tests_files_dir = Path(__file__).parent.parent / "tests_files"

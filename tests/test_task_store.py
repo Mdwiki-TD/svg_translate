@@ -3,7 +3,7 @@ import threading
 import unittest
 from pathlib import Path
 
-from svg_translate.task_store import TaskAlreadyExistsError, TaskStore
+from CopySvgTranslate.task_store import TaskAlreadyExistsError, TaskStore
 from web.web_run_task import make_stages
 
 
