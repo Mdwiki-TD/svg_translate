@@ -41,12 +41,12 @@ jobs:
               cp -r /mnt/nfs/labstore-secondary-tools-home/${{ secrets.USERNAME }}/svg_tr_repo_tmp ~/svg_tr_repo &&
               cp -r ~/svg_tr_repo/web_sh/* ~/web_sh &&
               chmod -R 770 ~/web_sh &&
-              toolforge-jobs run update --image python3.11 --command ~/web_sh/update.sh --wait &&
+              toolforge-jobs run update --image python3.13 --command ~/web_sh/update.sh --wait &&
               rm -rf ~/svg_tr_repo &&
               echo \"Updated on: $(date '+%Y-%m-%d %H:%M:%S')\" > ~/update_from_github &&
-              toolforge-jobs run pipup --image python3.11 --command ~/web_sh/pip.sh --wait &&
-              toolforge-webservice python3.11 stop &&
-              toolforge-webservice python3.11 start &&
+              toolforge-jobs run pipup --image python3.13 --command ~/web_sh/pip.sh --wait &&
+              toolforge-webservice python3.13 stop &&
+              toolforge-webservice python3.13 start &&
               echo ''
             "
             rm -rf svg_tr_repo_tmp
