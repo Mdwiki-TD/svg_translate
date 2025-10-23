@@ -34,9 +34,6 @@ class CookieHeaderClient(FlaskClient):
             parsed.load(raw_cookie)
             server_name = self.application.config.get("SERVER_NAME") or "localhost"
             for key, morsel in parsed.items():
-                if server_name:
-                    super().set_cookie(key, morsel.value, domain=server_name)
-                else:
-                    super().set_cookie(key, morsel.value)
+                super().set_cookie(key, morsel.value, domain=server_name)
 
         return super().open(*args, **kwargs)

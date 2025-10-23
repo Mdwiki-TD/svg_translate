@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import logging
-from os import error
 import secrets
 from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlencode
-
-import mwoauth
-
 from flask import (
     Blueprint,
     Response,
@@ -116,7 +112,7 @@ def callback() -> Response:
 
     token_key=getattr(access_token, "key", None)
     token_secret=getattr(access_token, "secret", None)
-    if not (token_key and token_secret) and isinstance(access_token, Sequence):
+    if not (token_key and token_secret) and isinstance(access_token, Sequence) and len(access_token) >= 2:
         token_key=access_token[0]
         token_secret=access_token[1]
 
