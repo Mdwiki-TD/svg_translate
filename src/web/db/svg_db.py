@@ -4,12 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from collections.abc import Mapping
-
-from src import svg_config
-
+from ... import svg_config
 from .db_class import Database
-
 
 db_data = svg_config.db_data
 
