@@ -43,8 +43,8 @@ def close_cached_db() -> None:
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""
 
-    db = _get_db()
     try:
+        db = _get_db()
         db.execute_query(
             "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
             (user_id,),
