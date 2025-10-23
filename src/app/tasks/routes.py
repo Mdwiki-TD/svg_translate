@@ -70,7 +70,7 @@ def _task_store() -> TaskStorePyMysql:
 def _task_lock() -> threading.Lock:
     global TASKS_LOCK
     if TASKS_LOCK is None:
-        TASKS_LOCK = threading.Lock
+        TASKS_LOCK = threading.Lock()
     return TASKS_LOCK
 
 
