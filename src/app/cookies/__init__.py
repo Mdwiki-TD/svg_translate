@@ -32,11 +32,29 @@ class CookieHeaderClient(FlaskClient):
         if raw_cookie:
             parsed = SimpleCookie()
             parsed.load(raw_cookie)
-            server_name = self.application.config.get("SERVER_NAME")
+            server_name = self.application.config.get("SERVER_NAME") or "localhost"
             for key, morsel in parsed.items():
-                if server_name:
-                    super().set_cookie(key, morsel.value, domain=server_name)
-                else:
-                    super().set_cookie(key, morsel.value)
+                cookie_params: dict[str, Any] = {}
+
+                if morsel["expires"]:
+                    cookie_params["expires"] = morsel["expires"]
+                if morsel["path"]:
+                    cookie_params["path"] = morsel["path"]
+                if morsel["domain"]:
+                    cookie_params["domain"] = morsel["domain"]
+                if morsel["max-age"]:
+                    max_age_value = morsel["max-age"]
+                    try:
+                        cookie_params["max_age"] = int(max_age_value)
+                    except (TypeError, ValueError):
+                        cookie_params["max_age"] = max_age_value
+                if morsel["secure"]:
+                    cookie_params["secure"] = True
+                if morsel["httponly"]:
+                    cookie_params["httponly"] = True
+                if morsel["samesite"]:
+                    cookie_params["samesite"] = morsel["samesite"]
+
+                super().set_cookie(server_name, key, morsel.value, **cookie_params)
 
         return super().open(*args, **kwargs)
