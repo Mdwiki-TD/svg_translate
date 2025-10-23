@@ -7,8 +7,19 @@ import secrets
 from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlencode
-from flask import (Blueprint, Response, current_app, make_response, redirect,
-                   request, session, url_for)
+
+import mwoauth
+
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    make_response,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 
 from ..config import settings
 from ..users.store import delete_user_token, upsert_user_token
@@ -22,7 +33,6 @@ from .oauth import (
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
-
 bp_auth = Blueprint("auth", __name__)
 
 
@@ -42,7 +52,7 @@ def login() -> Response:
         return "Too many login attempts. Please try again later.", 429
 
     state_nonce = secrets.token_urlsafe(32)
-    session["oauth_state_nonce"] = state_nonce
+    session[settings.STATE_SESSION_KEY] = state_nonce
 
     redirect_url, request_token = start_login(sign_state_token(state_nonce))
     session["request_token"] = list(request_token)
@@ -67,7 +77,7 @@ def callback() -> Response:
     if not callback_rate_limiter.allow(_client_key()):
         return redirect(url_for("main.index", error="Too many login attempts"))
 
-    expected_state = session.pop("oauth_state_nonce", None)
+    expected_state = session.pop(settings.STATE_SESSION_KEY, None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
