@@ -131,7 +131,13 @@ def fail_task(
 
 
 # --- main pipeline --------------------------------------------
-def run_task(db_data: Dict[str, str], task_id: str, title: str, args: Any, user_data: Dict[str, str]) -> None:
+def run_task(
+    db_data: Dict[str, str],
+    task_id: str,
+    title: str,
+    args: Any,
+    user_data: Dict[str, str]
+) -> None:
     """Execute the full SVG translation pipeline for a queued task.
 
     Parameters:

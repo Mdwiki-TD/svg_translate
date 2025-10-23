@@ -48,7 +48,7 @@ try:
 except ValueError:
     AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60
 
-REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "")
+REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "state")
 STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
 COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
 STATE_SALT = os.getenv("STATE_SALT", "svg-translate-state")
