@@ -22,7 +22,7 @@ from flask import (
 )
 
 from ..config import settings
-from ..users.store import delete_user_token, upsert_user_token
+
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
 from .oauth import (
     IDENTITY_ERROR_MESSAGE,
@@ -30,6 +30,8 @@ from .oauth import (
     complete_login,
     start_login,
 )
+
+from ..users.store import delete_user_token, upsert_user_token
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
