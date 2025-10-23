@@ -54,7 +54,8 @@ class CookieHeaderClient(FlaskClient):
                     cookie_params["httponly"] = True
                 if morsel["samesite"]:
                     cookie_params["samesite"] = morsel["samesite"]
-
-                super().set_cookie(server_name, key, morsel.value, **cookie_params)
+                if "domain" not in cookie_params:
+                    cookie_params["domain"] = server_name
+                super().set_cookie(key, morsel.value, **cookie_params)
 
         return super().open(*args, **kwargs)
