@@ -4,8 +4,10 @@ from __future__ import annotations
 import sys
 
 import svg_config  # load_dotenv()
+from log import config_console_logger  # load_dotenv()
 
 from app import create_app
+config_console_logger()
 
 app = create_app()
 
