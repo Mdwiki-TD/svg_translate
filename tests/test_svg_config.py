@@ -45,4 +45,3 @@ class TestSvgConfig:
         assert not data_dir.exists()
         reload_svg_config(monkeypatch)
         assert data_dir.exists()
-

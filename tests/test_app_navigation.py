@@ -8,8 +8,8 @@ import pytest
 @pytest.fixture
 def app_fixture(monkeypatch):
     monkeypatch.setenv("OAUTH_ENCRYPTION_KEY", "stub-key")
-    monkeypatch.setenv("CONSUMER_KEY", "ck")
-    monkeypatch.setenv("CONSUMER_SECRET", "cs")
+    monkeypatch.setenv("OAUTH_CONSUMER_KEY", "ck")
+    monkeypatch.setenv("OAUTH_CONSUMER_SECRET", "cs")
     monkeypatch.setenv("OAUTH_MWURI", "https://example.org/w/index.php")
 
     store = MagicMock()
