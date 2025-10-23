@@ -13,7 +13,6 @@ from flask import (Blueprint, Response, current_app, make_response, redirect,
 from ..config import settings
 from ..users.store import delete_user_token, upsert_user_token
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
-
 from .oauth import (
     IDENTITY_ERROR_MESSAGE,
     OAuthIdentityError,
