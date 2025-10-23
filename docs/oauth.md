@@ -13,7 +13,7 @@ environment (for example, via Toolforge secrets or Kubernetes ConfigMaps).
 
 | Variable | Description |
 | --- | --- |
-| `OAUTH_MWURI` | Base MediaWiki URI for OAuth handshakes (e.g. `https://meta.wikimedia.org/w/index.php`). |
+| `OAUTH_MWURI` | Base MediaWiki URI for OAuth handshakes (e.g. `https://commons.wikimedia.org/w/index.php`). |
 | `OAUTH_CONSUMER_KEY` | OAuth consumer key issued by MediaWiki. |
 | `OAUTH_CONSUMER_SECRET` | OAuth consumer secret issued alongside the key. |
 | `OAUTH_ENCRYPTION_KEY` | Fernet key (URL-safe base64 encoded) used to encrypt access tokens at rest. |
