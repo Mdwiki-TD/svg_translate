@@ -27,7 +27,7 @@ for file_name, file_meta in files.items():
 3. Create a `.env` file (or configure your deployment environment) with at least:
    ```bash
    FLASK_SECRET_KEY=change_me_strong_random
-   OAUTH_MWURI=https://meta.wikimedia.org/w/index.php
+   OAUTH_MWURI=https://commons.wikimedia.org/w/index.php
    CONSUMER_KEY=your_consumer_key
    CONSUMER_SECRET=your_consumer_secret
    OAUTH_ENCRYPTION_KEY=generated_32_urlsafe_base64_bytes
