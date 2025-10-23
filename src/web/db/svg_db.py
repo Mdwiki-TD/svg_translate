@@ -9,8 +9,7 @@ from .db_class import Database
 
 db_data = svg_config.db_data
 
-_db: Database = None
-
+_db: Database | None = None
 
 def _get_db() -> Database:
     global _db
