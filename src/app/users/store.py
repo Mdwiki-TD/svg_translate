@@ -133,17 +133,17 @@ def delete_user_token(user_id: int) -> None:
     """Remove the stored OAuth credentials for the given user id."""
 
     with _get_db() as db:
-        return db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
+        db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
 
 
 def get_user_token(user_id: int) -> Optional[UserTokenRecord]:
     """Fetch the encrypted OAuth credentials for a user."""
 
-    db = _get_db()
-    rows: list[Dict[str, Any]] = db.fetch_query(
-        "SELECT * FROM user_tokens WHERE user_id = %s",
-        (user_id,),
-    )
+    with _get_db() as db:
+        rows: list[Dict[str, Any]] = db.fetch_query(
+            "SELECT * FROM user_tokens WHERE user_id = %s",
+            (user_id,),
+        )
     if not rows:
         return None
     row = rows[0]
