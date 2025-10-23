@@ -33,15 +33,22 @@ def _get_db() -> Database:
     return _db
 
 
+def close_cached_db() -> None:
+    """Close the cached :class:`Database` instance if it has been initialized."""
+
+    if _db is not None:
+        _db.close()
+
+
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""
 
+    db = _get_db()
     try:
-        with _get_db() as db:
-            db.execute_query(
-                "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
-                (user_id,),
-            )
+        db.execute_query(
+            "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
+            (user_id,),
+        )
     except Exception:
         logger.exception("Failed to update last_used_at for user %s", user_id)
 
@@ -69,21 +76,21 @@ class UserTokenRecord:
 def ensure_user_token_table() -> None:
     """Create the user_tokens table if it does not already exist."""
 
-    with _get_db() as db:
-        db.execute_query_safe(
-            """
-            CREATE TABLE IF NOT EXISTS user_tokens (
-                user_id INT PRIMARY KEY,
-                username VARCHAR(255) NOT NULL,
-                access_token VARBINARY(1024) NOT NULL,
-                access_secret VARBINARY(1024) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                last_used_at DATETIME DEFAULT NULL,
-                rotated_at DATETIME DEFAULT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        """,
-        )
+    db = _get_db()
+    db.execute_query_safe(
+        """
+        CREATE TABLE IF NOT EXISTS user_tokens (
+            user_id INT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            access_token VARBINARY(1024) NOT NULL,
+            access_secret VARBINARY(1024) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            last_used_at DATETIME DEFAULT NULL,
+            rotated_at DATETIME DEFAULT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    )
 
     # Ensure username index exists
     existing_idx = db.fetch_query_safe(
@@ -101,49 +108,49 @@ def ensure_user_token_table() -> None:
 def upsert_user_token(*, user_id: int, username: str, access_key: str, access_secret: str) -> None:
     """Insert or update the encrypted OAuth credentials for a user."""
 
-    with _get_db() as db:
-        return db.execute_query_safe(
-            """
-        INSERT INTO user_tokens (
+    db = _get_db()
+    return db.execute_query_safe(
+        """
+    INSERT INTO user_tokens (
+        user_id,
+        username,
+        access_token,
+        access_secret,
+        rotated_at,
+        last_used_at
+    )
+    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, NULL)
+    ON DUPLICATE KEY UPDATE
+        username = VALUES(username),
+        access_token = VALUES(access_token),
+        access_secret = VALUES(access_secret),
+        rotated_at = CURRENT_TIMESTAMP,
+        last_used_at = NULL
+    """,
+        (
             user_id,
             username,
-            access_token,
-            access_secret,
-            rotated_at,
-            last_used_at
-        )
-        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, NULL)
-        ON DUPLICATE KEY UPDATE
-            username = VALUES(username),
-            access_token = VALUES(access_token),
-            access_secret = VALUES(access_secret),
-            rotated_at = CURRENT_TIMESTAMP,
-            last_used_at = NULL
-        """,
-            (
-                user_id,
-                username,
-                encrypt_value(access_key),
-                encrypt_value(access_secret),
-            ),
-        )
+            encrypt_value(access_key),
+            encrypt_value(access_secret),
+        ),
+    )
 
 
 def delete_user_token(user_id: int) -> None:
     """Remove the stored OAuth credentials for the given user id."""
 
-    with _get_db() as db:
-        db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
+    db = _get_db()
+    db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
 
 
 def get_user_token(user_id: int) -> Optional[UserTokenRecord]:
     """Fetch the encrypted OAuth credentials for a user."""
 
-    with _get_db() as db:
-        rows: list[Dict[str, Any]] = db.fetch_query(
-            "SELECT * FROM user_tokens WHERE user_id = %s",
-            (user_id,),
-        )
+    db = _get_db()
+    rows: list[Dict[str, Any]] = db.fetch_query(
+        "SELECT * FROM user_tokens WHERE user_id = %s",
+        (user_id,),
+    )
     if not rows:
         return None
     row = rows[0]
