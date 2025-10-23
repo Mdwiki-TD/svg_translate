@@ -16,10 +16,6 @@ def _get_db() -> Database:
     """Return a lazily-instantiated :class:`Database` using ``db_data``."""
     if _db is None:
         _db = Database(db_data)
-    # Historically the module created a new connection per call; the tests rely
-    # on the fresh connection semantics to verify that monkeypatched cursors are
-    # honoured.  Creating a new :class:`Database` each time keeps that behaviour
-    # while remaining inexpensive for the lightweight test stubs.
     return _db
 
 
