@@ -2,23 +2,27 @@
 
 from __future__ import annotations
 
+import logging
 import secrets
 from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlencode
-from flask import (Blueprint, Response, current_app, make_response, redirect, render_template,
+from flask import (Blueprint, Response, current_app, make_response, redirect,
                    request, session, url_for)
 
 from ..config import settings
 from ..users.store import delete_user_token, upsert_user_token
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
+
 from .oauth import (
     IDENTITY_ERROR_MESSAGE,
     OAuthIdentityError,
     complete_login,
     start_login,
 )
+
 from .rate_limit import callback_rate_limiter, login_rate_limiter
+logger = logging.getLogger(__name__)
 
 bp_auth = Blueprint("auth", __name__)
 
@@ -81,6 +85,7 @@ def callback() -> Response:
     try:
         request_token = _load_request_token(raw_request_token)
     except ValueError:
+        logger.exception("Invalid OAuth request token")
         return redirect(url_for("main.index", error="Invalid request token"))
 
     response_qs = urlencode(request.args)
@@ -88,6 +93,7 @@ def callback() -> Response:
     try:
         access_token, identity = complete_login(request_token, response_qs)
     except OAuthIdentityError:
+        logger.exception("OAuth identity verification failed")
         return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
 
     token_key = getattr(access_token, "key", None)
@@ -98,6 +104,7 @@ def callback() -> Response:
 
     if not (token_key and token_secret):
         current_app.logger.error("OAuth access token missing key/secret")
+
         return redirect(url_for("main.index", error="Missing credentials"))
 
     username = identity.get("username") or identity.get("name")
@@ -116,6 +123,7 @@ def callback() -> Response:
     try:
         user_id = int(user_identifier)
     except (TypeError, ValueError):
+        logger.exception("Invalid user identifier")
         return redirect(url_for("main.index", error="Invalid user identifier"))
 
     upsert_user_token(
