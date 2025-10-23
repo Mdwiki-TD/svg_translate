@@ -3,7 +3,7 @@
 
 ```python
 from pathlib import Path
-from svg_translate import start_on_template_title, upload_file
+from CopySvgTranslate import start_on_template_title, upload_file
 
 title = "Template:OWID/Parkinsons prevalence"
 
