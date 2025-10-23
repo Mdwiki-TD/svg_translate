@@ -3,11 +3,14 @@
 from __future__ import annotations
 import os
 
+import threading
+
 from cryptography.fernet import Fernet, InvalidToken
 
 OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY", "")
 
 _fernet: Fernet | None = None
+_fernet_lock = threading.Lock()
 
 
 def _require_fernet() -> Fernet:
@@ -21,18 +24,22 @@ def _require_fernet() -> Fernet:
             "OAUTH_ENCRYPTION_KEY must be configured before using the crypto helpers"
         )
 
-    key_bytes = (
-        OAUTH_ENCRYPTION_KEY.encode()
-        if isinstance(OAUTH_ENCRYPTION_KEY, str)
-        else OAUTH_ENCRYPTION_KEY
-    )
+    with _fernet_lock:
+        if _fernet is not None:
+            return _fernet
 
-    try:
-        _fernet = Fernet(key_bytes)
-    except ValueError as exc:  # pragma: no cover - invalid configuration
-        raise RuntimeError(
-            "OAUTH_ENCRYPTION_KEY must be a 32-byte urlsafe base64-encoded string"
-        ) from exc
+        key_bytes = (
+            OAUTH_ENCRYPTION_KEY.encode()
+            if isinstance(OAUTH_ENCRYPTION_KEY, str)
+            else OAUTH_ENCRYPTION_KEY
+        )
+
+        try:
+            _fernet = Fernet(key_bytes)
+        except ValueError as exc:  # pragma: no cover - invalid configuration
+            raise RuntimeError(
+                "OAUTH_ENCRYPTION_KEY must be a 32-byte urlsafe base64-encoded string"
+            ) from exc
 
     return _fernet
 
