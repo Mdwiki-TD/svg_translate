@@ -1,6 +1,8 @@
-"""Flask application factory."""
+"""Flask application factory for the SVG Translate web interface."""
 
 from __future__ import annotations
+
+import threading
 
 from flask import Flask
 
@@ -14,6 +16,8 @@ from .cookies import CookieHeaderClient
 
 
 def create_app() -> Flask:
+    """Instantiate and configure the Flask application."""
+
     app = Flask(
         __name__,
         template_folder="../templates",
