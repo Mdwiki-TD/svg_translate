@@ -16,7 +16,7 @@ _HOME = _HOME or os.getenv("MAIN_DIR")
 # ---
 _home_dir = _HOME if _HOME else os.path.expanduser("~")
 # ---
-SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
+SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "")
 SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{_home_dir}/svg_data")
 LOG_DIR_PATH = os.getenv("LOG_PATH", f"{_home_dir}/logs")
 DISABLE_UPLOADS = os.getenv("DISABLE_UPLOADS", "")
@@ -47,7 +47,8 @@ try:
     AUTH_COOKIE_MAX_AGE = int(os.getenv("AUTH_COOKIE_MAX_AGE", "0")) or 30 * 24 * 60 * 60
 except ValueError:
     AUTH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60
-REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "oauth_request_token")
+
+REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "")
 STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state")
 COOKIE_SALT = os.getenv("COOKIE_SALT", "svg-translate-user")
 STATE_SALT = os.getenv("STATE_SALT", "svg-translate-state")
