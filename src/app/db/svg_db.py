@@ -25,7 +25,8 @@ def _get_db() -> Database:
 def execute_query(sql_query: str, params: Optional[Any] = None):
     """Proxy :meth:`Database.execute_query` for backwards compatibility."""
 
-    _get_db().execute_query(sql_query, params)
+    with _get_db() as db:
+        db.execute_query(sql_query, params)
 
 
 def fetch_query(sql_query: str, params: Optional[Any] = None):
