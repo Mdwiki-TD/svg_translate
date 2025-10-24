@@ -11,9 +11,6 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlencode
-
-import mwoauth
-
 from flask import (
     Blueprint,
     Response,

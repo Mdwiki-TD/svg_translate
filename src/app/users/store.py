@@ -9,8 +9,8 @@ from typing import Any, Dict, Optional
 
 from ..config import settings
 
-# from web.db.db_class import Database
-from web.db.db_class import Database
+# from ..svg_config import db_data
+from ..db.db_class import Database
 from ..crypto import decrypt_value, encrypt_value
 
 logger = logging.getLogger(__name__)

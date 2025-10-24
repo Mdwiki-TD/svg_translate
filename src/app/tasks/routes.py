@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections import namedtuple
+from datetime import datetime
 import threading
 import uuid
 import logging
-from collections import namedtuple
-from datetime import datetime
 from typing import Any, Dict, List
 
 from flask import (
@@ -22,16 +22,15 @@ from flask import (
 
 from ..config import settings
 from ..svg_config import DISABLE_UPLOADS
+from ..web.web_run_task import run_task
+from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ..users.current import current_user, oauth_required
-
-from web.web_run_task import run_task
-from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
 
-logger = logging.getLogger(__name__)
 bp_main = Blueprint("main", __name__)
+logger = logging.getLogger(__name__)
 
 
 def parse_args(request_form) -> Any:
@@ -137,7 +136,7 @@ def _format_task(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
-        "username": task.get("username"),
+        "username": task.get("username", "")
     }
 
 
