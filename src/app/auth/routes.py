@@ -29,13 +29,13 @@ from itsdangerous import BadSignature, URLSafeTimedSerializer
 from ..config import settings
 
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
+
 from .oauth import (
     IDENTITY_ERROR_MESSAGE,
     OAuthIdentityError,
     complete_login,
     start_login,
 )
-
 from ..users.store import delete_user_token, upsert_user_token
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
@@ -99,7 +99,7 @@ def callback() -> Response:
     # ------------------
     # use oauth
     if not settings.use_mw_oauth:
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.index", error="oauth-disabled"))
 
     # ------------------
     # callback rate limiter
