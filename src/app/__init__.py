@@ -9,6 +9,7 @@ from flask import Flask
 from .auth.routes import bp_auth
 from .config import settings
 from .tasks.routes import bp_main, close_task_store
+
 from .users.current import context_user
 from .users.store import ensure_user_token_table, close_cached_db
 

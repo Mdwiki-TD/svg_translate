@@ -74,12 +74,17 @@ def login() -> Response:
 
     state_nonce = secrets.token_urlsafe(32)
     session[settings.STATE_SESSION_KEY] = state_nonce
+
+    # ------------------
+    # start login
     try:
         redirect_url, request_token = start_login(sign_state_token(state_nonce))
     except Exception:
         logger.exception("Failed to start OAuth login")
         return redirect(url_for("main.index", error="Failed to initiate OAuth login"))
 
+    # ------------------
+    # add request_token to session
     session[settings.REQUEST_TOKEN_SESSION_KEY] = list(request_token)
     return redirect(redirect_url)
 
@@ -186,12 +191,12 @@ def callback() -> Response:
     session["uid"]=user_id
     session["username"]=username
 
+    # ------------------
+    # set cookies
     response=make_response(
         redirect(session.pop("post_login_redirect", url_for("main.index")))
     )
 
-    # ------------------
-    # set cookies
     response.set_cookie(
         settings.cookie.name,
         sign_user_id(user_id),
@@ -201,13 +206,16 @@ def callback() -> Response:
         max_age=settings.cookie.max_age,
         path="/",
     )
+
+    g.is_authenticated = True
+    g.authenticated_user_id = str(user_id)
     return response
 
 
 @bp_auth.get("/logout")
 @login_required
 def logout() -> Response:
-    user_id=session.pop("uid", None)
+    user_id = session.pop("uid", None)
     session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
     session.pop(settings.STATE_SESSION_KEY, None)
     session.pop("username", None)
@@ -222,4 +230,14 @@ def logout() -> Response:
 
     response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
+
+    g.is_authenticated = False
+    g.authenticated_user_id = None
+
     return response
+
+
+__all__ = [
+    "bp_auth",
+    "login_required",
+]
