@@ -18,6 +18,7 @@ from flask import (
     url_for,
 )
 
+from werkzeug.wrappers import Response as WerkzeugResponse
 from ..config import settings
 
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
@@ -43,9 +44,9 @@ def _client_key() -> str:
 
 
 @bp_auth.get("/login")
-def login() -> Response:
+def login() -> Response | WerkzeugResponse:
     if not settings.use_mw_oauth:
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.index", error="oauth-disabled"))
 
     if not login_rate_limiter.allow(_client_key()):
         time_left = login_rate_limiter.try_after(_client_key()).total_seconds()
@@ -82,8 +83,8 @@ def callback() -> Response:
     if not callback_rate_limiter.allow(_client_key()):
         return redirect(url_for("main.index", error="Too many login attempts"))
 
-    expected_state=session.pop(settings.STATE_SESSION_KEY, None)
-    returned_state=request.args.get("state")
+    expected_state = session.pop(settings.STATE_SESSION_KEY, None)
+    returned_state = request.args.get("state")
     if not expected_state or not returned_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
 
@@ -97,15 +98,14 @@ def callback() -> Response:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
     try:
-        request_token=_load_request_token(raw_request_token)
+        request_token = _load_request_token(raw_request_token)
     except ValueError:
         logger.exception("Invalid OAuth request token")
         return redirect(url_for("main.index", error="Invalid request token"))
 
-    response_qs=urlencode(request.args)
-
     try:
-        access_token, identity=complete_login(request_token, response_qs)
+        query_string = urlencode(request.args)
+        access_token, identity = complete_login(request_token, query_string)
     except OAuthIdentityError:
         logger.exception("OAuth identity verification failed")
         return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
