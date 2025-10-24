@@ -96,15 +96,15 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     if not value:
         return "", ""
     dt = None
-    if isinstance(value, str):
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, str):
         for fmt in (None, "%Y-%m-%d %H:%M:%S"):
             try:
                 dt = datetime.fromisoformat(value) if fmt is None else datetime.strptime(value, fmt)
                 break
-            except ValueError:
+            except (TypeError, ValueError):
                 continue
-    elif isinstance(value, datetime):
-        dt = value
 
     if not dt:
         return str(value), str(value)
@@ -204,6 +204,19 @@ def task2():
     )
 
 
+def load_auth_payload(user):
+
+    auth_payload: Dict[str, Any] = {}
+    if user:
+        auth_payload = {
+            "id": user.user_id,
+            "username": user.username,
+            "access_token": user.access_token,
+            "access_secret": user.access_secret,
+        }
+    return auth_payload
+
+
 @bp_main.post("/")
 @oauth_required
 def start():
@@ -243,14 +256,7 @@ def start():
             logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 
-    auth_payload: Dict[str, Any] = {}
-    if user:
-        auth_payload = {
-            "id": user.user_id,
-            "username": user.username,
-            "access_token": user.access_token,
-            "access_secret": user.access_secret,
-        }
+    auth_payload = load_auth_payload(user)
 
     thread = threading.Thread(
         target=run_task,
