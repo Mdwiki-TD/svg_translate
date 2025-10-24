@@ -46,6 +46,7 @@ class OAuthConfig:
 @dataclass(frozen=True)
 class Settings:
     STATE_SESSION_KEY: str
+    REQUEST_TOKEN_SESSION_KEY: str
     secret_key: str
     session_cookie_secure: bool
     session_cookie_httponly: bool
@@ -84,6 +85,7 @@ def get_settings() -> Settings:
     session_cookie_httponly = _env_bool("SESSION_COOKIE_HTTPONLY", default=True)
     session_cookie_samesite = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
     STATE_SESSION_KEY = os.getenv("STATE_SESSION_KEY", "oauth_state_nonce")
+    REQUEST_TOKEN_SESSION_KEY = os.getenv("REQUEST_TOKEN_SESSION_KEY", "state")
 
     use_mw_oauth = _env_bool("USE_MW_OAUTH", default=True)
     oauth_config = _load_oauth_config()
@@ -109,6 +111,7 @@ def get_settings() -> Settings:
 
     return Settings(
         STATE_SESSION_KEY=STATE_SESSION_KEY,
+        REQUEST_TOKEN_SESSION_KEY=REQUEST_TOKEN_SESSION_KEY,
         secret_key=secret_key,
         session_cookie_secure=session_cookie_secure,
         session_cookie_httponly=session_cookie_httponly,

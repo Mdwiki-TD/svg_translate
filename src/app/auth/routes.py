@@ -1,4 +1,6 @@
-"""Authentication routes for MediaWiki OAuth."""
+"""
+Authentication helpers and OAuth routes for the SVG Translate web app.
+"""
 
 from __future__ import annotations
 
@@ -61,7 +63,7 @@ def login() -> Response | WerkzeugResponse:
         logger.exception("Failed to start OAuth login")
         return redirect(url_for("main.index", error="Failed to initiate OAuth login"))
 
-    session["request_token"]=list(request_token)
+    session[settings.REQUEST_TOKEN_SESSION_KEY] = list(request_token)
     return redirect(redirect_url)
 
 
@@ -100,7 +102,7 @@ def callback() -> Response:
 
     # ------------------
     # token data
-    raw_request_token=session.pop("request_token", None)
+    raw_request_token=session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
     oauth_verifier=request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
@@ -181,8 +183,11 @@ def callback() -> Response:
 
 
 @bp_auth.get("/logout")
-def logout() -> Response:
+@login_required
+def logout() -> Response | WerkzeugResponse:
     user_id=session.pop("uid", None)
+    session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
+    session.pop(settings.STATE_SESSION_KEY, None)
     session.pop("username", None)
 
     if user_id is None:
@@ -193,6 +198,6 @@ def logout() -> Response:
     if isinstance(user_id, int):
         delete_user_token(user_id)
 
-    response=make_response(redirect(url_for("main.index")))
+    response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
     return response
