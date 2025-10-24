@@ -9,10 +9,10 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
-from svg_config import db_data, DISABLE_UPLOADS
-from web.web_run_task import run_task
+from ..svg_config import db_data, DISABLE_UPLOADS
+from ..web.web_run_task import run_task
 
-from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
+from ..web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ..users.current import current_user, require_login
 
 TASK_STORE: TaskStorePyMysql | None = None
@@ -106,6 +106,7 @@ def _format_task_for_view(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
+        "username": task.get("username", "")
     }
 
 

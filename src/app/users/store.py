@@ -6,8 +6,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from svg_config import db_data
-from web.db.db_class import Database
+from ..svg_config import db_data
+from ..web.db.db_class import Database
 
 from ..crypto import decrypt_value, encrypt_value
 
