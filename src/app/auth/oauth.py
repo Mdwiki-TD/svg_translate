@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
+import mwoauth
+import logging
 from typing import Tuple
-
 from flask import url_for
-
 from ..config import settings
 
-try:  # pragma: no cover - dependency may be unavailable during tests
-    import mwoauth  # type: ignore[import-not-found]
-except ModuleNotFoundError:  # pragma: no cover - handled when functions are used
-    mwoauth = None  # type: ignore[assignment]
+logger = logging.getLogger(__name__)
+
+IDENTITY_ERROR_MESSAGE = "We couldn’t verify your MediaWiki identity. Please try again."
 
 
 class OAuthIdentityError(Exception):
@@ -22,13 +21,7 @@ class OAuthIdentityError(Exception):
         self.original_exception = original_exception
 
 
-IDENTITY_ERROR_MESSAGE = "We couldn’t verify your MediaWiki identity. Please try again."
-
-
 def get_handshaker():
-    if mwoauth is None:  # pragma: no cover - handled when dependency missing
-        raise RuntimeError("MediaWiki OAuth dependency is not installed")
-
     if not settings.oauth:
         raise RuntimeError("MediaWiki OAuth configuration is incomplete")
 
@@ -53,14 +46,14 @@ def start_login(state_token: str) -> Tuple[str, object]:
     return redirect_url, request_token
 
 
-def complete_login(request_token, response_qs: str):
+def complete_login(request_token, query_string: str):
     """Complete the OAuth login flow and return the access token and user identity."""
 
     handshaker = get_handshaker()
-    access_token = handshaker.complete(request_token, response_qs)
+    access_token = handshaker.complete(request_token, query_string)
     try:
         identity = handshaker.identify(access_token)
-    except Exception as exc:  # type: ignore[union-attr]
+    except Exception as exc:
         raise OAuthIdentityError(
             IDENTITY_ERROR_MESSAGE, original_exception=exc
         ) from exc

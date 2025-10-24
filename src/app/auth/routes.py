@@ -5,24 +5,32 @@ from __future__ import annotations
 import logging
 import secrets
 from collections.abc import Sequence
-from typing import Any
+from functools import wraps
+from typing import Any, Callable
 from urllib.parse import urlencode
-from flask import (Blueprint, Response, current_app, make_response, redirect,
-                   request, session, url_for)
-
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    g,
+    make_response,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from ..config import settings
-from ..users.store import delete_user_token, upsert_user_token
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
+
 from .oauth import (
-    IDENTITY_ERROR_MESSAGE,
     OAuthIdentityError,
     complete_login,
     start_login,
 )
+from ..users.store import delete_user_token, upsert_user_token
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
-
 bp_auth = Blueprint("auth", __name__)
 
 
@@ -33,13 +41,27 @@ def _client_key() -> str:
     return request.remote_addr or "anonymous"
 
 
+def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that redirects anonymous users to the index page."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not getattr(g, "is_authenticated", False):
+            return redirect(url_for("main.index", error="auth-required"))
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
 @bp_auth.get("/login")
 def login() -> Response:
     if not settings.use_mw_oauth:
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.index", error="oauth-disabled"))
 
     if not login_rate_limiter.allow(_client_key()):
-        return "Too many login attempts. Please try again later.", 429
+        time_left = login_rate_limiter.try_after(_client_key()).total_seconds()
+        time_left = str(time_left).split(".")[0]
+        return redirect(url_for("main.index", error=f"Too many login attempts. Please try again after {time_left}s."))
 
     state_nonce = secrets.token_urlsafe(32)
     session["oauth_state_nonce"] = state_nonce
@@ -54,8 +76,10 @@ def _load_request_token(raw: Sequence[Any] | None):
 
     if not raw:
         raise ValueError("Missing OAuth request token")
+
     if len(raw) < 2:
         raise ValueError("Invalid OAuth request token")
+
     return RequestToken(raw[0], raw[1])
 
 
@@ -151,6 +175,7 @@ def callback() -> Response:
 
 
 @bp_auth.get("/logout")
+@login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
     session.pop("username", None)

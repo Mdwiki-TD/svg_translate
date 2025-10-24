@@ -12,6 +12,8 @@ from .users.store import ensure_user_token_table
 
 
 def create_app() -> Flask:
+    """Instantiate and configure the Flask application."""
+
     app = Flask(
         __name__,
         template_folder="../templates",

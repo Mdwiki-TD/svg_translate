@@ -1,4 +1,5 @@
 #
+import os
 import re
 import logging
 from pathlib import Path
@@ -15,10 +16,11 @@ from .start_bot import (
 from .download_task import download_task
 from .upload_task import upload_task
 
-from ..svg_config import svg_data_dir
-from .db.task_store_pymysql import TaskStorePyMysql
+from ..db.task_store_pymysql import TaskStorePyMysql
 
 logger = logging.getLogger(__name__)
+
+SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{os.path.expanduser('~')}/tmp/svg_data")
 
 
 def _compute_output_dir(title: str) -> Path:
@@ -42,7 +44,7 @@ def _compute_output_dir(title: str) -> Path:
     # name = death rate from obesity
     slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(name)).strip("._") or "untitled"
     # ---
-    out = svg_data_dir / slug
+    out = Path(SVG_DATA_PATH) / slug
     # ---
     out.mkdir(parents=True, exist_ok=True)
     # ---
@@ -136,7 +138,7 @@ def run_task(
     task_id: str,
     title: str,
     args: Any,
-    user_data: Dict[str, str]
+    user_data: Dict[str, str] | None,
 ) -> None:
     """Execute the full SVG translation pipeline for a queued task.
 

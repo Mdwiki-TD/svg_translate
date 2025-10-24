@@ -32,7 +32,7 @@ COMMONS_PASSWORD = os.getenv("COMMONS_PASSWORD", "")
 
 svg_data_dir = Path(SVG_DATA_PATH)
 svg_data_dir.mkdir(parents=True, exist_ok=True)
-
+os.environ["SVG_DATA_PATH"] = str(svg_data_dir)
 # ---------------------------------------------------------------------------
 # OAuth configuration
 # ---------------------------------------------------------------------------
