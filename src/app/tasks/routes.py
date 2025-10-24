@@ -13,7 +13,7 @@ from ..config import settings
 from ..svg_config import DISABLE_UPLOADS
 from ..web.web_run_task import run_task
 from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from ..users.current import current_user, require_login
+from ..users.current import current_user, oauth_required
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
@@ -207,7 +207,7 @@ def task2():
 
 
 @bp_main.post("/")
-@require_login
+@oauth_required
 def start():
     user = current_user()
     title = request.form.get("title", "").strip()

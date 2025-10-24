@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from ..config import settings
+
 from app import svg_config
 from .db_class import Database
 
@@ -16,7 +18,7 @@ def _get_db() -> Database:
     global _db
     """Return a lazily-instantiated :class:`Database` using ``db_data``."""
     if _db is None:
-        _db = Database(db_data)
+        _db = Database(settings.db_data)
     return _db
 
 

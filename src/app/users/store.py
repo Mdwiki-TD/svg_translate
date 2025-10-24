@@ -52,14 +52,6 @@ def _coerce_bytes(value: Any) -> bytes:
         return value.tobytes()
     raise TypeError("Expected bytes-compatible value for encrypted token")
 
-
-def _get_db() -> Database:
-    global _db
-    if _db is None:
-        _db = Database(db_data)
-    return _db
-
-
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""
 

@@ -28,6 +28,7 @@ from .oauth import (
     start_login,
 )
 from ..users.store import delete_user_token, upsert_user_token
+# from ..users.current import CurrentUser
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
@@ -175,7 +176,7 @@ def callback() -> Response:
 
 
 @bp_auth.get("/logout")
-@login_required
+# @login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
     session.pop("username", None)
