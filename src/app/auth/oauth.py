@@ -53,7 +53,7 @@ def complete_login(request_token, query_string: str):
     access_token = handshaker.complete(request_token, query_string)
     try:
         identity = handshaker.identify(access_token)
-    except Exception as exc:  # type: ignore[union-attr]
+    except Exception as exc:
         raise OAuthIdentityError(
             IDENTITY_ERROR_MESSAGE, original_exception=exc
         ) from exc
