@@ -67,7 +67,16 @@ def login() -> Response:
     state_nonce = secrets.token_urlsafe(32)
     session["oauth_state_nonce"] = state_nonce
 
-    redirect_url, request_token = start_login(sign_state_token(state_nonce))
+    # ------------------
+    # start login
+    try:
+        redirect_url, request_token = start_login(sign_state_token(state_nonce))
+    except Exception:
+        logger.exception("Failed to start OAuth login")
+        return redirect(url_for("main.index", error="Failed to initiate OAuth login"))
+
+    # ------------------
+    # add request_token to session
     session["request_token"] = list(request_token)
     return redirect(redirect_url)
 
