@@ -1,0 +1,16 @@
+asgiref
+cryptography
+Flask
+flask-limiter
+gunicorn
+lxml
+mwclient
+mwoauth
+pymysql
+python-dotenv
+requests
+tqdm
+uvicorn
+wikitextparser
+CopySvgTranslate==0.1.0
+pytest
