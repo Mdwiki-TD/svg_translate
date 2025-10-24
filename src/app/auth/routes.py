@@ -89,8 +89,10 @@ def _load_request_token(raw: Sequence[Any] | None):
 
     if not raw:
         raise ValueError("Missing OAuth request token")
+
     if len(raw) < 2:
         raise ValueError("Invalid OAuth request token")
+
     return RequestToken(raw[0], raw[1])
 
 
@@ -113,17 +115,20 @@ def callback() -> Response:
     if not expected_state or not returned_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
 
-    verified_state=verify_state_token(returned_state)
+    verified_state = verify_state_token(returned_state)
     if verified_state != expected_state:
-        return redirect(url_for("main.index", error="Invalid OAuth state"))
+        return redirect(url_for("main.index", error="oauth-state-mismatch"))
 
     # ------------------
     # token data
-    raw_request_token=session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
-    oauth_verifier=request.args.get("oauth_verifier")
+    raw_request_token = session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
+    oauth_verifier = request.args.get("oauth_verifier")
+
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
+    # ------------------
+    # RequestToken
     try:
         request_token = _load_request_token(raw_request_token)
     except ValueError:
