@@ -1,13 +1,19 @@
-"""Authentication routes for MediaWiki OAuth."""
+"""
+Authentication helpers and OAuth routes for the SVG Translate web app.
+"""
 
 from __future__ import annotations
 
 import logging
 import secrets
 from collections.abc import Sequence
+from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlencode
+
+import mwoauth
+
 from flask import (
     Blueprint,
     Response,
@@ -20,6 +26,7 @@ from flask import (
     url_for,
 )
 from ..config import settings
+
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
 
 from .oauth import (
@@ -28,7 +35,7 @@ from .oauth import (
     start_login,
 )
 from ..users.store import delete_user_token, upsert_user_token
-# from ..users.current import CurrentUser
+from ..users.current import CurrentUser
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
@@ -65,7 +72,7 @@ def login() -> Response:
         return redirect(url_for("main.index", error=f"Too many login attempts. Please try again after {time_left}s."))
 
     state_nonce = secrets.token_urlsafe(32)
-    session["oauth_state_nonce"] = state_nonce
+    session[settings.STATE_SESSION_KEY] = state_nonce
 
     # ------------------
     # start login
@@ -77,7 +84,7 @@ def login() -> Response:
 
     # ------------------
     # add request_token to session
-    session["request_token"] = list(request_token)
+    session[settings.REQUEST_TOKEN_SESSION_KEY] = list(request_token)
     return redirect(redirect_url)
 
 
@@ -107,7 +114,7 @@ def callback() -> Response:
 
     # ------------------
     # verify state token
-    expected_state = session.pop("oauth_state_nonce", None)
+    expected_state = session.pop(settings.STATE_SESSION_KEY, None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
@@ -118,8 +125,9 @@ def callback() -> Response:
 
     # ------------------
     # token data
-    raw_request_token = session.pop("request_token", None)
+    raw_request_token = session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
     oauth_verifier = request.args.get("oauth_verifier")
+
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
@@ -142,55 +150,52 @@ def callback() -> Response:
 
     # ------------------
     # access_key, access_secret
-    token_key = getattr(access_token, "key", None)
-    token_secret = getattr(access_token, "secret", None)
-    if not (token_key and token_secret) and isinstance(access_token, Sequence):
-        token_key = access_token[0]
-        token_secret = access_token[1]
+    access_key = getattr(access_token, "key", None)
+    access_secret = getattr(access_token, "secret", None)
 
-    if not (token_key and token_secret):
-        current_app.logger.error("OAuth access token missing key/secret")
+    if not (access_key and access_secret) and isinstance(access_token, Sequence) and len(access_token) >= 2:
+        access_key=access_token[0]
+        access_secret=access_token[1]
 
+    if not (access_key and access_secret):
+
+        logger.error("OAuth access token missing key/secret")
         return redirect(url_for("main.index", error="Missing credentials"))
 
     # ------------------
     # user info
-    username = identity.get("username") or identity.get("name")
-    if not username:
-        return redirect(url_for("main.index", error="Missing username"))
-
-    user_identifier = (
-        identity.get("sub")
-        or identity.get("id")
-        or identity.get("central_id")
-        or identity.get("user_id")
-    )
-    if not user_identifier:
-        return redirect(url_for("main.index", error="Missing user identifier"))
+    user_id = identity.get("sub") or identity.get("id") or identity.get("central_id") or identity.get("user_id")
+    if not user_id:
+        return redirect(url_for("main.index", error="Missing id"))
 
     try:
-        user_id = int(user_identifier)
+        user_id=int(user_id)
     except (TypeError, ValueError):
         logger.exception("Invalid user identifier")
         return redirect(url_for("main.index", error="Invalid user identifier"))
+
+    username = identity.get("username") or identity.get("name")
+    if not username:
+        return redirect(url_for("main.index", error="Missing username"))
 
     # ------------------
     # upsert credentials
     upsert_user_token(
         user_id=user_id,
         username=username,
-        access_key=str(token_key),
-        access_secret=str(token_secret),
+        access_key=str(access_key),
+        access_secret=str(access_secret),
     )
 
-    session["uid"] = user_id
-    session["username"] = username
+    session["uid"]=user_id
+    session["username"]=username
 
     # ------------------
     # set cookies
-    response = make_response(
+    response=make_response(
         redirect(session.pop("post_login_redirect", url_for("main.index")))
     )
+
     response.set_cookie(
         settings.cookie.name,
         sign_user_id(user_id),
@@ -200,23 +205,48 @@ def callback() -> Response:
         max_age=settings.cookie.max_age,
         path="/",
     )
+
+    g.current_user = CurrentUser(str(user_id), str(username))
+    g.is_authenticated = True
+    g.authenticated_user_id = str(user_id)
+    g.oauth_credentials = {
+        "consumer_key": OAUTH_CONSUMER_KEY,
+        "consumer_secret": OAUTH_CONSUMER_SECRET,
+        "access_token": str(access_key),
+        "access_secret": str(access_secret),
+    }
+
     return response
 
 
 @bp_auth.get("/logout")
-# @login_required
+@login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
+    session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
+    session.pop(settings.STATE_SESSION_KEY, None)
     session.pop("username", None)
 
     if user_id is None:
-        signed = request.cookies.get(settings.cookie.name)
+        signed=request.cookies.get(settings.cookie.name)
         if signed:
-            user_id = extract_user_id(signed)
+            user_id=extract_user_id(signed)
 
     if isinstance(user_id, int):
         delete_user_token(user_id)
 
     response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
+
+    g.current_user = None
+    g.is_authenticated = False
+    g.oauth_credentials = None
+    g.authenticated_user_id = None
+
     return response
+
+
+__all__ = [
+    "bp_auth",
+    "login_required",
+]

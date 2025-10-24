@@ -29,3 +29,5 @@ web_sh/new_update.sh
 /0
 src/.env
 src/test_site.py
+src/web/cli.py
+src/web/db/db_class_backup.py.old

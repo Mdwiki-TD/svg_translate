@@ -1,25 +1,37 @@
+"""Main Flask views for the SVG Translate web application."""
+
 from __future__ import annotations
 
-from collections import namedtuple
-from datetime import datetime
 import threading
 import uuid
 import logging
+from collections import namedtuple
+from datetime import datetime
 from typing import Any, Dict, List
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from ..config import settings
 from ..svg_config import DISABLE_UPLOADS
-from ..web.web_run_task import run_task
-from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ..users.current import current_user, oauth_required
+
+from web.web_run_task import run_task
+from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
 
-bp_main = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)
+bp_main = Blueprint("main", __name__)
 
 
 def parse_args(request_form) -> Any:
@@ -125,7 +137,7 @@ def _format_task(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
-        "username": task.get("username", "")
+        "username": task.get("username"),
     }
 
 
@@ -141,34 +153,6 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     return ordered
 
 
-def _get_task_store() -> TaskStorePyMysql:
-    global TASK_STORE
-    if TASK_STORE is None:
-        TASK_STORE = TaskStorePyMysql(settings.db_data)
-    return TASK_STORE
-
-
-@bp_main.get("/task1")
-def task1():
-    task_id = request.args.get("task_id")
-    store = _get_task_store()
-    task = store.get_task(task_id) if task_id else None
-
-    if not task:
-        task = {"error": "not-found"}
-        logger.debug(f"Task {task_id} not found!!")
-
-    error_message = get_error_message(request.args.get("error"))
-
-    return render_template(
-        "task1.html",
-        task_id=task_id,
-        task=task,
-        form=task.get("form", {}),
-        error_message=error_message,
-    )
-
-
 @bp_main.get("/")
 def index():
     error_message = get_error_message(request.args.get("error"))
@@ -180,13 +164,30 @@ def index():
     )
 
 
+@bp_main.get("/task1")
+def task1():
+    task_id = request.args.get("task_id")
+    task = _task_store().get_task(task_id) if task_id else None
+    if not task:
+        task = {"error": "not-found"}
+        logger.debug(f"Task {task_id} not found!!")
+
+    error_message = get_error_message(request.args.get("error"))
+
+    return render_template(
+        "task1.html",
+        task_id=task_id,
+        task=task,
+        form=task.get("form", {}) if isinstance(task, dict) else {},
+        error_message=error_message,
+    )
+
+
 @bp_main.get("/task2")
 def task2():
     task_id = request.args.get("task_id")
     title = request.args.get("title")
-    store = _get_task_store()
-    task = store.get_task(task_id) if task_id else None
-
+    task = _task_store().get_task(task_id) if task_id else None
     if not task:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
@@ -198,12 +199,25 @@ def task2():
     return render_template(
         "task2.html",
         task_id=task_id,
-        title=title or task.get("title", ""),
+        title=title or task.get("title", "") if isinstance(task, dict) else "",
         task=task,
         stages=stages,
         form=task.get("form", {}),
         error_message=error_message,
     )
+
+
+def load_auth_payload(user):
+
+    auth_payload: Dict[str, Any] = {}
+    if user:
+        auth_payload = {
+            "id": user.user_id,
+            "username": user.username,
+            "access_token": user.access_token,
+            "access_secret": user.access_secret,
+        }
+    return auth_payload
 
 
 @bp_main.post("/")
@@ -216,49 +230,44 @@ def start():
 
     task_id = uuid.uuid4().hex
 
-    store = _get_task_store()
+    store = _task_store()
 
     args = parse_args(request.form)
 
-    with TASKS_LOCK:
-        logger.info(f"ignore_existing_task: {args.ignore_existing_task}")
+    with _task_lock():
         if not args.ignore_existing_task:
             existing_task = store.get_active_task_by_title(title)
-
             if existing_task:
                 logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-                return redirect(url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active"))
+                return redirect(
+                    url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active")
+                )
 
         try:
             store.create_task(
                 task_id,
                 title,
                 username=(user.username if user else ""),
-                form=request.form.to_dict(flat=True)
+                form=request.form.to_dict(flat=True),
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
-            return redirect(url_for("main.task1", task_id=existing["id"], title=title, error="task-active"))
-        except Exception:
-            logger.exception("Failed to create task")
+            return redirect(
+                url_for("main.task1", task_id=existing["id"], title=title, error="task-active")
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Failed to create task", exc_info=exc)
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 
-    user_payload: Dict[str, Any] = {}
-    if user:
-        user_payload = {
-            "id": user.user_id,
-            "username": user.username,
-            "access_token": user.access_token,
-            "access_secret": user.access_secret,
-        }
+    auth_payload = load_auth_payload(user)
 
-    t = threading.Thread(
+    thread = threading.Thread(
         target=run_task,
-        args=(settings.db_data, task_id, title, args, user_payload),
+        args=(settings.db_data, task_id, title, args, auth_payload),
         name=f"task-runner-{task_id[:8]}",
         daemon=True,
     )
-    t.start()
+    thread.start()
 
     return redirect(url_for("main.task1", title=title, task_id=task_id))
 
@@ -275,17 +284,23 @@ def tasks():
     """
     status_filter = request.args.get("status")
 
-    with TASKS_LOCK:
-        db_tasks = _get_task_store().list_tasks(status=status_filter, order_by="created_at", descending=True)
+    with _task_lock():
+        db_tasks = _task_store().list_tasks(
+            status=status_filter,
+            order_by="created_at",
+            descending=True,
+        )
 
-    formatted_tasks = [_format_task(task) for task in db_tasks]
-    status_values = {task.get("status") for task in db_tasks if task.get("status")}
-
-    available_statuses = sorted(status_values)
+    formatted = [_format_task(task) for task in db_tasks]
+    available_statuses = sorted(
+        {
+            task.get("status", "") for task in db_tasks  # if task.get("status")
+        }
+    )
 
     return render_template(
         "tasks.html",
-        tasks=formatted_tasks,
+        tasks=formatted,
         status_filter=status_filter,
         available_statuses=available_statuses,
     )
@@ -306,7 +321,7 @@ def status(task_id: str):
         logger.error("No task_id provided in status request.")
         return jsonify({"error": "no-task-id"}), 400
 
-    task = _get_task_store().get_task(task_id)
+    task = _task_store().get_task(task_id)
     if not task:
         logger.debug(f"Task {task_id} not found")
         return jsonify({"error": "not-found"}), 404

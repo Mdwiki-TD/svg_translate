@@ -9,8 +9,8 @@ from typing import Any, Dict, Optional
 
 from ..config import settings
 
-# from ..svg_config import db_data
-from ..db.db_class import Database
+# from web.db.db_class import Database
+from web.db.db_class import Database
 from ..crypto import decrypt_value, encrypt_value
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ def _coerce_bytes(value: Any) -> bytes:
     if isinstance(value, memoryview):
         return value.tobytes()
     raise TypeError("Expected bytes-compatible value for encrypted token")
+
 
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""
