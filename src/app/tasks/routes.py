@@ -9,11 +9,11 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
-from svg_config import db_data, DISABLE_UPLOADS
-from web.web_run_task import run_task
-
-from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from ..users.current import current_user, require_login
+from ..config import settings
+from ..svg_config import DISABLE_UPLOADS
+from ..web.web_run_task import run_task
+from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
+from ..users.current import current_user, oauth_required
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
@@ -22,7 +22,7 @@ bp_main = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)
 
 
-def parse_args(request_form):
+def parse_args(request_form) -> Any:
     Args = namedtuple("Args", ["titles_limit", "overwrite", "upload", "ignore_existing_task"])
     # ---
     upload = False
@@ -30,14 +30,12 @@ def parse_args(request_form):
     if DISABLE_UPLOADS != "1":
         upload = bool(request_form.get("upload"))
     # ---
-    result = Args(
+    return Args(
         titles_limit=request_form.get("titles_limit", 1000, type=int),
         overwrite=bool(request_form.get("overwrite")),
         ignore_existing_task=bool(request_form.get("ignore_existing_task")),
         upload=upload
     )
-    # ---
-    return result
 
 
 def get_error_message(error_code: str | None) -> str:
@@ -51,6 +49,27 @@ def get_error_message(error_code: str | None) -> str:
     }
     # ---
     return messages.get(error_code, error_code)
+
+
+def _task_store() -> TaskStorePyMysql:
+    global TASK_STORE
+    if TASK_STORE is None:
+        TASK_STORE = TaskStorePyMysql(settings.db_data)
+    return TASK_STORE
+
+
+def close_task_store() -> None:
+    """Close the cached :class:`TaskStorePyMysql` instance if present."""
+
+    if TASK_STORE is not None:
+        TASK_STORE.close()
+
+
+def _task_lock() -> threading.Lock:
+    global TASKS_LOCK
+    if TASKS_LOCK is None:
+        TASKS_LOCK = threading.Lock()
+    return TASKS_LOCK
 
 
 def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
@@ -68,15 +87,15 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     if not value:
         return "", ""
     dt = None
-    if isinstance(value, str):
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, str):
         for fmt in (None, "%Y-%m-%d %H:%M:%S"):
             try:
                 dt = datetime.fromisoformat(value) if fmt is None else datetime.strptime(value, fmt)
                 break
-            except ValueError:
+            except (TypeError, ValueError):
                 continue
-    elif isinstance(value, datetime):
-        dt = value
 
     if not dt:
         return str(value), str(value)
@@ -86,7 +105,7 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     return display, sort_key
 
 
-def _format_task_for_view(task: dict) -> dict:
+def _format_task(task: dict) -> dict:
     """Formats a task dictionary for the tasks list view."""
     results = task.get("results") or {}
     injects = results.get("injects_result") or {}
@@ -106,16 +125,18 @@ def _format_task_for_view(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
+        "username": task.get("username", "")
     }
 
 
 def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, Any]]]:
     if not stages:
         return []
-    ordered: List[tuple[str, Dict[str, Any]]] = []
-    for name, data in stages.items():
-        if isinstance(data, dict):
-            ordered.append((name, data))
+    ordered = [
+        (name, data)
+        for name, data in stages.items()
+        if isinstance(data, dict)
+    ]
     ordered.sort(key=lambda item: item[1].get("number", 0))
     return ordered
 
@@ -123,7 +144,7 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
 def _get_task_store() -> TaskStorePyMysql:
     global TASK_STORE
     if TASK_STORE is None:
-        TASK_STORE = TaskStorePyMysql(db_data)
+        TASK_STORE = TaskStorePyMysql(settings.db_data)
     return TASK_STORE
 
 
@@ -186,7 +207,7 @@ def task2():
 
 
 @bp_main.post("/")
-@require_login
+@oauth_required
 def start():
     user = current_user()
     title = request.form.get("title", "").strip()
@@ -233,7 +254,7 @@ def start():
 
     t = threading.Thread(
         target=run_task,
-        args=(db_data, task_id, title, args, user_payload),
+        args=(settings.db_data, task_id, title, args, user_payload),
         name=f"task-runner-{task_id[:8]}",
         daemon=True,
     )
@@ -257,7 +278,7 @@ def tasks():
     with TASKS_LOCK:
         db_tasks = _get_task_store().list_tasks(status=status_filter, order_by="created_at", descending=True)
 
-    formatted_tasks = [_format_task_for_view(task) for task in db_tasks]
+    formatted_tasks = [_format_task(task) for task in db_tasks]
     status_values = {task.get("status") for task in db_tasks if task.get("status")}
 
     available_statuses = sorted(status_values)

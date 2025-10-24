@@ -2,7 +2,7 @@ import sys
 import logging
 from pathlib import Path
 
-from svg_config import LOG_DIR_PATH
+from app.svg_config import LOG_DIR_PATH
 
 # Create log directory if needed
 log_dir = Path(LOG_DIR_PATH)

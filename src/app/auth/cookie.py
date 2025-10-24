@@ -8,6 +8,7 @@ from ..config import settings
 
 
 _serializer = URLSafeTimedSerializer(settings.secret_key, salt="svg-translate-uid")
+
 _state_serializer = URLSafeTimedSerializer(
     settings.secret_key, salt="svg-translate-oauth-state"
 )
@@ -32,10 +33,10 @@ def extract_user_id(token: str) -> int | None:
         return None
 
 
-def sign_state_token(state: str) -> str:
+def sign_state_token(state_nonce: str) -> str:
     """Sign and serialize an OAuth state nonce."""
 
-    return _state_serializer.dumps({"nonce": state})
+    return _state_serializer.dumps({"nonce": state_nonce})
 
 
 def verify_state_token(token: str) -> str | None:

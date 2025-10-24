@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # ---
 _HOME = os.getenv("HOME")
 # ---
-_env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/confs/.env")) else str(Path(__file__).parent / ".env")
+_env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/confs/.env")) else str(Path(__file__).parent.parent / ".env")
 # ---
 load_dotenv(_env_file_path)
 # ---
@@ -32,7 +32,7 @@ COMMONS_PASSWORD = os.getenv("COMMONS_PASSWORD", "")
 
 svg_data_dir = Path(SVG_DATA_PATH)
 svg_data_dir.mkdir(parents=True, exist_ok=True)
-
+os.environ["SVG_DATA_PATH"] = str(svg_data_dir)
 # ---------------------------------------------------------------------------
 # OAuth configuration
 # ---------------------------------------------------------------------------

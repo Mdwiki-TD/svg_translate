@@ -18,16 +18,16 @@
                         href="{{ url_for('main.tasks') }}">All Tasks</a>
                 </li>
             </ul>
-            {% if USE_MW_OAUTH %}
             <div class="d-flex align-items-center">
-                {% if username %}
-                <span class="navbar-text me-3">Signed in: {{ username }}</span>
+                {% if username or is_authenticated %}
+                <span class="navbar-text me-3">
+                    {{ username or current_user.username or 'Logged in'}}
+                </span>
                 <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
                 {% else %}
-                <a class="btn btn-primary btn-sm" href="{{ url_for('auth.login') }}">Login</a>
+                <a class="btn btn-success btn-sm" href="{{ url_for('auth.login') }}">Login</a>
                 {% endif %}
             </div>
-            {% endif %}
         </div>
     </div>
 </nav>

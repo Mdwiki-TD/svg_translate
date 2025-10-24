@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from flask import Flask
 
-from .auth.routes import bp_auth
 from .config import settings
+from .auth.routes import bp_auth
 from .tasks.routes import bp_main
 from .users.current import context_user
 from .users.store import ensure_user_token_table
 
 
 def create_app() -> Flask:
+    """Instantiate and configure the Flask application."""
+
     app = Flask(
         __name__,
         template_folder="../templates",
