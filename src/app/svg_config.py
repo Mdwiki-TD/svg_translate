@@ -12,6 +12,14 @@ _env_file_path = f"{_HOME}/confs/.env" if (_HOME and os.path.exists(f"{_HOME}/co
 # ---
 load_dotenv(_env_file_path)
 # ---
+CopySvgTranslate_PATH = os.getenv("CopySvgTranslate_PATH", "")
+# ---
+try:
+    import CopySvgTranslate
+except ImportError:
+    if CopySvgTranslate_PATH and Path(CopySvgTranslate_PATH).is_dir():
+        sys.path.insert(0, str(Path(CopySvgTranslate_PATH).parent))
+# ---
 _HOME = _HOME or os.getenv("MAIN_DIR")
 # ---
 _home_dir = _HOME if _HOME else os.path.expanduser("~")
