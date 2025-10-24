@@ -7,20 +7,25 @@ from __future__ import annotations
 import logging
 import secrets
 from collections.abc import Sequence
-from typing import Any
+from dataclasses import dataclass
+from functools import wraps
+from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlencode
+
+import mwoauth
+
 from flask import (
     Blueprint,
     Response,
     current_app,
+    g,
     make_response,
     redirect,
     request,
     session,
     url_for,
 )
-
-from werkzeug.wrappers import Response as WerkzeugResponse
+from itsdangerous import BadSignature, URLSafeTimedSerializer
 from ..config import settings
 
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
@@ -45,8 +50,20 @@ def _client_key() -> str:
     return request.remote_addr or "anonymous"
 
 
+def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that redirects anonymous users to the index page."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not getattr(g, "is_authenticated", False):
+            return redirect(url_for("main.index", error="auth-required"))
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
 @bp_auth.get("/login")
-def login() -> Response | WerkzeugResponse:
+def login() -> Response:
     if not settings.use_mw_oauth:
         return redirect(url_for("main.index", error="oauth-disabled"))
 
@@ -184,7 +201,7 @@ def callback() -> Response:
 
 @bp_auth.get("/logout")
 @login_required
-def logout() -> Response | WerkzeugResponse:
+def logout() -> Response:
     user_id=session.pop("uid", None)
     session.pop(settings.REQUEST_TOKEN_SESSION_KEY, None)
     session.pop(settings.STATE_SESSION_KEY, None)
