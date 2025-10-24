@@ -95,12 +95,18 @@ def _load_request_token(raw: Sequence[Any] | None):
 
 @bp_auth.get("/callback")
 def callback() -> Response:
+    # ------------------
+    # use oauth
     if not settings.use_mw_oauth:
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.index", error="oauth-disabled"))
 
+    # ------------------
+    # callback rate limiter
     if not callback_rate_limiter.allow(_client_key()):
         return redirect(url_for("main.index", error="Too many login attempts"))
 
+    # ------------------
+    # verify state token
     expected_state = session.pop("oauth_state_nonce", None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
@@ -108,27 +114,34 @@ def callback() -> Response:
 
     verified_state = verify_state_token(returned_state)
     if verified_state != expected_state:
-        return redirect(url_for("main.index", error="Invalid OAuth state"))
+        return redirect(url_for("main.index", error="oauth-state-mismatch"))
 
+    # ------------------
+    # token data
     raw_request_token = session.pop("request_token", None)
     oauth_verifier = request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
+    # ------------------
+    # RequestToken
     try:
         request_token = _load_request_token(raw_request_token)
     except ValueError:
         logger.exception("Invalid OAuth request token")
         return redirect(url_for("main.index", error="Invalid request token"))
 
-    response_qs = urlencode(request.args)
-
+    # ------------------
+    # access_token, identity
     try:
-        access_token, identity = complete_login(request_token, response_qs)
+        query_string = urlencode(request.args)
+        access_token, identity = complete_login(request_token, query_string)
     except OAuthIdentityError:
         logger.exception("OAuth identity verification failed")
         return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
 
+    # ------------------
+    # access_key, access_secret
     token_key = getattr(access_token, "key", None)
     token_secret = getattr(access_token, "secret", None)
     if not (token_key and token_secret) and isinstance(access_token, Sequence):
@@ -140,6 +153,8 @@ def callback() -> Response:
 
         return redirect(url_for("main.index", error="Missing credentials"))
 
+    # ------------------
+    # user info
     username = identity.get("username") or identity.get("name")
     if not username:
         return redirect(url_for("main.index", error="Missing username"))
@@ -159,6 +174,8 @@ def callback() -> Response:
         logger.exception("Invalid user identifier")
         return redirect(url_for("main.index", error="Invalid user identifier"))
 
+    # ------------------
+    # upsert credentials
     upsert_user_token(
         user_id=user_id,
         username=username,
@@ -169,6 +186,8 @@ def callback() -> Response:
     session["uid"] = user_id
     session["username"] = username
 
+    # ------------------
+    # set cookies
     response = make_response(
         redirect(session.pop("post_login_redirect", url_for("main.index")))
     )
