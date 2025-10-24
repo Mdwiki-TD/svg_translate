@@ -144,7 +144,7 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
 def _get_task_store() -> TaskStorePyMysql:
     global TASK_STORE
     if TASK_STORE is None:
-        TASK_STORE = TaskStorePyMysql(db_data)
+        TASK_STORE = TaskStorePyMysql(settings.db_data)
     return TASK_STORE
 
 
@@ -254,7 +254,7 @@ def start():
 
     t = threading.Thread(
         target=run_task,
-        args=(db_data, task_id, title, args, user_payload),
+        args=(settings.db_data, task_id, title, args, user_payload),
         name=f"task-runner-{task_id[:8]}",
         daemon=True,
     )
