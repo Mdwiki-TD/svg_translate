@@ -97,8 +97,8 @@ def get_settings() -> Settings:
         )
 
     cookie = CookieConfig(
-        name=os.getenv("UID_COOKIE_NAME", "uid_enc"),
-        max_age=_env_int("UID_COOKIE_MAX_AGE", 30 * 24 * 3600),
+        name=os.getenv("AUTH_COOKIE_NAME", "uid_enc"),
+        max_age=_env_int("AUTH_COOKIE_MAX_AGE", 30 * 24 * 3600),
         secure=session_cookie_secure,
         httponly=session_cookie_httponly,
         samesite=session_cookie_samesite,
