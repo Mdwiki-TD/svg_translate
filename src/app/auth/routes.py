@@ -77,12 +77,18 @@ def _load_request_token(raw: Sequence[Any] | None):
 
 @bp_auth.get("/callback")
 def callback() -> Response:
+    # ------------------
+    # use oauth
     if not settings.use_mw_oauth:
         return redirect(url_for("main.index"))
 
+    # ------------------
+    # callback rate limiter
     if not callback_rate_limiter.allow(_client_key()):
         return redirect(url_for("main.index", error="Too many login attempts"))
 
+    # ------------------
+    # verify state token
     expected_state = session.pop(settings.STATE_SESSION_KEY, None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
@@ -92,6 +98,8 @@ def callback() -> Response:
     if verified_state != expected_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
 
+    # ------------------
+    # token data
     raw_request_token=session.pop("request_token", None)
     oauth_verifier=request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
@@ -103,6 +111,8 @@ def callback() -> Response:
         logger.exception("Invalid OAuth request token")
         return redirect(url_for("main.index", error="Invalid request token"))
 
+    # ------------------
+    # access_token, identity
     try:
         query_string = urlencode(request.args)
         access_token, identity = complete_login(request_token, query_string)
@@ -110,41 +120,43 @@ def callback() -> Response:
         logger.exception("OAuth identity verification failed")
         return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
 
-    token_key=getattr(access_token, "key", None)
-    token_secret=getattr(access_token, "secret", None)
-    if not (token_key and token_secret) and isinstance(access_token, Sequence) and len(access_token) >= 2:
-        token_key=access_token[0]
-        token_secret=access_token[1]
+    # ------------------
+    # access_key, access_secret
+    access_key = getattr(access_token, "key", None)
+    access_secret = getattr(access_token, "secret", None)
 
-    if not (token_key and token_secret):
-        current_app.logger.error("OAuth access token missing key/secret")
+    if not (access_key and access_secret) and isinstance(access_token, Sequence) and len(access_token) >= 2:
+        access_key=access_token[0]
+        access_secret=access_token[1]
 
+    if not (access_key and access_secret):
+
+        logger.error("OAuth access token missing key/secret")
         return redirect(url_for("main.index", error="Missing credentials"))
 
-    username=identity.get("username") or identity.get("name")
-    if not username:
-        return redirect(url_for("main.index", error="Missing username"))
-
-    user_identifier=(
-        identity.get("sub")
-        or identity.get("id")
-        or identity.get("central_id")
-        or identity.get("user_id")
-    )
-    if not user_identifier:
-        return redirect(url_for("main.index", error="Missing user identifier"))
+    # ------------------
+    # user info
+    user_id = identity.get("sub") or identity.get("id") or identity.get("central_id") or identity.get("user_id")
+    if not user_id:
+        return redirect(url_for("main.index", error="Missing id"))
 
     try:
-        user_id=int(user_identifier)
+        user_id=int(user_id)
     except (TypeError, ValueError):
         logger.exception("Invalid user identifier")
         return redirect(url_for("main.index", error="Invalid user identifier"))
 
+    username = identity.get("username") or identity.get("name")
+    if not username:
+        return redirect(url_for("main.index", error="Missing username"))
+
+    # ------------------
+    # upsert credentials
     upsert_user_token(
         user_id=user_id,
         username=username,
-        access_key=str(token_key),
-        access_secret=str(token_secret),
+        access_key=str(access_key),
+        access_secret=str(access_secret),
     )
 
     session["uid"]=user_id
@@ -153,6 +165,9 @@ def callback() -> Response:
     response=make_response(
         redirect(session.pop("post_login_redirect", url_for("main.index")))
     )
+
+    # ------------------
+    # set cookies
     response.set_cookie(
         settings.cookie.name,
         sign_user_id(user_id),
