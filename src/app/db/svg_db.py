@@ -32,19 +32,22 @@ def execute_query(sql_query: str, params: Optional[Any] = None):
 def fetch_query(sql_query: str, params: Optional[Any] = None):
     """Proxy :meth:`Database.fetch_query` for backwards compatibility."""
 
-    _get_db().fetch_query(sql_query, params)
+    with _get_db() as db:
+        db.fetch_query(sql_query, params)
 
 
 def execute_query_safe(sql_query: str, params: Optional[Any] = None):
     """Proxy :meth:`Database.execute_query_safe` for backwards compatibility."""
 
-    _get_db().execute_query_safe(sql_query, params)
+    with _get_db() as db:
+        db.execute_query_safe(sql_query, params)
 
 
 def fetch_query_safe(sql_query: str, params: Optional[Any] = None):
     """Proxy :meth:`Database.fetch_query_safe` for backwards compatibility."""
 
-    _get_db().fetch_query_safe(sql_query, params)
+    with _get_db() as db:
+        db.fetch_query_safe(sql_query, params)
 
 
 __all__ = [
