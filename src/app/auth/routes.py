@@ -25,18 +25,17 @@ from flask import (
     session,
     url_for,
 )
-from itsdangerous import BadSignature, URLSafeTimedSerializer
 from ..config import settings
 
 from .cookie import extract_user_id, sign_state_token, sign_user_id, verify_state_token
 
 from .oauth import (
-    IDENTITY_ERROR_MESSAGE,
     OAuthIdentityError,
     complete_login,
     start_login,
 )
 from ..users.store import delete_user_token, upsert_user_token
+from ..users.current import CurrentUser
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
@@ -207,8 +206,16 @@ def callback() -> Response:
         path="/",
     )
 
+    g.current_user = CurrentUser(str(user_id), str(username))
     g.is_authenticated = True
     g.authenticated_user_id = str(user_id)
+    g.oauth_credentials = {
+        "consumer_key": OAUTH_CONSUMER_KEY,
+        "consumer_secret": OAUTH_CONSUMER_SECRET,
+        "access_token": str(access_key),
+        "access_secret": str(access_secret),
+    }
+
     return response
 
 
@@ -231,7 +238,9 @@ def logout() -> Response:
     response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
 
+    g.current_user = None
     g.is_authenticated = False
+    g.oauth_credentials = None
     g.authenticated_user_id = None
 
     return response

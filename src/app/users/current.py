@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import wraps
+from dataclasses import dataclass
 from typing import Any, Callable, Optional, TypeVar, cast
 
 from flask import g, redirect, request, session, url_for
@@ -12,6 +13,14 @@ from ..auth.cookie import extract_user_id
 from .store import UserTokenRecord, get_user_token
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+
+@dataclass(frozen=True)
+class CurrentUser:
+    """Lightweight representation of the authenticated user."""
+
+    user_id: str
+    username: str
 
 
 def _resolve_user_id() -> Optional[int]:
@@ -45,6 +54,8 @@ def current_user() -> Optional[UserTokenRecord]:
 
 
 def oauth_required(func: F) -> F:
+    """Decorator that requires a full OAuth credential bundle."""
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
         if settings.use_mw_oauth and not current_user():

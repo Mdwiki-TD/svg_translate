@@ -11,6 +11,8 @@ from typing import Any, Dict, List
 
 from flask import (
     Blueprint,
+    current_app,
+    g,
     jsonify,
     redirect,
     render_template,
@@ -18,11 +20,12 @@ from flask import (
     url_for,
 )
 
-from svg_config import db_data, DISABLE_UPLOADS
-from web.web_run_task import run_task
-
-from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
+from ..config import settings
+from ..svg_config import DISABLE_UPLOADS
 from ..users.current import current_user, oauth_required
+
+from web.web_run_task import run_task
+from web.db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
@@ -63,7 +66,7 @@ def get_error_message(error_code: str | None) -> str:
 def _task_store() -> TaskStorePyMysql:
     global TASK_STORE
     if TASK_STORE is None:
-        TASK_STORE = TaskStorePyMysql(db_data)
+        TASK_STORE = TaskStorePyMysql(settings.db_data)
     return TASK_STORE
 
 
@@ -260,7 +263,7 @@ def start():
 
     thread = threading.Thread(
         target=run_task,
-        args=(db_data, task_id, title, args, auth_payload),
+        args=(settings.db_data, task_id, title, args, auth_payload),
         name=f"task-runner-{task_id[:8]}",
         daemon=True,
     )

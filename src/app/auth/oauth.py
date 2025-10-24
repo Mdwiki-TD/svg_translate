@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import mwoauth
 import logging
-from typing import Tuple, Optional
-from flask import url_for, redirect, current_app
+from typing import Tuple
+from flask import url_for
 from ..config import settings
 
 logger = logging.getLogger(__name__)

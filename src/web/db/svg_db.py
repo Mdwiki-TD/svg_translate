@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from ... import svg_config
+from app import svg_config
 from .db_class import Database
 
 db_data = svg_config.db_data
 
 _db: Database | None = None
+
 
 def _get_db() -> Database:
     global _db

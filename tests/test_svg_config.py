@@ -39,7 +39,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             assert svg_config.project == "/test/home"
             assert svg_config.project_www == "/test/home/www"
@@ -58,7 +58,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             assert "I:/SVG/svg_repo" in svg_config.project or svg_config.project is not None
 
@@ -76,7 +76,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             assert svg_config.TASK_DB_PATH == "/custom/tasks.db"
 
@@ -94,7 +94,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             assert svg_config.SECRET_KEY == "my-secret-key"  # noqa: S105
 
@@ -117,7 +117,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             assert svg_config.db_data["host"] == "db.example.com"
             assert svg_config.db_data["user"] == "dbuser"
@@ -137,7 +137,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir") as mock_mkdir:
-            from src import svg_config
+            from src.app import svg_config
 
             # mkdir should be called with parents=True, exist_ok=True
             mock_mkdir.assert_called_with(parents=True, exist_ok=True)
@@ -155,7 +155,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             assert "user.ini" in svg_config.user_config_path
             assert "db.ini" in svg_config.db_config_path
@@ -187,7 +187,7 @@ class TestSvgConfig:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             # Should use client section when DEFAULT is empty
             assert svg_config.db_data["host"] == "client.example.com" or svg_config.db_data["host"] == ""
@@ -215,7 +215,7 @@ class TestConfigIntegration:
             del sys.modules["src.svg_config"]
 
         with patch("src.svg_config.Path.mkdir"):
-            from src import svg_config
+            from src.app import svg_config
 
             # Check all config values
             assert svg_config.project == "/integration/test"

@@ -7,10 +7,10 @@ import datetime
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from svg_config import db_data
+from ..config import settings
 
 # from web.db.db_class import Database
-from ...web.db.db_class import Database
+from web.db.db_class import Database
 from ..crypto import decrypt_value, encrypt_value
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ _db: Database | None = None
 def _get_db() -> Database:
     global _db
     if _db is None:
-        _db = Database(db_data)
+        _db = Database(settings.db_data)
     return _db
 
 
@@ -164,10 +164,17 @@ def get_user_token(user_id: str | int) -> Optional[UserTokenRecord]:
     user_id = int(user_id) if isinstance(user_id, str) else user_id
 
     db = _get_db()
-    rows: list[Dict[str, Any]] = db.fetch_query(
+    rows: list[Dict[str, Any]] = db.fetch_query_safe(
         """
         SELECT
-        *
+            user_id,
+            username,
+            access_token,
+            access_secret,
+            created_at,
+            updated_at,
+            last_used_at,
+            rotated_at
         FROM user_tokens
         WHERE user_id = %s
         """,

@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Dict, Any
+
+from .svg_config import db_data
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -45,6 +47,7 @@ class OAuthConfig:
 
 @dataclass(frozen=True)
 class Settings:
+    db_data: Dict
     STATE_SESSION_KEY: str
     REQUEST_TOKEN_SESSION_KEY: str
     secret_key: str
@@ -110,6 +113,7 @@ def get_settings() -> Settings:
         )
 
     return Settings(
+        db_data=db_data,
         STATE_SESSION_KEY=STATE_SESSION_KEY,
         REQUEST_TOKEN_SESSION_KEY=REQUEST_TOKEN_SESSION_KEY,
         secret_key=secret_key,
