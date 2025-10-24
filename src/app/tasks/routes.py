@@ -69,7 +69,7 @@ def _task_store() -> TaskStorePyMysql:
 
 def close_task_store() -> None:
     """Close the cached :class:`TaskStorePyMysql` instance if present."""
-
+    global TASK_STORE
     if TASK_STORE is not None:
         TASK_STORE.close()
 
