@@ -207,8 +207,8 @@ def callback() -> Response:
     g.is_authenticated = True
     g.authenticated_user_id = str(user_id)
     g.oauth_credentials = {
-        "consumer_key": OAUTH_CONSUMER_KEY,
-        "consumer_secret": OAUTH_CONSUMER_SECRET,
+        "consumer_key": settings.oauth.consumer_key,
+        "consumer_secret": settings.oauth.consumer_secret,
         "access_token": str(access_key),
         "access_secret": str(access_secret),
     }

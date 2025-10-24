@@ -27,9 +27,10 @@ def _get_db() -> Database:
 
 def close_cached_db() -> None:
     """Close the cached :class:`Database` instance if it has been initialized."""
-
+    global _db
     if _db is not None:
         _db.close()
+        _db = None
 
 
 def _current_ts() -> str:
