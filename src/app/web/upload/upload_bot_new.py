@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 
 
-from app.auth.wiki_site import Site, FileExists, InsufficientPermission
+from ..wiki_site import Site, FileExists, InsufficientPermission
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict
 
-from web.start_bot import (
+from .start_bot import (
     save_files_stats,
     text_task,
     titles_task,
@@ -13,10 +13,10 @@ from web.start_bot import (
     inject_task,
     make_results_summary
 )
-from web.download_task import download_task
-from web.upload_task import upload_task
+from .download_task import download_task
+from .upload_task import upload_task
 
-from web.db.task_store_pymysql import TaskStorePyMysql
+from ..db.task_store_pymysql import TaskStorePyMysql
 
 logger = logging.getLogger(__name__)
 
