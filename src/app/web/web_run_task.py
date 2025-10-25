@@ -11,7 +11,8 @@ from .start_bot import (
     titles_task,
     translations_task,
     inject_task,
-    make_results_summary
+    make_results_summary,
+    commons_link,
 )
 from .download_task import download_task
 from .upload_task import upload_task
@@ -181,7 +182,13 @@ def run_task(
 
         # ----------------------------------------------
         # Stage 2: extract titles
-        titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
+        titles_result, stages_list["titles"] = titles_task(
+            stages_list["titles"],
+            text,
+            args.manual_main_title,
+            titles_limit=args.titles_limit,
+        )
+
         push_stage("titles")
 
         main_title, titles = titles_result["main_title"], titles_result["titles"]

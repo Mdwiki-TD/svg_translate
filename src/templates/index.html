@@ -15,6 +15,12 @@
         <input type="text" class="form-control" id="title" name="title"
             value="{{ form.title if form and form.title else 'Template:OWID/death rate from obesity'}}" required>
     </div>
+    <div class="col-12 col-md-6">
+        <label for="manual_main_title" class="form-label">Manual Main File Title (optional)</label>
+        <input type="text" class="form-control" id="manual_main_title" name="manual_main_title"
+            value="{{ form.manual_main_title if form and form.manual_main_title else '' }}"
+            placeholder="File:Example.svg">
+    </div>
     <div class="col-6 col-md-3">
         <label for="titles_limit" class="form-label">Titles Limit</label>
         <input type="number" class="form-control" id="titles_limit" name="titles_limit" min="1"
