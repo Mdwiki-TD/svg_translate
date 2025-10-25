@@ -1,4 +1,6 @@
-"""Authentication routes for MediaWiki OAuth."""
+"""
+Authentication helpers and OAuth routes for the SVG Translate web app.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +13,6 @@ from urllib.parse import urlencode
 from flask import (
     Blueprint,
     Response,
-    current_app,
     g,
     make_response,
     redirect,
@@ -28,7 +29,7 @@ from .oauth import (
     start_login,
 )
 from ..users.store import delete_user_token, upsert_user_token
-# from ..users.current import CurrentUser
+from ..users.current import CurrentUser
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
@@ -203,6 +204,17 @@ def callback() -> Response:
         max_age=settings.cookie.max_age,
         path="/",
     )
+
+    g.current_user = CurrentUser(str(user_id), str(username))
+    g.is_authenticated = True
+    g.authenticated_user_id = str(user_id)
+    g.oauth_credentials = {
+        "consumer_key": settings.oauth.consumer_key,
+        "consumer_secret": settings.oauth.consumer_secret,
+        "access_token": str(token_key),
+        "access_secret": str(token_secret),
+    }
+
     return response
 
 
@@ -210,6 +222,8 @@ def callback() -> Response:
 # @login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
+    session.pop(request_token, None)
+    session.pop(oauth_state_nonce, None)
     session.pop("username", None)
 
     if user_id is None:
@@ -222,6 +236,12 @@ def logout() -> Response:
 
     response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
+
+    g.current_user = None
+    g.is_authenticated = False
+    g.oauth_credentials = None
+    g.authenticated_user_id = None
+
     return response
 
 

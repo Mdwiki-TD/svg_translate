@@ -1,3 +1,5 @@
+"""Main Flask views for the SVG Translate web application."""
+
 from __future__ import annotations
 
 from collections import namedtuple
@@ -94,13 +96,6 @@ def close_task_store() -> None:
         TASK_STORE.close()
 
 
-def _task_lock() -> threading.Lock:
-    global TASKS_LOCK
-    if TASKS_LOCK is None:
-        TASKS_LOCK = threading.Lock()
-    return TASKS_LOCK
-
-
 def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     """
     Format a timestamp value for user display and provide a sortable ISO-style key.
@@ -181,20 +176,12 @@ def index():
     )
 
 
-def _get_task_store() -> TaskStorePyMysql:
-    global TASK_STORE
-    if TASK_STORE is None:
-        TASK_STORE = TaskStorePyMysql(settings.db_data)
-    return TASK_STORE
-
-
 @bp_main.get("/task1")
 def task1():
     task_id = request.args.get("task_id")
     task = None
     if task_id:
-        store = _get_task_store()
-        task = store.get_task(task_id)
+        task = _task_store().get_task(task_id)
 
     if not task:
         task = {"error": "not-found"}
@@ -217,8 +204,7 @@ def task2():
     title = request.args.get("title")
     task = None
     if task_id:
-        store = _get_task_store()
-        task = store.get_task(task_id)
+        task = _task_store().get_task(task_id)
 
     if not task:
         task = {"error": "not-found"}
@@ -262,7 +248,7 @@ def start():
 
     task_id = uuid.uuid4().hex
 
-    store = _get_task_store()
+    store = _task_store()
 
     args = parse_args(request.form)
 
@@ -318,7 +304,7 @@ def tasks():
     status_filter = request.args.get("status")
 
     with TASKS_LOCK:
-        db_tasks = _get_task_store().list_tasks(
+        db_tasks = _task_store().list_tasks(
             status=status_filter,
             order_by="created_at",
             descending=True,
@@ -354,7 +340,7 @@ def status(task_id: str):
         logger.error("No task_id provided in status request.")
         return jsonify({"error": "no-task-id"}), 400
 
-    task = _get_task_store().get_task(task_id)
+    task = _task_store().get_task(task_id)
     if not task:
         logger.debug(f"Task {task_id} not found")
         return jsonify({"error": "not-found"}), 404

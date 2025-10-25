@@ -6,9 +6,12 @@ from flask import Flask
 
 from .config import settings
 from .auth.routes import bp_auth
-from .tasks.routes import bp_main
+from .tasks.routes import bp_main, close_task_store
+
 from .users.current import context_user
-from .users.store import ensure_user_token_table
+from .users.store import ensure_user_token_table, close_cached_db
+
+from .cookies import CookieHeaderClient
 
 
 def create_app() -> Flask:
@@ -19,6 +22,7 @@ def create_app() -> Flask:
         template_folder="../templates",
         static_folder="../static",
     )
+    app.test_client_class = CookieHeaderClient
     app.secret_key = settings.secret_key
     app.config.update(
         SESSION_COOKIE_HTTPONLY=settings.session_cookie_httponly,
@@ -38,5 +42,10 @@ def create_app() -> Flask:
         return context_user()
 
     app.jinja_env.globals.setdefault("USE_MW_OAUTH", settings.use_mw_oauth)
+
+    @app.teardown_appcontext
+    def _cleanup_connections(exception: Exception | None) -> None:  # pragma: no cover - teardown
+        close_cached_db()
+        close_task_store()
 
     return app
