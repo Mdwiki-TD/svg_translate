@@ -204,7 +204,7 @@ def task1():
         "task1.html",
         task_id=task_id,
         task=task,
-        form=task.get("form", {}),
+        form=task.get("form", {}) if isinstance(task, dict) else {},
         error_message=error_message,
     )
 
@@ -227,12 +227,25 @@ def task2():
     return render_template(
         "task2.html",
         task_id=task_id,
-        title=title or task.get("title", ""),
+        title=title or task.get("title", "") if isinstance(task, dict) else "",
         task=task,
         stages=stages,
         form=task.get("form", {}),
         error_message=error_message,
     )
+
+
+def load_auth_payload(user):
+
+    auth_payload: Dict[str, Any] = {}
+    if user:
+        auth_payload = {
+            "id": user.user_id,
+            "username": user.username,
+            "access_token": user.access_token,
+            "access_secret": user.access_secret,
+        }
+    return auth_payload
 
 
 @bp_main.post("/")
@@ -253,10 +266,11 @@ def start():
         logger.info(f"ignore_existing_task: {args.ignore_existing_task}")
         if not args.ignore_existing_task:
             existing_task = store.get_active_task_by_title(title)
-
             if existing_task:
                 logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
-                return redirect(url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active"))
+                return redirect(
+                    url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active")
+                )
 
         try:
             store.create_task(
@@ -267,27 +281,22 @@ def start():
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
-            return redirect(url_for("main.task1", task_id=existing["id"], title=title, error="task-active"))
+            return redirect(
+                url_for("main.task1", task_id=existing["id"], title=title, error="task-active")
+            )
         except Exception:
             logger.exception("Failed to create task")
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
 
-    user_payload: Dict[str, Any] = {}
-    if user:
-        user_payload = {
-            "id": user.user_id,
-            "username": user.username,
-            "access_token": user.access_token,
-            "access_secret": user.access_secret,
-        }
+    auth_payload = load_auth_payload(user)
 
-    t = threading.Thread(
+    thread = threading.Thread(
         target=run_task,
-        args=(settings.db_data, task_id, title, args, user_payload),
+        args=(settings.db_data, task_id, title, args, auth_payload),
         name=f"task-runner-{task_id[:8]}",
         daemon=True,
     )
-    t.start()
+    thread.start()
 
     return redirect(url_for("main.task1", title=title, task_id=task_id))
 
@@ -305,16 +314,22 @@ def tasks():
     status_filter = request.args.get("status")
 
     with TASKS_LOCK:
-        db_tasks = _get_task_store().list_tasks(status=status_filter, order_by="created_at", descending=True)
+        db_tasks = _get_task_store().list_tasks(
+            status=status_filter,
+            order_by="created_at",
+            descending=True,
+        )
 
-    formatted_tasks = [_format_task(task) for task in db_tasks]
-    status_values = {task.get("status") for task in db_tasks if task.get("status")}
-
-    available_statuses = sorted(status_values)
+    formatted = [_format_task(task) for task in db_tasks]
+    available_statuses = sorted(
+        {
+            task.get("status", "") for task in db_tasks  # if task.get("status")
+        }
+    )
 
     return render_template(
         "tasks.html",
-        tasks=formatted_tasks,
+        tasks=formatted,
         status_filter=status_filter,
         available_statuses=available_statuses,
     )

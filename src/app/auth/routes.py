@@ -144,21 +144,17 @@ def callback() -> Response:
     # access_key, access_secret
     token_key = getattr(access_token, "key", None)
     token_secret = getattr(access_token, "secret", None)
+
     if not (token_key and token_secret) and isinstance(access_token, Sequence):
         token_key = access_token[0]
         token_secret = access_token[1]
 
     if not (token_key and token_secret):
-        current_app.logger.error("OAuth access token missing key/secret")
-
+        logger.error("OAuth access token missing key/secret")
         return redirect(url_for("main.index", error="Missing credentials"))
 
     # ------------------
     # user info
-    username = identity.get("username") or identity.get("name")
-    if not username:
-        return redirect(url_for("main.index", error="Missing username"))
-
     user_identifier = (
         identity.get("sub")
         or identity.get("id")
@@ -166,13 +162,17 @@ def callback() -> Response:
         or identity.get("user_id")
     )
     if not user_identifier:
-        return redirect(url_for("main.index", error="Missing user identifier"))
+        return redirect(url_for("main.index", error="Missing id"))
 
     try:
         user_id = int(user_identifier)
     except (TypeError, ValueError):
         logger.exception("Invalid user identifier")
         return redirect(url_for("main.index", error="Invalid user identifier"))
+
+    username = identity.get("username") or identity.get("name")
+    if not username:
+        return redirect(url_for("main.index", error="Missing username"))
 
     # ------------------
     # upsert credentials
@@ -220,3 +220,9 @@ def logout() -> Response:
     response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
     return response
+
+
+__all__ = [
+    "bp_auth",
+    "login_required",
+]

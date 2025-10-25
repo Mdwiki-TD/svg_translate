@@ -31,8 +31,8 @@ for file_name, file_meta in files.items():
    CONSUMER_KEY=your_consumer_key
    CONSUMER_SECRET=your_consumer_secret
    OAUTH_ENCRYPTION_KEY=generated_32_urlsafe_base64_bytes
-   UID_COOKIE_NAME=uid_enc
-   UID_COOKIE_MAX_AGE=2592000  # 30 days
+   AUTH_COOKIE_NAME=uid_enc
+   AUTH_COOKIE_MAX_AGE=2592000  # 30 days
    SESSION_COOKIE_SECURE=True
    SESSION_COOKIE_HTTPONLY=True
    SESSION_COOKIE_SAMESITE=Lax
