@@ -11,8 +11,7 @@ from .start_bot import (
     titles_task,
     translations_task,
     inject_task,
-    make_results_summary,
-    commons_link,
+    make_results_summary
 )
 from .download_task import download_task
 from .upload_task import upload_task
