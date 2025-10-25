@@ -54,8 +54,8 @@ def db_factory(monkeypatch):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_commits_for_writes(db_factory, module_name):
     db, connection, cursor = db_factory(module_name)
@@ -68,8 +68,8 @@ def test_execute_query_commits_for_writes(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_skips_commit_for_select(db_factory, module_name):
     db, connection, cursor = db_factory(module_name)
@@ -85,8 +85,8 @@ def test_execute_query_skips_commit_for_select(db_factory, module_name):
 # Additional comprehensive tests for Database classes
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_database_initialization(db_factory, module_name):
     """Test that Database initializes with correct configuration."""
@@ -99,8 +99,8 @@ def test_database_initialization(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_with_params(db_factory, module_name):
     """Test execute_query with parameterized queries."""
@@ -114,8 +114,8 @@ def test_execute_query_with_params(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_update_commits(db_factory, module_name):
     """Test that UPDATE queries commit changes."""
@@ -129,8 +129,8 @@ def test_execute_query_update_commits(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_delete_commits(db_factory, module_name):
     """Test that DELETE queries commit changes."""
@@ -144,7 +144,7 @@ def test_execute_query_delete_commits(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
+    "src.app.db.db_class",
 ])
 def test_execute_query_handles_errors(db_factory, module_name):
     """Test that execute_query handles MySQL errors gracefully."""
@@ -158,8 +158,8 @@ def test_execute_query_handles_errors(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_fetch_query_returns_results(db_factory, module_name):
     """Test fetch_query returns fetched results."""
@@ -174,8 +174,8 @@ def test_fetch_query_returns_results(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_fetch_query_with_params(db_factory, module_name):
     """Test fetch_query with parameterized queries."""
@@ -190,7 +190,7 @@ def test_fetch_query_with_params(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
+    "src.app.db.db_class",
 ])
 def test_fetch_query_handles_errors(db_factory, module_name):
     """Test that fetch_query handles MySQL errors gracefully."""
@@ -203,8 +203,8 @@ def test_fetch_query_handles_errors(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_select_case_insensitive(db_factory, module_name):
     """Test that SELECT detection is case-insensitive."""
@@ -219,8 +219,8 @@ def test_execute_query_select_case_insensitive(db_factory, module_name):
 
 
 @pytest.mark.parametrize("module_name", [
-    "src.web.db.db_class",
-    "src.web.db.svg_db",
+    "src.app.db.db_class",
+    "src.app.db.svg_db",
 ])
 def test_execute_query_whitespace_handling(db_factory, module_name):
     """Test execute_query handles queries with leading whitespace."""
@@ -246,7 +246,7 @@ def test_svg_db_execute_query_helper(monkeypatch):
 
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
 
-    from src.web.db import svg_db
+    from src.app.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
         "user": "user",
@@ -271,7 +271,7 @@ def test_svg_db_execute_query_helper_with_params(monkeypatch):
 
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
 
-    from src.web.db import svg_db
+    from src.app.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
         "user": "user",
@@ -297,7 +297,7 @@ def test_svg_db_fetch_query_helper(monkeypatch):
 
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
 
-    from src.web.db import svg_db
+    from src.app.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
         "user": "user",
@@ -323,7 +323,7 @@ def test_svg_db_fetch_query_helper_with_params(monkeypatch):
 
     monkeypatch.setattr(pymysql, "connect", MagicMock(return_value=connection))
 
-    from src.web.db import svg_db
+    from src.app.db import svg_db
     monkeypatch.setattr(svg_db, "db_data", {
         "host": "localhost",
         "user": "user",
@@ -340,7 +340,7 @@ def test_database_connection_error_exits(monkeypatch):
     """Test that Database initialization exits on connection error."""
     monkeypatch.setattr(pymysql, "connect", MagicMock(side_effect=pymysql.MySQLError("Connection refused")))
 
-    from src.web.db import db_class
+    from src.app.db import db_class
 
     with pytest.raises(SystemExit):
         db_class.Database({

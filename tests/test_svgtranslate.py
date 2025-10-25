@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from CopySvgTranslate import extract, inject
-from CopySvgTranslate.text_utils import normalize_text, generate_unique_id
+from CopySvgTranslate import normalize_text, generate_unique_id
 
 class TestSVGTranslate(unittest.TestCase):
     """Test cases for the SVG translation tool."""

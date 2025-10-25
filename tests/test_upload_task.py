@@ -15,7 +15,7 @@ os.environ.setdefault("OAUTH_CONSUMER_KEY", "test-consumer-key")
 os.environ.setdefault("OAUTH_CONSUMER_SECRET", "test-consumer-secret")
 os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
 
-from src.web.upload_task import _safe_invoke_callback, start_upload, upload_task
+from src.app.web.upload_task import start_upload, upload_task
 
 
 @pytest.fixture
@@ -26,32 +26,14 @@ def sample_files_to_upload():
     }
 
 
-class TestSafeInvokeCallback:
-    def test_callback_is_none_no_error(self):
-        _safe_invoke_callback(None, 1, 10, Path("test.svg"), "success")
-
-    def test_callback_is_called(self):
-        callback = MagicMock()
-        path = Path("test.svg")
-
-        _safe_invoke_callback(callback, 5, 10, path, "success")
-
-        callback.assert_called_once_with(5, 10, path, "success")
-
-    def test_callback_exception_is_caught(self):
-        callback = MagicMock(side_effect=RuntimeError("Callback error"))
-
-        _safe_invoke_callback(callback, 1, 10, Path("test.svg"), "failed")
-
-
 class TestStartUpload:
     def test_start_upload_success(self):
         site = MagicMock()
         site.logged_in = True
         site.username = "test_user"
 
-        with patch("src.web.upload_task.upload_file", return_value={"result": "Success"}):
-            with patch("src.web.upload_task.tqdm", lambda items, **_: items):
+        with patch("src.app.web.upload_task.upload_file", return_value={"result": "Success"}):
+            with patch("src.app.web.upload_task.tqdm", lambda items, **_: items):
                 result = start_upload(
                     {"File1.svg": {"file_path": "File1.svg", "new_languages": "ar, fr"}},
                     "[[:File:Main.svg]]",
@@ -66,10 +48,10 @@ class TestStartUpload:
         site = MagicMock()
 
         with patch(
-            "src.web.upload_task.upload_file",
+            "src.app.web.upload_task.upload_file",
             return_value={"result": "Failure", "error": "Permission denied"},
         ):
-            with patch("src.web.upload_task.tqdm", lambda items, **_: items):
+            with patch("src.app.web.upload_task.tqdm", lambda items, **_: items):
                 result = start_upload(
                     {"File1.svg": {"file_path": "File1.svg"}},
                     "[[:File:Main.svg]]",
@@ -84,8 +66,8 @@ class TestStartUpload:
         site = MagicMock()
         callback = MagicMock()
 
-        with patch("src.web.upload_task.upload_file", return_value={"result": "Success"}):
-            with patch("src.web.upload_task.tqdm", lambda items, **_: items):
+        with patch("src.app.web.upload_task.upload_file", return_value={"result": "Success"}):
+            with patch("src.app.web.upload_task.tqdm", lambda items, **_: items):
                 start_upload(
                     {
                         "File1.svg": {"file_path": "File1.svg", "new_languages": "ar, fr"},
@@ -100,9 +82,9 @@ class TestStartUpload:
 
 
 class TestUploadTask:
-    @patch("src.web.upload_task.mark_token_used")
-    @patch("src.web.upload_task.build_upload_site")
-    @patch("src.web.upload_task.start_upload")
+    @patch("src.app.web.upload_task.mark_token_used")
+    @patch("src.app.web.upload_task.build_upload_site")
+    @patch("src.app.web.upload_task.start_upload")
     def test_upload_task_success(
         self,
         mock_start_upload,
@@ -148,8 +130,8 @@ class TestUploadTask:
         assert updated_stages["status"] == "Failed"
         assert "Missing OAuth credentials" in updated_stages["message"]
 
-    @patch("src.web.upload_task.mark_token_used")
-    @patch("src.web.upload_task.build_upload_site", side_effect=RuntimeError("boom"))
+    @patch("src.app.web.upload_task.mark_token_used")
+    @patch("src.app.web.upload_task.build_upload_site", side_effect=RuntimeError("boom"))
     def test_upload_task_oauth_failure(
         self, mock_build_site, mock_mark_token_used, sample_files_to_upload
     ):
@@ -168,9 +150,9 @@ class TestUploadTask:
         mock_build_site.assert_called_once()
         mock_mark_token_used.assert_not_called()
 
-    @patch("src.web.upload_task.mark_token_used")
-    @patch("src.web.upload_task.build_upload_site")
-    @patch("src.web.upload_task.start_upload")
+    @patch("src.app.web.upload_task.mark_token_used")
+    @patch("src.app.web.upload_task.build_upload_site")
+    @patch("src.app.web.upload_task.start_upload")
     def test_upload_task_updates_message(
         self,
         mock_start_upload,

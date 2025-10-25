@@ -3,8 +3,8 @@ import threading
 import unittest
 from pathlib import Path
 
-from CopySvgTranslate.task_store import TaskAlreadyExistsError, TaskStore
-from web.web_run_task import make_stages
+from CopySvgTranslate.app import TaskAlreadyExistsError, TaskStore
+from src.app.web.web_run_task import make_stages
 
 
 class TaskStorePersistenceTest(unittest.TestCase):
@@ -95,4 +95,3 @@ class TaskStorePersistenceTest(unittest.TestCase):
             self.assertEqual(task["stages"]["initialize"]["status"], "Completed")
 
             store.close()
-

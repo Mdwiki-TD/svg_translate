@@ -24,7 +24,7 @@ if "tqdm" not in sys.modules:
     tqdm_stub.tqdm = lambda iterable=None, **_: iterable if iterable else []
     sys.modules["tqdm"] = tqdm_stub
 
-from src.web.download_task import (
+from src.app.web.download_task import (
     download_commons_svgs,
     download_task,
 )
@@ -52,7 +52,7 @@ def temp_output_dir(tmp_path):
 class TestDownloadCommonsSvgs:
     """Test download_commons_svgs function."""
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_single_file(self, mock_session_class, temp_output_dir):
         """Test downloading a single SVG file."""
         session = MagicMock()
@@ -68,7 +68,7 @@ class TestDownloadCommonsSvgs:
         assert len(result) == 1
         assert (temp_output_dir / "Example.svg").exists()
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_multiple_files(self, mock_session_class, temp_output_dir):
         """Test downloading multiple SVG files."""
         session = MagicMock()
@@ -85,7 +85,7 @@ class TestDownloadCommonsSvgs:
         for title in titles:
             assert (temp_output_dir / title).exists()
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_skips_existing_files(self, mock_session_class, temp_output_dir):
         """Test that existing files are skipped."""
         session = MagicMock()
@@ -104,7 +104,7 @@ class TestDownloadCommonsSvgs:
         # Content should remain unchanged
         assert existing_file.read_bytes() == b"<svg>old content</svg>"
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_handles_network_error(self, mock_session_class, temp_output_dir):
         """Test handling of network errors."""
         import requests
@@ -118,7 +118,7 @@ class TestDownloadCommonsSvgs:
         # Should return empty list for failed downloads
         assert len(result) == 0
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_handles_404_error(self, mock_session_class, temp_output_dir):
         """Test handling of 404 not found errors."""
         session = MagicMock()
@@ -133,7 +133,7 @@ class TestDownloadCommonsSvgs:
         # File should not be in result
         assert len(result) == 0
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_with_callback(self, mock_session_class, temp_output_dir):
         """Test download with progress callback."""
         session = MagicMock()
@@ -151,7 +151,7 @@ class TestDownloadCommonsSvgs:
         # Callback should be called for each file
         assert callback.call_count == 2
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_creates_output_directory(self, mock_session_class, tmp_path):
         """Test that output directory is created if it doesn't exist."""
         session = MagicMock()
@@ -169,7 +169,7 @@ class TestDownloadCommonsSvgs:
         assert new_dir.exists()
         assert (new_dir / "Test.svg").exists()
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_sets_user_agent(self, mock_session_class, temp_output_dir):
         """Test that User-Agent header is set."""
         session = MagicMock()
@@ -187,7 +187,7 @@ class TestDownloadCommonsSvgs:
         call_args = session.headers.update.call_args[0][0]
         assert "User-Agent" in call_args
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_empty_list(self, mock_session_class, temp_output_dir):
         """Test downloading with empty titles list."""
         session = MagicMock()
@@ -202,7 +202,7 @@ class TestDownloadCommonsSvgs:
 class TestDownloadTask:
     """Test download_task wrapper function."""
 
-    @patch("src.web.download_task.download_commons_svgs")
+    @patch("src.app.web.download_task.download_commons_svgs")
     def test_download_task_success(self, mock_download, temp_output_dir):
         """Test successful download task."""
         mock_download.return_value = [
@@ -219,7 +219,7 @@ class TestDownloadTask:
         assert updated_stages["status"] == "Completed"
         assert "2" in updated_stages["message"]
 
-    @patch("src.web.download_task.download_commons_svgs")
+    @patch("src.app.web.download_task.download_commons_svgs")
     def test_download_task_with_progress_updater(self, mock_download, temp_output_dir):
         """Test download task with progress updater callback."""
         mock_download.return_value = [str(temp_output_dir / "File1.svg")]
@@ -233,7 +233,7 @@ class TestDownloadTask:
         # Progress updater should be called
         assert progress_updater.called
 
-    @patch("src.web.download_task.download_commons_svgs")
+    @patch("src.app.web.download_task.download_commons_svgs")
     def test_download_task_partial_failure(self, mock_download, temp_output_dir):
         """Test download task with partial failures."""
         # Simulate that only 2 out of 3 files downloaded
@@ -260,7 +260,7 @@ class TestDownloadTask:
         assert updated_stages["status"] == "Failed"
         assert "Failed" in updated_stages["message"]
 
-    @patch("src.web.download_task.download_commons_svgs")
+    @patch("src.app.web.download_task.download_commons_svgs")
     def test_download_task_empty_titles(self, mock_download, temp_output_dir):
         """Test download task with empty titles list."""
         mock_download.return_value = []
@@ -273,7 +273,7 @@ class TestDownloadTask:
         assert len(files) == 0
         assert updated_stages["status"] == "Completed"
 
-    @patch("src.web.download_task.download_commons_svgs")
+    @patch("src.app.web.download_task.download_commons_svgs")
     def test_download_task_updates_stages_message(self, mock_download, temp_output_dir):
         """Test that stages message is updated during download."""
         mock_download.return_value = [str(temp_output_dir / "File1.svg")]
@@ -286,7 +286,7 @@ class TestDownloadTask:
         # Message should contain progress information
         assert "1" in updated_stages["message"]
 
-    @patch("src.web.download_task.download_commons_svgs")
+    @patch("src.app.web.download_task.download_commons_svgs")
     def test_download_task_progress_updater_exception_caught(self, mock_download, temp_output_dir):
         """Test that progress updater exceptions are caught."""
         mock_download.return_value = [str(temp_output_dir / "File1.svg")]
@@ -304,7 +304,7 @@ class TestDownloadTask:
 class TestDownloadIntegration:
     """Integration tests for download functionality."""
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_full_download_workflow(self, mock_session_class, temp_output_dir):
         """Test complete download workflow."""
         session = MagicMock()
@@ -336,7 +336,7 @@ class TestDownloadIntegration:
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_with_special_characters_in_filename(self, mock_session_class, temp_output_dir):
         """Test downloading files with special characters in names."""
         session = MagicMock()
@@ -351,7 +351,7 @@ class TestEdgeCases:
 
         assert len(result) == 2
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_with_unicode_filename(self, mock_session_class, temp_output_dir):
         """Test downloading files with unicode characters in names."""
         session = MagicMock()
@@ -366,7 +366,7 @@ class TestEdgeCases:
 
         assert len(result) == 2
 
-    @patch("src.web.download_task.requests.Session")
+    @patch("src.app.web.download_task.requests.Session")
     def test_download_timeout_handling(self, mock_session_class, temp_output_dir):
         """Test handling of request timeouts."""
         import requests
