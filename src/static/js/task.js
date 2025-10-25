@@ -1,4 +1,12 @@
-
+const STATUS_CLASSES = {
+    "Completed": "success",
+    "Failed": "danger",
+    "Skipped": "warning",
+    "Running": "primary",
+    "Pending": "secondary",
+    "Cancelled": "warning",
+    "error": "danger"
+};
 
 function overall_progress(stages_obj) {
     const total = stages_obj.length;
@@ -9,14 +17,7 @@ function overall_progress(stages_obj) {
 
 function stages_html_new(st, name) {
     const subname = st.sub_name ? ` <small class="text-muted">(${st.sub_name})</small>` : '';
-    const classes = {
-        "Completed": "success",
-        "Failed": "danger",
-        "Skipped": "warning",
-        "Running": "primary",
-        "Pending": "secondary"
-    };
-    const color = classes[st.status] || "secondary";
+    const color = STATUS_CLASSES[st.status] || "secondary";
     const percent = st.status === "Completed" ? 100 : st.status === "Running" ? 60 : st.status === "Pending" ? 10 : 0;
 
     const cls = st.status === "Running" ? "running" : "";
@@ -52,6 +53,60 @@ function result_html(r) {
     const section = document.getElementById('progress-section');
     if (!section) return;
     const taskId = section.getAttribute('data-task-id');
+    const cancelBtn = document.getElementById('cancel-task-btn');
+    const restartBtn = document.getElementById('restart-task-btn');
+    const taskStatus = document.getElementById('task_status');
+    const alertDiv = document.getElementById('alert_div');
+    const lastUpdate = document.getElementById('last-update');
+    const STOP_STATUSES = new Set(['Completed', 'Failed', 'Cancelled', 'error']);
+    const RESTART_STATUSES = new Set(['Completed', 'Failed', 'Cancelled']);
+    let timer = null;
+
+    function statusBadge(status) {
+        if (!status) {
+            return '';
+        }
+        const color = STATUS_CLASSES[status] || 'secondary';
+        return `<span class="badge text-bg-${color}">${status}</span>`;
+    }
+
+    function updateStatus(status) {
+        if (!taskStatus) return;
+        const normalizedStatus = status || '';
+        taskStatus.dataset.status = normalizedStatus;
+        if (!normalizedStatus) {
+            taskStatus.innerHTML = '';
+            return;
+        }
+        taskStatus.innerHTML = statusBadge(normalizedStatus);
+    }
+
+    function updateControls(status) {
+        const normalizedStatus = status || '';
+        if (cancelBtn) {
+            cancelBtn.classList.toggle('d-none', STOP_STATUSES.has(normalizedStatus));
+            cancelBtn.disabled = false;
+        }
+        if (restartBtn) {
+            restartBtn.classList.toggle('d-none', !RESTART_STATUSES.has(normalizedStatus));
+            restartBtn.disabled = false;
+        }
+    }
+
+    function showAlert(kind, message) {
+        if (!alertDiv) return;
+        alertDiv.innerHTML = `
+            <div class="alert alert-${kind}" role="alert">
+                ${message}
+            </div>
+        `;
+    }
+
+    const initialStatus = taskStatus?.dataset.status || '';
+    if (initialStatus) {
+        updateStatus(initialStatus);
+    }
+    updateControls(initialStatus);
 
     async function refresh() {
         try {
@@ -59,13 +114,19 @@ function result_html(r) {
             const taskData = await res.json();
             if (!res.ok) {
                 if (taskData?.error === 'not-found') {
-                    document.getElementById("task_status").innerText = " (Not Found)";
-                    document.getElementById("alert_div").innerHTML = `
-                            <div class="alert alert-danger" role="alert">
-                                Task not found.
-                            </div>
-                        `;
-                    clearInterval(timer);
+                    if (taskStatus) {
+                        taskStatus.innerHTML = '<span class="badge text-bg-danger">Not Found</span>';
+                    }
+                    if (cancelBtn) {
+                        cancelBtn.classList.add('d-none');
+                    }
+                    if (restartBtn) {
+                        restartBtn.classList.add('d-none');
+                    }
+                    showAlert('danger', 'Task not found.');
+                    if (timer) {
+                        clearInterval(timer);
+                    }
                 }
                 return;
             }
@@ -85,18 +146,79 @@ function result_html(r) {
             }
 
             if (taskData.status) {
-                document.getElementById("task_status").innerText = ` (${taskData.status})`;
+                updateStatus(taskData.status);
+            } else {
+                updateStatus('');
             }
 
-            if (['Completed', 'error', 'Failed'].includes(taskData.status)) {
-                clearInterval(timer);
+            updateControls(taskData.status);
+
+            if (taskData.status && STOP_STATUSES.has(taskData.status)) {
+                if (timer) {
+                    clearInterval(timer);
+                }
             }
 
-            document.getElementById('last-update').innerHTML = `Last updated: ${new Date().toLocaleTimeString()}`;
+            if (lastUpdate) {
+                lastUpdate.innerHTML = `Last updated: ${new Date().toLocaleTimeString()}`;
+            }
 
         } catch (e) { /* ignore transient errors */ }
     }
 
-    const timer = setInterval(refresh, 2000);
+    timer = setInterval(refresh, 2000);
     refresh();
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            if (cancelBtn.disabled) {
+                return;
+            }
+            cancelBtn.disabled = true;
+            showAlert('info', 'Stopping task...');
+            try {
+                const response = await fetch(`/tasks/${taskId}/cancel`, { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error('Failed to cancel task');
+                }
+                await response.json();
+                updateStatus('Cancelled');
+                updateControls('Cancelled');
+                showAlert('success', 'Task cancelled successfully.');
+                if (timer) {
+                    clearInterval(timer);
+                }
+            } catch (error) {
+                cancelBtn.disabled = false;
+                showAlert('danger', 'Unable to cancel the task. Please try again.');
+            }
+        });
+    }
+
+    if (restartBtn) {
+        restartBtn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            if (restartBtn.disabled) {
+                return;
+            }
+            restartBtn.disabled = true;
+            showAlert('info', 'Restarting task...');
+            try {
+                const response = await fetch(`/tasks/${taskId}/restart`, { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error('Failed to restart task');
+                }
+                const data = await response.json();
+                const nextTaskId = data?.task_id;
+                if (!nextTaskId) {
+                    throw new Error('Missing task id');
+                }
+                window.location = `/task2?task_id=${nextTaskId}`;
+            } catch (error) {
+                restartBtn.disabled = false;
+                showAlert('danger', 'Unable to restart the task. Please try again.');
+            }
+        });
+    }
 })();
