@@ -34,6 +34,9 @@ from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
 bp_auth = Blueprint("auth", __name__)
 
+oauth_state_nonce = "oauth_state_nonce"
+request_token = "request_token"
+
 
 def _client_key() -> str:
     forwarded_for = request.headers.get("X-Forwarded-For")
@@ -65,7 +68,7 @@ def login() -> Response:
         return redirect(url_for("main.index", error=f"Too many login attempts. Please try again after {time_left}s."))
 
     state_nonce = secrets.token_urlsafe(32)
-    session["oauth_state_nonce"] = state_nonce
+    session[oauth_state_nonce] = state_nonce
 
     # ------------------
     # start login
@@ -77,7 +80,7 @@ def login() -> Response:
 
     # ------------------
     # add request_token to session
-    session["request_token"] = list(request_token)
+    session[request_token] = list(request_token)
     return redirect(redirect_url)
 
 
@@ -107,7 +110,7 @@ def callback() -> Response:
 
     # ------------------
     # verify state token
-    expected_state = session.pop("oauth_state_nonce", None)
+    expected_state = session.pop(oauth_state_nonce, None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
         return redirect(url_for("main.index", error="Invalid OAuth state"))
@@ -118,7 +121,7 @@ def callback() -> Response:
 
     # ------------------
     # token data
-    raw_request_token = session.pop("request_token", None)
+    raw_request_token = session.pop(request_token, None)
     oauth_verifier = request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))

@@ -191,8 +191,10 @@ def _get_task_store() -> TaskStorePyMysql:
 @bp_main.get("/task1")
 def task1():
     task_id = request.args.get("task_id")
-    store = _get_task_store()
-    task = store.get_task(task_id) if task_id else None
+    task = None
+    if task_id:
+        store = _get_task_store()
+        task = store.get_task(task_id)
 
     if not task:
         task = {"error": "not-found"}
@@ -213,8 +215,10 @@ def task1():
 def task2():
     task_id = request.args.get("task_id")
     title = request.args.get("title")
-    store = _get_task_store()
-    task = store.get_task(task_id) if task_id else None
+    task = None
+    if task_id:
+        store = _get_task_store()
+        task = store.get_task(task_id)
 
     if not task:
         task = {"error": "not-found"}
