@@ -9,8 +9,8 @@ from app import create_app
 
 config_console_logger()
 
-w_app = create_app()
+app = create_app()
 
 if __name__ == "__main__":
     debug = "debug" in sys.argv
-    w_app.run(debug=debug)
+    app.run(debug=debug)

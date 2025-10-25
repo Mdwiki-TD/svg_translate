@@ -7,7 +7,16 @@ import uuid
 import logging
 from typing import Any, Dict, List
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from ..config import settings
 from ..svg_config import DISABLE_UPLOADS
@@ -60,7 +69,7 @@ def _task_store() -> TaskStorePyMysql:
 
 def close_task_store() -> None:
     """Close the cached :class:`TaskStorePyMysql` instance if present."""
-
+    global TASK_STORE
     if TASK_STORE is not None:
         TASK_STORE.close()
 
@@ -141,6 +150,17 @@ def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, An
     return ordered
 
 
+@bp_main.get("/")
+def index():
+    error_message = get_error_message(request.args.get("error"))
+
+    return render_template(
+        "index.html",
+        form={},
+        error_message=error_message,
+    )
+
+
 def _get_task_store() -> TaskStorePyMysql:
     global TASK_STORE
     if TASK_STORE is None:
@@ -165,17 +185,6 @@ def task1():
         task_id=task_id,
         task=task,
         form=task.get("form", {}),
-        error_message=error_message,
-    )
-
-
-@bp_main.get("/")
-def index():
-    error_message = get_error_message(request.args.get("error"))
-
-    return render_template(
-        "index.html",
-        form={},
         error_message=error_message,
     )
 

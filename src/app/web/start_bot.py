@@ -234,7 +234,7 @@ def inject_task(
     # ---
     injects_result: dict[str, Any] = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
     # ---
-    stages["message"] = f"inject ({len(files):,}) files: Done {injects_result['saved_done']:,}, Skipped {injects_result['no_save']:,}, nested files: {injects_result['nested_files']:,}"
+    stages["message"] = f"inject ({len(files):,}) files: Done {injects_result['saved_done']:,}, Skipped {injects_result['no_save']:,}, No changes {injects_result.get('no_changes', 0):,}, Nested files: {injects_result['nested_files']:,}"
     # ---
     stages["status"] = "Completed"
     # ---
