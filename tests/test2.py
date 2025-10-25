@@ -1,6 +1,6 @@
 
 
-from CopySvgTranslate import svg_extract_and_injects, extract
+from CopySvgTranslate import inject, extract
 
 from pathlib import Path
 tests_files_dir = Path(__file__).parent.parent / "tests_files"
@@ -19,7 +19,12 @@ def test():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for file in inject_files:
-        _data = svg_extract_and_injects(translations, file, output_dir=output_dir)
+        _data = inject(
+            file,
+            output_dir=output_dir,
+            all_mappings=translations,
+            save_result=True,
+        )
         # break
 
 
