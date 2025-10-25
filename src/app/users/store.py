@@ -27,9 +27,10 @@ def _get_db() -> Database:
 
 def close_cached_db() -> None:
     """Close the cached :class:`Database` instance if it has been initialized."""
-
+    global _db
     if _db is not None:
         _db.close()
+        _db = None
 
 
 def _current_ts() -> str:
@@ -51,6 +52,7 @@ def _coerce_bytes(value: Any) -> bytes:
     if isinstance(value, memoryview):
         return value.tobytes()
     raise TypeError("Expected bytes-compatible value for encrypted token")
+
 
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""

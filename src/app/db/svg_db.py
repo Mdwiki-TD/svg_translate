@@ -15,8 +15,8 @@ _db: Database | None = None
 
 
 def _get_db() -> Database:
-    global _db
     """Return a lazily-instantiated :class:`Database` using ``db_data``."""
+    global _db
     if _db is None:
         _db = Database(settings.db_data)
     return _db
