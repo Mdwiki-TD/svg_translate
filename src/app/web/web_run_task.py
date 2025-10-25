@@ -11,7 +11,8 @@ from .start_bot import (
     titles_task,
     translations_task,
     inject_task,
-    make_results_summary
+    make_results_summary,
+    commons_link,
 )
 from .download_task import download_task
 from .upload_task import upload_task
@@ -181,7 +182,29 @@ def run_task(
 
         # ----------------------------------------------
         # Stage 2: extract titles
-        titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
+        titles_result, stages_list["titles"] = titles_task(
+            stages_list["titles"],
+            text,
+            titles_limit=args.titles_limit,
+        )
+
+        manual_main_title = getattr(args, "manual_main_title", None)
+        if isinstance(manual_main_title, str):
+            manual_main_title = manual_main_title.strip()
+            if manual_main_title.lower().startswith("file:"):
+                manual_main_title = manual_main_title.split(":", 1)[1].strip()
+        if manual_main_title:
+            titles_result["main_title"] = manual_main_title
+            stage_state = stages_list["titles"]
+            stage_state["status"] = "Completed"
+            base_message = stage_state.get("message", "")
+            override_note = f"Using manual main title: {manual_main_title}"
+            stage_state["message"] = (
+                f"{base_message}; {override_note}" if base_message else override_note
+            )
+            stage_state["sub_name"] = commons_link(f"File:{manual_main_title}")
+            stages_list["titles"] = stage_state
+
         push_stage("titles")
 
         main_title, titles = titles_result["main_title"], titles_result["titles"]
