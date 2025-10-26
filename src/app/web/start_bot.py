@@ -125,12 +125,13 @@ def text_task(stages, title):
     return text, stages
 
 
-def titles_task(stages, text, titles_limit=None):
+def titles_task(stages, text, manual_main_title, titles_limit=None):
     """Extract SVG titles from wikitext and update stage metadata.
 
     Parameters:
         stages (dict): Mutable stage metadata for the titles stage.
         text (str): Wikitext retrieved from the main Commons page.
+        manual_main_title (str | None): Optional title to use instead of the extracted main_title.
         titles_limit (int | None): Optional maximum number of titles to keep.
 
     Returns:
@@ -141,6 +142,9 @@ def titles_task(stages, text, titles_limit=None):
     stages["status"] = "Running"
 
     main_title, titles = get_files(text)
+
+    if manual_main_title:
+        main_title = manual_main_title
 
     if not titles or not main_title:
         stages["status"] = "Failed"

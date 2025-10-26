@@ -181,7 +181,13 @@ def run_task(
 
         # ----------------------------------------------
         # Stage 2: extract titles
-        titles_result, stages_list["titles"] = titles_task(stages_list["titles"], text, titles_limit=args.titles_limit)
+        titles_result, stages_list["titles"] = titles_task(
+            stages_list["titles"],
+            text,
+            args.manual_main_title,
+            titles_limit=args.titles_limit,
+        )
+
         push_stage("titles")
 
         main_title, titles = titles_result["main_title"], titles_result["titles"]

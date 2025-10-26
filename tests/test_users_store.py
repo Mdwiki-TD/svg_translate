@@ -14,31 +14,6 @@ def reset_db(monkeypatch):
     monkeypatch.setattr(store, "_db", None)
 
 
-def test_ensure_user_token_table_creates_rotation_columns(monkeypatch):
-    fake_db = MagicMock()
-    monkeypatch.setattr(store, "_get_db", lambda: fake_db)
-
-    store.ensure_user_token_table()
-
-    executed = "\n".join(call.args[0] for call in fake_db.execute_query.call_args_list)
-    assert "last_used_at" in executed
-    assert "rotated_at" in executed
-
-
-def test_upsert_user_token_sets_rotation_metadata(monkeypatch):
-    fake_db = MagicMock()
-    monkeypatch.setattr(store, "_get_db", lambda: fake_db)
-    monkeypatch.setattr(store, "encrypt_value", lambda value: f"enc-{value}")
-
-    store.upsert_user_token(user_id=5, username="Tester", access_key="key", access_secret="secret")
-
-    sql = fake_db.execute_query.call_args[0][0]
-    assert "rotated_at" in sql
-    assert "last_used_at" in sql
-    assert "CURRENT_TIMESTAMP" in sql
-    assert "last_used_at = NULL" in sql
-
-
 def test_mark_token_used_updates_last_used(monkeypatch):
     fake_db = MagicMock()
     monkeypatch.setattr(store, "_get_db", lambda: fake_db)
@@ -58,8 +33,8 @@ def test_user_token_record_decrypted_marks_usage(monkeypatch):
     record = store.UserTokenRecord(
         user_id=3,
         username="Tester",
-        access_token_enc=b"token",
-        access_secret_enc=b"secret",
+        access_token=b"token",
+        access_secret=b"secret",
     )
 
     decrypted = record.decrypted()

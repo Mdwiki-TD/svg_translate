@@ -7,6 +7,27 @@ function overall_progress(stages_obj) {
     return Math.round((done / total) * 100);
 }
 
+function formatStageTimestamp(updatedAtRaw) {
+    if (!updatedAtRaw) {
+        return '';
+    }
+
+    const date = new Date(updatedAtRaw);
+    if (Number.isNaN(date.valueOf())) {
+        return '';
+    }
+
+    try {
+        return date.toLocaleString(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+        });
+    } catch (err) {
+        // Fallback for browsers that don't support dateStyle/timeStyle options
+        return date.toLocaleString();
+    }
+}
+
 function stages_html_new(st, name) {
     const subname = st.sub_name ? ` <small class="text-muted">(${st.sub_name})</small>` : '';
     const classes = {
@@ -21,13 +42,20 @@ function stages_html_new(st, name) {
 
     const cls = st.status === "Running" ? "running" : "";
 
+    const messageHtml = st.message ? `<div class="small text-muted">${st.message}</div>` : '';
+    const timestamp = formatStageTimestamp(st.updated_at);
+    const timestampHtml = timestamp ? `<div class="stage-timestamp text-muted">Updated: ${timestamp}</div>` : '';
+    const infoSection = (messageHtml || timestampHtml)
+        ? `<div class="stage-card-body">${messageHtml}${timestampHtml}</div>`
+        : '';
+
     return `
         <li class="list-group-item ${cls} border border-${color}">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="fw-bold">${name}${subname}</span>
                 <span class="badge text-bg-${color} border border-${color}">${st.status}</span>
             </div>
-            <div class="small text-muted">${st.message || ''}</div>
+            ${infoSection}
             <div class="progress mt-2" style="height: 6px;">
                 <div class="progress-bar bg-${color}" style="width:${percent}%"></div>
             </div>

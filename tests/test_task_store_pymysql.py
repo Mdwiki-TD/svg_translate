@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.web.db.db_class import Database
-from src.web.db.task_store_pymysql import (
+from src.app.db.db_class import Database
+from src.app.db.task_store_pymysql import (
     TaskAlreadyExistsError,
     TaskStorePyMysql,
     _normalize_title,
