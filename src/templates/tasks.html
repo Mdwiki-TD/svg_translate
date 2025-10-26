@@ -22,7 +22,7 @@
     <div class="d-flex align-items-center gap-3">
         <h1 class="h3 mb-0">
             {% if user_specific %}
-                {% if is_own_tasks %}My Tasks{% else %}{{ username }}'s Tasks{% endif %}
+                {% if is_own_tasks %}My Tasks{% else %}{{ tasks_user }}'s Tasks{% endif %}
             {% else %}All Tasks{% endif %}
         </h1>
         {% if user_specific %}
@@ -30,6 +30,9 @@
         {% endif %}
     </div>
     <form class="row g-2 align-items-center" method="get" role="search">
+        {% if tasks_user %}
+            <input id="user" name="user" type="hidden" value="{{ tasks_user }}">
+        {% endif %}
         <div class="col-auto">
             <label class="form-label mb-0" for="status">Status</label>
         </div>

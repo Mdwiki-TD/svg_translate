@@ -242,6 +242,7 @@ def user_tasks():
         status_filter=status_filter,
         available_statuses=available_statuses,
         current_user=current_user_obj,
+        tasks_user=user,
         is_own_tasks=is_own_tasks,
         user_specific=True,
     )
