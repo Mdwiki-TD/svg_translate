@@ -6,7 +6,8 @@ from flask import Flask
 
 from .config import settings
 from .auth.routes import bp_auth
-from .tasks.routes import bp_main, close_task_store
+from .main.routes import bp_main
+from .tasks.routes import bp_tasks, close_task_store
 
 from .users.current import context_user
 from .users.store import ensure_user_token_table, close_cached_db
@@ -35,6 +36,7 @@ def create_app() -> Flask:
         ensure_user_token_table()
 
     app.register_blueprint(bp_main)
+    app.register_blueprint(bp_tasks)
     app.register_blueprint(bp_auth)
 
     @app.context_processor

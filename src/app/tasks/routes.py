@@ -20,12 +20,12 @@ from ..web.web_run_task import run_task
 from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ..users.current import current_user, oauth_required
 
-from .utils import load_auth_payload, parse_args, get_error_message, _format_task, _order_stages
+from ..routes_utils import load_auth_payload, parse_args, get_error_message, _format_task, _order_stages
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
 
-bp_main = Blueprint("main", __name__)
+bp_tasks = Blueprint("tasks", __name__)
 logger = logging.getLogger(__name__)
 
 
@@ -43,18 +43,7 @@ def close_task_store() -> None:
         TASK_STORE.close()
 
 
-@bp_main.get("/")
-def index():
-    error_message = get_error_message(request.args.get("error"))
-
-    return render_template(
-        "index.html",
-        form={},
-        error_message=error_message,
-    )
-
-
-@bp_main.get("/task1")
+@bp_tasks.get("/task1")
 def task1():
     task_id = request.args.get("task_id")
     task = None
@@ -76,7 +65,7 @@ def task1():
     )
 
 
-@bp_main.get("/task2")
+@bp_tasks.get("/task2")
 def task2():
     task_id = request.args.get("task_id")
     title = request.args.get("title")
@@ -103,7 +92,7 @@ def task2():
     )
 
 
-@bp_main.post("/")
+@bp_tasks.post("/")
 @oauth_required
 def start():
     user = current_user()
@@ -124,7 +113,7 @@ def start():
             if existing_task:
                 logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
                 return redirect(
-                    url_for("main.task1", task_id=existing_task["id"], title=title, error="task-active")
+                    url_for("tasks.task1", task_id=existing_task["id"], title=title, error="task-active")
                 )
 
         try:
@@ -137,7 +126,7 @@ def start():
         except TaskAlreadyExistsError as exc:
             existing = exc.task
             return redirect(
-                url_for("main.task1", task_id=existing["id"], title=title, error="task-active")
+                url_for("tasks.task1", task_id=existing["id"], title=title, error="task-active")
             )
         except Exception:
             logger.exception("Failed to create task")
@@ -152,10 +141,10 @@ def start():
     )
     t.start()
 
-    return redirect(url_for("main.task1", title=title, task_id=task_id))
+    return redirect(url_for("tasks.task1", title=title, task_id=task_id))
 
 
-@bp_main.get("/tasks")
+@bp_tasks.get("/tasks")
 def tasks():
     """
     Render the task listing page with formatted task metadata and available status filters.
@@ -189,7 +178,7 @@ def tasks():
     )
 
 
-@bp_main.get("/status/<task_id>")
+@bp_tasks.get("/status/<task_id>")
 def status(task_id: str):
     """
     Return the JSON representation of the task identified by `task_id`.

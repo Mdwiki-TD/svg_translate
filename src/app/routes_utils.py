@@ -5,7 +5,7 @@ from collections import namedtuple
 from datetime import datetime
 import logging
 from typing import Any, Dict, List
-from ..svg_config import DISABLE_UPLOADS
+from .svg_config import DISABLE_UPLOADS
 
 logger = logging.getLogger(__name__)
 
