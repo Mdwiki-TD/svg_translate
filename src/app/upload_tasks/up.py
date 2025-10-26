@@ -1,9 +1,7 @@
 """Upload task helpers with progress callbacks."""
 
 from __future__ import annotations
-
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
 import logging
 from tqdm import tqdm
@@ -16,7 +14,6 @@ from ..wiki_client import build_upload_site
 from ..db.task_store_pymysql import TaskStorePyMysql
 
 logger = logging.getLogger(__name__)
-PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 
 
 def _coerce_encrypted(value: object) -> bytes | None:
@@ -38,7 +35,9 @@ def start_upload(
     main_title_link: str,
     site,
     stages,
-    message_updater: PerFileCallback = None,
+    task_id,
+    store,
+    check_cancel
 ):
     """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
@@ -46,6 +45,9 @@ def start_upload(
     not_done = 0
     no_changes = 0
     errors = []
+
+    def message_updater(value: str) -> None:
+        store.update_stage_column(task_id, "upload", "stage_message", value)
 
     items = list(files_to_upload.items())
     total = len(items)
@@ -92,8 +94,14 @@ def start_upload(
             f"no changes: {no_changes:,}, "
             f"not uploaded: {not_done:,}"
         )
+
         if message_updater:
             message_updater(stages["message"])
+
+        if index % 10 == 0:
+            if check_cancel("upload"):
+                upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
+                return upload_result, stages
 
     stages["status"] = "Failed" if not_done else "Completed"
 
@@ -110,6 +118,7 @@ def upload_task(
     user: Dict[str, str] = None,
     store: TaskStorePyMysql =None,
     task_id: str = "",
+    check_cancel: Callable = None,
 ):
     """
     Coordinate and run the file upload process, updating stage status and progress as files are processed.
@@ -178,15 +187,17 @@ def upload_task(
 
     main_title_link = f"[[:File:{main_title}]]"
 
-    def message_updater(value: str) -> None:
-        store.update_stage_column(task_id, "upload", "stage_message", value)
+    if check_cancel("upload"):
+        return
 
     upload_result, stages = start_upload(
         files_to_upload,
         main_title_link,
         site,
         stages,
-        message_updater,
+        task_id,
+        store,
+        check_cancel
     )
 
     return upload_result, stages
