@@ -32,60 +32,98 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="mb-4">SVG Translate Bot</h1>
-
+<div class="d-flex justify-content-between align-items-center">
+    <h2 class="mb-3">{{ form.title if form and form.title else ''}}</h2>
+    <h3 class="mb-3">{{ task.username }}</h3>
+</div>
 {% if error_message %}
 <div class="alert alert-danger" role="alert">{{ error_message }}</div>
 {% endif %}
 
 <form method="post" action="{{ url_for('tasks.start') }}" class="row gy-2 gx-3 align-items-center mb-4">
-    <div class="col-12 col-md-6">
-        <label for="title" class="form-label">Template Title</label>
-        <input type="text" class="form-control" id="title" name="title"
-            value="{{ form.title if form and form.title else 'Template:OWID/death rate from obesity'}}" required>
-    </div>
-    <div class="col-6 col-md-3">
+    <div class="row justify-content-between align-items-center">
+        <div class="col-sm-12 col-md-3">
+            <label for="manual_main_title" class="form-label">Manual Main File Title (optional)</label>
+            <input type="text" class="form-control" id="manual_main_title" name="manual_main_title"
+                value="{{ form.manual_main_title if form and form.manual_main_title else '' }}"
+                placeholder="File:Example.svg" disabled>
+        </div>
+        <!-- <div class="col-sm-12 col-md-4">
         <label for="titles_limit" class="form-label">Titles Limit</label>
         <input type="number" class="form-control" id="titles_limit" name="titles_limit" min="1"
-            value="{{ form.titles_limit if form and form.titles_limit else 1000 }}">
-    </div>
-    <div class="col-12 col-md-3 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100">Start</button>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" value="z" id="overwrite" name="overwrite"
-                {{ 'checked' if not form or form.overwrite == "z" else '' }}>
-            <label class="form-check-label" for="overwrite">
-                Overwrite Existing translations
-            </label>
+            value="{{ form.titles_limit if form and form.titles_limit else 1000 }}" disabled>
+    </div> -->
+        <div class="col-sm-12 col-md-6">
+            <div class="row">
+                <div class="col-md-6 col-sm-12">
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" value="z" id="overwrite" name="overwrite"
+                            {{ 'checked' if not form or form.overwrite == "z" else '' }} disabled>
+                        <label class="form-check-label" for="overwrite">
+                            Overwrite Existing translations
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-6 col-sm-12">
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" value="1" id="upload" name="upload"
+                            {{ 'checked' if form and form.upload else '' }} disabled>
+                        <label class="form-check-label" for="upload">
+                            Upload New translations
+                        </label>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" value="1" id="upload" name="upload"
-                {{ 'checked' if form and form.upload else '' }}>
-            <label class="form-check-label" for="upload">
-                Upload New translations
-            </label>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" value="1" id="ignore_existing_task"
-                name="ignore_existing_task" {{ 'checked' if form and form.ignore_existing_task else '' }}>
-            <label class="form-check-label" for="ignore_existing_task">
-                Ignore existing tasks
-            </label>
+        <div class="col-sm-12 col-md-3">
+            <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" value="1" id="ignore_existing_task"
+                    name="ignore_existing_task" {{ 'checked' if form and form.ignore_existing_task else '' }} disabled>
+                <label class="form-check-label" for="ignore_existing_task">
+                    Ignore existing tasks
+                </label>
+            </div>
         </div>
     </div>
 </form>
+<hr />
 {% if task_id %}
 <div id="progress-section" data-task-id="{{ task_id }}">
-    <h2 class="h5">
-        Task Status <span id="task_status">
-        </span>
-    </h2>
+    {% set status_classes = {
+        'Completed': 'success',
+        'Failed': 'danger',
+        'Skipped': 'warning',
+        'Running': 'primary',
+        'Pending': 'secondary',
+        'Cancelled': 'warning',
+        'error': 'danger'
+    } %}
+    {% set current_status = task.status if task and task.status else '' %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="h5 m-0 d-flex align-items-center gap-2">
+            <span>Task Status</span>
+            <span id="task_status" data-status="{{ current_status }}">
+                {% if current_status %}
+                <span
+                    class="badge text-bg-{{ status_classes.get(current_status, 'secondary') }}">{{ current_status }}</span>
+                {% elif task and task.error == 'not-found' %}
+                <span class="badge text-bg-danger">Not Found</span>
+                {% endif %}
+            </span>
+        </h2>
+        {% set hide_cancel = (current_status in ['Completed', 'Failed', 'Cancelled', 'error']) or (task and task.error == 'not-found') %}
+        {% set show_restart = current_status in ['Completed', 'Failed', 'Cancelled'] %}
+        <div class="btn-group" role="group" aria-label="Task actions">
+            <button type="button" class="btn btn-outline-danger {% if hide_cancel %}d-none{% endif %}"
+                id="cancel-task-btn" data-task-id="{{ task_id }}">
+                Stop
+            </button>
+            <button type="button" class="btn btn-outline-primary {% if not show_restart %}d-none{% endif %}"
+                id="restart-task-btn" data-task-id="{{ task_id }}">
+                Restart
+            </button>
+        </div>
+    </div>
 
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
         <div id="task-meta" class="mb-2 text-muted">
@@ -99,7 +137,7 @@
     <div class="progress mb-3" style="height:8px;">
         <div id="global-progress" class="progress-bar bg-primary" style="width:0%"></div>
     </div>
-    <div class="col-12" id="alert_div">
+    <div class="col-sm-12" id="alert_div">
     </div>
     <ul id="stagesnew" class="list-group">
     </ul>

@@ -35,10 +35,8 @@ from .rate_limit import callback_rate_limiter, login_rate_limiter
 logger = logging.getLogger(__name__)
 bp_auth = Blueprint("auth", __name__)
 
-# oauth_state_nonce = settings.STATE_SESSION_KEY
-# request_token = settings.REQUEST_TOKEN_SESSION_KEY
-oauth_state_nonce = "oauth_state_nonce"
-request_token_key = "request_token"
+oauth_state_nonce = settings.STATE_SESSION_KEY
+request_token_key = settings.REQUEST_TOKEN_SESSION_KEY
 
 
 def _client_key() -> str:
@@ -48,13 +46,25 @@ def _client_key() -> str:
     return request.remote_addr or "anonymous"
 
 
+def _load_request_token(raw: Sequence[Any] | None):
+    from mwoauth import RequestToken
+
+    if not raw:
+        raise ValueError("Missing OAuth request token")
+
+    if len(raw) < 2:
+        raise ValueError("Invalid OAuth request token")
+
+    return RequestToken(raw[0], raw[1])
+
+
 def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator that redirects anonymous users to the index page."""
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not getattr(g, "is_authenticated", False):
-            return redirect(url_for("main.index", error="auth-required"))
+            return redirect(url_for("main.index", error="login-required"))
         return fn(*args, **kwargs)
 
     return wrapper
@@ -85,18 +95,6 @@ def login() -> Response:
     # add request_token to session
     session[request_token_key] = list(request_token)
     return redirect(redirect_url)
-
-
-def _load_request_token(raw: Sequence[Any] | None):
-    from mwoauth import RequestToken
-
-    if not raw:
-        raise ValueError("Missing OAuth request token")
-
-    if len(raw) < 2:
-        raise ValueError("Invalid OAuth request token")
-
-    return RequestToken(raw[0], raw[1])
 
 
 @bp_auth.get("/callback")
@@ -221,7 +219,7 @@ def callback() -> Response:
 
 
 @bp_auth.get("/logout")
-# @login_required
+@login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
     session.pop(request_token_key, None)

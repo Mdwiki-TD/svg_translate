@@ -29,3 +29,5 @@ web_sh/new_update.sh
 /0
 src/.env
 src/test_site.py
+*.env
+.vscode/settings.json

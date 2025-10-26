@@ -13,24 +13,18 @@ from ..config import settings
 from ..db.db_class import Database
 from ..crypto import decrypt_value, encrypt_value
 
+from ..db import get_db
+
 logger = logging.getLogger(__name__)
 
 _db: Database | None = None
 
 
-def _get_db() -> Database:
-    global _db
-    if _db is None:
-        _db = Database(settings.db_data)
-    return _db
+def has_db_config() -> bool:
+    """Return ``True`` when database connection details are configured."""
 
-
-def close_cached_db() -> None:
-    """Close the cached :class:`Database` instance if it has been initialized."""
-    global _db
-    if _db is not None:
-        _db.close()
-        _db = None
+    db_settings = settings.db_data or {}
+    return bool(db_settings.get("host") or db_settings.get("db_connect_file"))
 
 
 def _current_ts() -> str:
@@ -57,7 +51,7 @@ def _coerce_bytes(value: Any) -> bytes:
 def mark_token_used(user_id: int) -> None:
     """Update the last-used timestamp for the given user token."""
 
-    db = _get_db()
+    db = get_db()
     try:
         db.execute_query(
             "UPDATE user_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = %s",
@@ -92,7 +86,11 @@ class UserTokenRecord:
 def ensure_user_token_table() -> None:
     """Create the user_tokens table if it does not already exist."""
 
-    db = _get_db()
+    if not has_db_config():
+        logger.debug("Skipping user token table creation; MySQL configuration missing.")
+        return
+
+    db = get_db()
     db.execute_query_safe(
         """
         CREATE TABLE IF NOT EXISTS user_tokens (
@@ -123,7 +121,7 @@ def ensure_user_token_table() -> None:
 def upsert_user_token(*, user_id: int, username: str, access_key: str, access_secret: str) -> None:
     """Insert or update the encrypted OAuth credentials for a user."""
 
-    db = _get_db()
+    db = get_db()
     now = _current_ts()
     encrypted_token = encrypt_value(access_key)
     encrypted_secret = encrypt_value(access_secret)
@@ -164,7 +162,7 @@ def get_user_token(user_id: str | int) -> Optional[UserTokenRecord]:
     """Fetch the encrypted OAuth credentials for a user."""
     user_id = int(user_id) if isinstance(user_id, str) else user_id
 
-    db = _get_db()
+    db = get_db()
     rows: list[Dict[str, Any]] = db.fetch_query_safe(
         """
         SELECT
@@ -200,5 +198,5 @@ def get_user_token(user_id: str | int) -> Optional[UserTokenRecord]:
 def delete_user_token(user_id: int) -> None:
     """Remove the stored OAuth credentials for the given user id."""
 
-    db = _get_db()
+    db = get_db()
     db.execute_query_safe("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))

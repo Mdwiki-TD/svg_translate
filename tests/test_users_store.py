@@ -16,7 +16,7 @@ def reset_db(monkeypatch):
 
 def test_mark_token_used_updates_last_used(monkeypatch):
     fake_db = MagicMock()
-    monkeypatch.setattr(store, "_get_db", lambda: fake_db)
+    monkeypatch.setattr(store, "get_db", lambda: fake_db)
 
     store.mark_token_used(12)
 
