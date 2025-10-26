@@ -280,6 +280,7 @@ def run_task(
             user=user_data,
             store=store,
             task_id=task_id,
+            check_cancel=check_cancel
         )
 
         push_stage("upload")

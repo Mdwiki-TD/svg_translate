@@ -1,11 +1,10 @@
 """Upload task helpers with progress callbacks."""
 
 from __future__ import annotations
-
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
 import logging
+import mwclient
 from tqdm import tqdm
 
 from .upload_bot import upload_file
@@ -16,7 +15,6 @@ from ..wiki_client import build_upload_site
 from ..db.task_store_pymysql import TaskStorePyMysql
 
 logger = logging.getLogger(__name__)
-PerFileCallback = Optional[Callable[[int, int, Path, str], None]]
 
 
 def _coerce_encrypted(value: object) -> bytes | None:
@@ -36,9 +34,11 @@ def _coerce_encrypted(value: object) -> bytes | None:
 def start_upload(
     files_to_upload: Dict[str, Dict[str, object]],
     main_title_link: str,
-    site,
-    stages,
-    message_updater: PerFileCallback = None,
+    site: mwclient.Site,
+    stages: Dict[str, Any],
+    task_id: str,
+    store: TaskStorePyMysql,
+    check_cancel: Callable[[str | None], bool]
 ):
     """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
@@ -47,18 +47,19 @@ def start_upload(
     no_changes = 0
     errors = []
 
-    items = list(files_to_upload.items())
-    total = len(items)
+    def message_updater(value: str) -> None:
+        store.update_stage_column(task_id, "upload", "stage_message", value)
 
-    if getattr(site, "logged_in", False):
-        username = getattr(site, "username", "")
-        if username:
-            logger.debug(f"<<yellow>>logged in as {username}.")
+    total = len(files_to_upload)
+    to_work = {x: v for x, v in files_to_upload.items() if v.get('new_languages')}
+
+    no_changes += total - len(to_work)
 
     for index, (file_name, file_data) in enumerate(
-        tqdm(items, desc="uploading files", total=total),
+        tqdm(to_work.items(), desc="uploading files", total=len(to_work)),
         start=1,
     ):
+
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
         logger.debug(f"start uploading file: {file_name}.")
         summary = (
@@ -92,9 +93,21 @@ def start_upload(
             f"no changes: {no_changes:,}, "
             f"not uploaded: {not_done:,}"
         )
+
         if message_updater:
             message_updater(stages["message"])
 
+        if index % 10 == 0:
+            if check_cancel("upload"):
+                upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
+                return upload_result, stages
+
+    stages["message"] = (
+        f"Total Files: {total:,}, "
+        f"uploaded {done:,}, "
+        f"no changes: {no_changes:,}, "
+        f"not uploaded: {not_done:,}"
+    )
     stages["status"] = "Failed" if not_done else "Completed"
 
     upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
@@ -110,6 +123,7 @@ def upload_task(
     user: Dict[str, str] = None,
     store: TaskStorePyMysql =None,
     task_id: str = "",
+    check_cancel: Callable | None = None,
 ):
     """
     Coordinate and run the file upload process, updating stage status and progress as files are processed.
@@ -178,15 +192,17 @@ def upload_task(
 
     main_title_link = f"[[:File:{main_title}]]"
 
-    def message_updater(value: str) -> None:
-        store.update_stage_column(task_id, "upload", "stage_message", value)
+    if check_cancel("upload"):
+        return {"done": 0, "not_done": total, "no_changes": 0, "errors": 0}, stages
 
     upload_result, stages = start_upload(
         files_to_upload,
         main_title_link,
         site,
         stages,
-        message_updater,
+        task_id,
+        store,
+        check_cancel
     )
 
     return upload_result, stages
