@@ -10,13 +10,14 @@ import wikitextparser as wtp
 import re
 
 
-def get_files(text):
-    """
-    Extracts:
-      - main_title from {{SVGLanguages|...}}
-      - all file names from {{owidslidersrcs}}
-    Returns: (main_title, titles)
-    """
+def match_main_title(text):
+    # Match lines starting with *'''Translate''': followed by a URL
+    pattern = r"^\*'''Translate''':\s+https?://svgtranslate\.toolforge\.org/(File:[\w\-,.()]+\.svg)$"
+    match = re.search(pattern, text, flags=re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def find_main_title(text):
 
     # Parse the text using wikitextparser
     parsed = wtp.parse(text)
@@ -29,13 +30,40 @@ def get_files(text):
                 main_title = tpl.arguments[0].value.strip()
             break
 
-    # --- 2. Extract all file names from {{owidslidersrcs|...}}
+    if main_title:
+        main_title = main_title.replace("_", " ").strip()
+
+    return main_title
+
+
+def get_titles(text):
+    """
+    Extracts:
+      - all file names from {{owidslidersrcs}}
+    Returns: titles
+    """
+    # Parse the text using wikitextparser
+    parsed = wtp.parse(text)
+
+    # --- Extract all file names from {{owidslidersrcs|...}}
     titles = []
     for tpl in parsed.templates:
         if tpl.name.strip().lower() == "owidslidersrcs":
             # Find all filenames inside this template
             matches = re.findall(r"File:([^\n|!]+\.svg)", tpl.string)
             titles.extend(m.strip() for m in matches)
+
+    return titles
+
+
+def get_files(text):
+
+    titles = get_titles(text)
+
+    main_title = find_main_title(text)
+
+    if not main_title:
+        main_title = match_main_title(text)
 
     if main_title:
         main_title = main_title.replace("_", " ").strip()
