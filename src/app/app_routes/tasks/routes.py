@@ -194,3 +194,54 @@ def status(task_id: str):
         return jsonify({"error": "not-found"}), 404
 
     return jsonify(task)
+
+
+@bp_tasks.get("/user-tasks")
+@oauth_required
+def user_tasks():
+    """
+    Render a page showing tasks created by a specific user.
+
+    Query Parameters:
+        username (str): Username to filter tasks by. If not provided, uses the current user.
+        status (str): Optional status filter for tasks.
+
+    Returns:
+        A Flask response object rendering "tasks.html" with only the tasks created by the specified user.
+    """
+    current_user_obj = current_user()
+    if not current_user_obj:
+        return redirect(url_for("auth.login"))
+
+    # Get username from query parameter, default to current user
+    user = request.args.get("user", current_user_obj.username)
+
+    status_filter = request.args.get("status")
+
+    with TASKS_LOCK:
+        db_tasks = _task_store().user_tasks(
+            username=user,
+            status=status_filter,
+            order_by="created_at",
+            descending=True,
+        )
+
+    formatted = [_format_task(task) for task in db_tasks]
+    available_statuses = sorted(
+        {
+            task.get("status", "") for task in db_tasks
+        }
+    )
+
+    # Determine if viewing own tasks or another user's tasks
+    is_own_tasks = user == current_user_obj.username
+
+    return render_template(
+        "tasks.html",
+        tasks=formatted,
+        status_filter=status_filter,
+        available_statuses=available_statuses,
+        current_user=current_user_obj,
+        is_own_tasks=is_own_tasks,
+        user_specific=True,
+    )
