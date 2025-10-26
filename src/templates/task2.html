@@ -104,7 +104,7 @@
                 {% endif %}
             </span>
         </h2>
-        {% set hide_cancel = (current_status in ['Completed', 'Failed', 'Cancelled']) or (task and task.error == 'not-found') %}
+        {% set hide_cancel = (current_status in ['Completed', 'Failed', 'Cancelled', 'error']) or (task and task.error == 'not-found') %}
         {% set show_restart = current_status in ['Completed', 'Failed', 'Cancelled'] %}
         <div class="btn-group" role="group" aria-label="Task actions">
             <button type="button" class="btn btn-outline-danger {% if hide_cancel %}d-none{% endif %}"

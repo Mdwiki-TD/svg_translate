@@ -231,9 +231,8 @@ function result_html(r) {
             if (restartBtn.disabled) {
                 return;
             }
-            if (timer) {
-                clearInterval(timer);
-            }
+            if (timer) clearInterval(timer);
+
             restartBtn.disabled = true;
             showAlert('info', 'Restarting task...');
             try {
@@ -250,6 +249,7 @@ function result_html(r) {
             } catch (error) {
                 restartBtn.disabled = false;
                 showAlert('danger', 'Unable to restart the task. Please try again.');
+                timer = setInterval(refresh, 2000);
             }
         });
     }
