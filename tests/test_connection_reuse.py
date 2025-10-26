@@ -2,14 +2,6 @@ import os
 
 import pytest
 
-
-os.environ.setdefault("FLASK_SECRET_KEY", "test-secret")
-os.environ.setdefault("OAUTH_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
-os.environ.setdefault("OAUTH_CONSUMER_KEY", "test-consumer-key")
-os.environ.setdefault("OAUTH_CONSUMER_SECRET", "test-consumer-secret")
-os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
-
-
 class FakeCursor:
     def __init__(self) -> None:
         self.description = None

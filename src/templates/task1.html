@@ -38,7 +38,7 @@
 <div class="alert alert-danger" role="alert">{{ error_message }}</div>
 {% endif %}
 
-<form method="post" action="{{ url_for('main.start') }}" class="row gy-2 gx-3 align-items-center mb-4">
+<form method="post" action="{{ url_for('tasks.start') }}" class="row gy-2 gx-3 align-items-center mb-4">
     <div class="col-12 col-md-6">
         <label for="title" class="form-label">Template Title</label>
         <input type="text" class="form-control" id="title" name="title"
@@ -72,8 +72,8 @@
     </div>
     <div class="col-6 col-md-3">
         <div class="form-check form-switch mt-2">
-            <input class="form-check-input" type="checkbox" value="1" id="ignore_existing_task" name="ignore_existing_task"
-                {{ 'checked' if form and form.ignore_existing_task else '' }}>
+            <input class="form-check-input" type="checkbox" value="1" id="ignore_existing_task"
+                name="ignore_existing_task" {{ 'checked' if form and form.ignore_existing_task else '' }}>
             <label class="form-check-label" for="ignore_existing_task">
                 Ignore existing tasks
             </label>
@@ -87,7 +87,7 @@
         </span>
     </h2>
 
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
         <div id="task-meta" class="mb-2 text-muted">
             <a href="/status/{{ task_id }}" target="_blank">Task ID:</a> <code>{{ task_id }}</code>
         </div>

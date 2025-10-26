@@ -146,7 +146,7 @@ def run_task(
         db_data (dict): Database connection parameters for the task store.
         task_id (str): Identifier of the task being processed.
         title (str): Commons title submitted by the user.
-        args: Namespace-like object returned by :func:`app.parse_args`.
+        args: Namespace-like object returned by :func:`parse_args`.
         user_data (dict): Authentication payload used for upload operations.
 
     Side Effects:
