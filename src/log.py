@@ -49,8 +49,8 @@ def config_console_logger(level=None):
 
     # Console (stdout) handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
+    # console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     logger.addHandler(console_handler)
-
-    console_handler.setLevel(level)
+    if level:
+        console_handler.setLevel(level)

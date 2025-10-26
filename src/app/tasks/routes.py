@@ -5,34 +5,26 @@ from __future__ import annotations
 import threading
 import uuid
 import logging
-from functools import wraps
-from typing import Any, Dict, Callable
-
 from flask import (
     Blueprint,
-    g,
     jsonify,
     redirect,
     render_template,
     request,
     url_for,
 )
-from werkzeug.datastructures import MultiDict
 
 from ..config import settings
-from ..web.web_run_task import run_task
 from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ..users.current import current_user, oauth_required
 
 from ..routes_utils import load_auth_payload, get_error_message, _format_task, _order_stages
 from .args_utils import parse_args
 
+from ..threads.task_threads import launch_task_thread
+
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
-
-CANCEL_EVENTS: Dict[str, threading.Event] = {}
-CANCEL_EVENTS_LOCK = threading.Lock()
-# The use of a global dictionary CANCEL_EVENTS with a threading.Lock ties the cancellation mechanism to a single-process, multi-threaded server model. This approach will not work correctly in a multi-process environment (e.g., when using Gunicorn with multiple worker processes), as each process would have its own independent copy of CANCEL_EVENTS. For a more scalable and robust solution, consider using a shared external store like Redis or a database to manage cancellation state across processes.
 
 bp_tasks = Blueprint("tasks", __name__)
 logger = logging.getLogger(__name__)
@@ -50,51 +42,6 @@ def close_task_store() -> None:
     global TASK_STORE
     if TASK_STORE is not None:
         TASK_STORE.close()
-
-
-def _register_cancel_event(task_id: str, cancel_event: threading.Event) -> None:
-    with CANCEL_EVENTS_LOCK:
-        CANCEL_EVENTS[task_id] = cancel_event
-
-
-def _pop_cancel_event(task_id: str) -> threading.Event | None:
-    with CANCEL_EVENTS_LOCK:
-        return CANCEL_EVENTS.pop(task_id, None)
-
-
-def _get_cancel_event(task_id: str) -> threading.Event | None:
-    with CANCEL_EVENTS_LOCK:
-        return CANCEL_EVENTS.get(task_id)
-
-
-def _launch_task_thread(
-    task_id: str,
-    title: str,
-    args: Any,
-    user_payload: Dict[str, Any],
-) -> None:
-    cancel_event = threading.Event()
-    _register_cancel_event(task_id, cancel_event)
-
-    def _runner() -> None:
-        try:
-            run_task(
-                settings.db_data,
-                task_id,
-                title,
-                args,
-                user_payload,
-                cancel_event=cancel_event,
-            )
-        finally:
-            _pop_cancel_event(task_id)
-
-    t = threading.Thread(
-        target=_runner,
-        name=f"task-runner-{task_id[:8]}",
-        daemon=True,
-    )
-    t.start()
 
 
 @bp_tasks.get("/task1")
@@ -187,7 +134,7 @@ def start():
 
     auth_payload = load_auth_payload(user)
 
-    _launch_task_thread(task_id, title, args, auth_payload)
+    launch_task_thread(task_id, title, args, auth_payload)
 
     return redirect(url_for("tasks.task1", title=title, task_id=task_id))
 
@@ -247,115 +194,3 @@ def status(task_id: str):
         return jsonify({"error": "not-found"}), 404
 
     return jsonify(task)
-
-
-def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator that redirects anonymous users to the index page."""
-
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not current_user():  # and not getattr(g, "is_authenticated", False)
-            # return redirect(url_for("main.index", error="login-required"))
-            return jsonify({"error": "login-required"})
-        return fn(*args, **kwargs)
-
-    return wrapper
-
-
-@bp_tasks.post("/tasks/<task_id>/cancel")
-@login_required_json
-def cancel(task_id: str):
-    if not task_id:
-        return jsonify({"error": "no-task-id"}), 400
-
-    store = _task_store()
-    task = store.get_task(task_id)
-    if not task:
-        logger.debug("Cancel requested for missing task %s", task_id)
-        return jsonify({"error": "not-found"}), 404
-
-    if task.get("status") in ("Completed", "Failed", "Cancelled"):
-        return jsonify({"task_id": task_id, "status": task.get("status")})
-
-    user = current_user()
-    if not user:
-        logger.error("Cancel requested without authenticated user for task %s", task_id)
-        return jsonify({"error": "You are not authenticated"}), 401
-
-    task_username = task.get("username", "")
-
-    if task_username != user.username:
-        logger.error(
-            "Cancel requested for task %s by user %s, but task is owned by %s",
-            task_id,
-            user.username,
-            task_username,
-        )
-        return jsonify({"error": "You don't own this task"}), 403
-
-    cancel_event = _get_cancel_event(task_id)
-    if cancel_event:
-        cancel_event.set()
-
-    store.update_status(task_id, "Cancelled")
-
-    return jsonify({"task_id": task_id, "status": "Cancelled"})
-
-
-@bp_tasks.post("/tasks/<task_id>/restart")
-@login_required_json
-def restart(task_id: str):
-    if not task_id:
-        return jsonify({"error": "no-task-id"}), 400
-
-    store = _task_store()
-    task = store.get_task(task_id)
-    if not task:
-        logger.debug("Restart requested for missing task %s", task_id)
-        return jsonify({"error": "not-found"}), 404
-
-    title = task.get("title")
-    if not title:
-        logger.error("Task %s has no title to restart", task_id)
-        return jsonify({"error": "no-title"}), 400
-
-    user = current_user()
-    if not user:
-        logger.error("Restart requested without authenticated user for task %s", task_id)
-        return jsonify({"error": "not-authenticated"}), 401
-
-    user_payload: Dict[str, Any] = {
-        "id": user.user_id,
-        "username": user.username,
-        "access_token": user.access_token,
-        "access_secret": user.access_secret,
-    }
-
-    stored_form = dict(task.get("form") or {})
-    request_form = MultiDict(stored_form.items()) if stored_form else MultiDict()
-    args = parse_args(request_form)
-
-    new_task_id = uuid.uuid4().hex
-
-    with TASKS_LOCK:
-        try:
-            store.create_task(
-                new_task_id,
-                title,
-                username=user.username,
-                form=stored_form,
-            )
-        except TaskAlreadyExistsError as exc:
-            existing = exc.task
-            logger.debug("Restart for %s blocked by existing task %s", task_id, existing.get("id"))
-            return (
-                jsonify({"error": "task-active", "task_id": existing.get("id")}),
-                409,
-            )
-        except Exception:
-            logger.exception("Failed to restart task %s", task_id)
-            return jsonify({"error": "task-create-failed"}), 500
-
-    _launch_task_thread(new_task_id, title, args, user_payload)
-
-    return jsonify({"task_id": new_task_id, "status": "Running"})
