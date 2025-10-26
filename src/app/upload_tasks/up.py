@@ -49,18 +49,16 @@ def start_upload(
     def message_updater(value: str) -> None:
         store.update_stage_column(task_id, "upload", "stage_message", value)
 
-    items = list(files_to_upload.items())
-    total = len(items)
+    total = len(files_to_upload)
+    to_work = {x: v for x, v in files_to_upload.items() if v.get('new_languages')}
 
-    if getattr(site, "logged_in", False):
-        username = getattr(site, "username", "")
-        if username:
-            logger.debug(f"<<yellow>>logged in as {username}.")
+    no_changes += total - len(to_work)
 
     for index, (file_name, file_data) in enumerate(
-        tqdm(items, desc="uploading files", total=total),
+        tqdm(to_work.items(), desc="uploading files", total=total),
         start=1,
     ):
+
         file_path = file_data.get("file_path", None) if isinstance(file_data, dict) else None
         logger.debug(f"start uploading file: {file_name}.")
         summary = (
@@ -103,6 +101,12 @@ def start_upload(
                 upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
                 return upload_result, stages
 
+    stages["message"] = (
+        f"Total Files: {total:,}, "
+        f"uploaded {done:,}, "
+        f"no changes: {no_changes:,}, "
+        f"not uploaded: {not_done:,}"
+    )
     stages["status"] = "Failed" if not_done else "Completed"
 
     upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
