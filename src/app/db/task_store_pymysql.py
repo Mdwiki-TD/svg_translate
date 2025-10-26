@@ -7,7 +7,7 @@ from .db_class import Database
 from .utils import _serialize, _normalize_title, _deserialize, _current_ts
 
 logger = logging.getLogger(__name__)
-TERMINAL_STATUSES = ("Completed", "Failed", "Cancelled")
+TERMINAL_STATUSES = ("Completed", "Failed")
 
 
 class TaskAlreadyExistsError(Exception):

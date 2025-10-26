@@ -30,7 +30,6 @@ def _require_fernet() -> Fernet:
         else settings.oauth_encryption_key
     )
     # with _fernet_lock:
-    _fernet = Fernet(key_bytes)
 
     try:
         _fernet = Fernet(key_bytes)
