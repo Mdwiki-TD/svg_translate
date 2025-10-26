@@ -30,3 +30,4 @@ web_sh/new_update.sh
 src/.env
 src/test_site.py
 *.env
+.vscode/settings.json

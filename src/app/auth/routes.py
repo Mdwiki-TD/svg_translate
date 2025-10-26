@@ -64,7 +64,7 @@ def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not getattr(g, "is_authenticated", False):
-            return redirect(url_for("main.index", error="auth-required"))
+            return redirect(url_for("main.index", error="login-required"))
         return fn(*args, **kwargs)
 
     return wrapper
@@ -219,7 +219,7 @@ def callback() -> Response:
 
 
 @bp_auth.get("/logout")
-# @login_required
+@login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
     session.pop(request_token_key, None)

@@ -208,24 +208,31 @@ function result_html(r) {
             }
             cancelBtn.disabled = true;
             showAlert('info', 'Stopping task...');
+            let message = 'Unable to cancel the task. Please try again.';
+            let showmessage = true;
             try {
                 const response = await fetch(`/tasks/${taskId}/cancel`, { method: 'POST' });
-                if (!response.ok) {
-                    throw new Error('Failed to cancel task');
-                }
                 let result = await response.json();
+                if (result && result.error) {
+                    message += `error: ${result.error}`;
+                }
+                if (!response.ok) {
+                    console.error("error:", result);
+                    // throw new Error('Failed to cancel task');
+                }
                 if (result.status == "Cancelled") {
                     updateStatus('Cancelled');
                     updateControls('Cancelled');
-                } else {
-                    cancelBtn.disabled = false;
-                    showAlert('danger', 'Unable to cancel the task. Please try again.');
-                    timer = setInterval(refresh, 2000);
+                    showmessage = false;
                 }
                 showAlert('success', 'Task cancelled successfully.');
             } catch (error) {
+                console.error("error:", error);
+                message += `error: ${error}`;
+            }
+            if (showmessage) {
                 cancelBtn.disabled = false;
-                showAlert('danger', 'Unable to cancel the task. Please try again.');
+                showAlert('danger', message);
                 timer = setInterval(refresh, 2000);
             }
         });
@@ -241,20 +248,32 @@ function result_html(r) {
 
             restartBtn.disabled = true;
             showAlert('info', 'Restarting task...');
+
+            let message = 'Unable to restart the task. Please try again.';
+            let showmessage = true;
+
             try {
                 const response = await fetch(`/tasks/${taskId}/restart`, { method: 'POST' });
+                let data = await response.json();
+                if (data && data.error) {
+                    message += `error: ${data.error}`;
+                }
                 if (!response.ok) {
                     throw new Error('Failed to restart task');
                 }
-                const data = await response.json();
                 const nextTaskId = data?.task_id;
                 if (!nextTaskId) {
                     throw new Error('Missing task id');
                 }
+                showmessage = false;
                 window.location = `/task2?task_id=${nextTaskId}`;
             } catch (error) {
+                console.error("error:", error);
+                message += `error: ${error}`;
+            }
+            if (showmessage) {
                 restartBtn.disabled = false;
-                showAlert('danger', 'Unable to restart the task. Please try again.');
+                showAlert('danger', message);
                 timer = setInterval(refresh, 2000);
             }
         });

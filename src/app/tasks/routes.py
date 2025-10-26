@@ -5,7 +5,8 @@ from __future__ import annotations
 import threading
 import uuid
 import logging
-from typing import Any, Dict
+from functools import wraps
+from typing import Any, Dict, Callable
 
 from flask import (
     Blueprint,
@@ -175,9 +176,8 @@ def start():
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
-            return redirect(
-                url_for("tasks.task1", task_id=existing["id"], title=title, error="task-active")
-            )
+            logger.debug("Restart for %s blocked by existing task %s", task_id, existing.get("id"))
+            return redirect(url_for("tasks.task1", task_id=existing["id"], title=title, error="task-active"))
         except Exception:
             logger.exception("Failed to create task")
             return redirect(url_for("main.index", title=title, error="task-create-failed"))
@@ -261,6 +261,22 @@ def cancel(task_id: str):
     if task.get("status") in ("Completed", "Failed", "Cancelled"):
         return jsonify({"task_id": task_id, "status": task.get("status")})
 
+    user = current_user()
+    if not user:
+        logger.error("Restart requested without authenticated user for task %s", task_id)
+        return jsonify({"error": "You are not authenticated"}), 401
+
+    task_username = task.get("username", "")
+
+    if task_username != user.username:
+        logger.error(
+            "Cancel requested for task %s by user %s, but task is owned by %s",
+            task_id,
+            user.username,
+            task_username,
+        )
+        return jsonify({"error": "You don't own this task"}), 403
+
     cancel_event = _get_cancel_event(task_id)
     if cancel_event:
         cancel_event.set()
@@ -287,6 +303,18 @@ def restart(task_id: str):
         logger.error("Task %s has no title to restart", task_id)
         return jsonify({"error": "no-title"}), 400
 
+    user = current_user()
+    if not user:
+        logger.error("Restart requested without authenticated user for task %s", task_id)
+        return jsonify({"error": "not-authenticated"}), 401
+
+    user_payload: Dict[str, Any] = {
+        "id": user.user_id,
+        "username": user.username,
+        "access_token": user.access_token,
+        "access_secret": user.access_secret,
+    }
+
     stored_form = dict(task.get("form") or {})
     request_form = MultiDict(stored_form.items()) if stored_form else MultiDict()
     args = parse_args(request_form)
@@ -298,14 +326,12 @@ def restart(task_id: str):
             store.create_task(
                 new_task_id,
                 title,
-                username=task.get("username", ""),
+                username=user.username,
                 form=stored_form,
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
-            logger.debug(
-                "Restart for %s blocked by existing task %s", task_id, existing.get("id")
-            )
+            logger.debug("Restart for %s blocked by existing task %s", task_id, existing.get("id"))
             return (
                 jsonify({"error": "task-active", "task_id": existing.get("id")}),
                 409,
@@ -313,16 +339,6 @@ def restart(task_id: str):
         except Exception:
             logger.exception("Failed to restart task %s", task_id)
             return jsonify({"error": "task-create-failed"}), 500
-
-    user = current_user()
-    user_payload: Dict[str, Any] = {}
-    if user:
-        user_payload = {
-            "id": user.user_id,
-            "username": user.username,
-            "access_token": user.access_token,
-            "access_secret": user.access_secret,
-        }
 
     _launch_task_thread(new_task_id, title, args, user_payload)
 
