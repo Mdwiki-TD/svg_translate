@@ -219,7 +219,8 @@ def callback() -> Response:
 
 
 @bp_auth.get("/logout")
-@login_required
+# @login_required
+# Users with stale cookies will be redirected with a "login-required" error instead of being able to clean up their authentication state
 def logout() -> Response:
     user_id = session.pop("uid", None)
     session.pop(request_token_key, None)

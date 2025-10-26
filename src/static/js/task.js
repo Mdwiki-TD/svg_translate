@@ -208,17 +208,17 @@ function result_html(r) {
             }
             cancelBtn.disabled = true;
             showAlert('info', 'Stopping task...');
-            let message = 'Unable to cancel the task. Please try again.';
+            let message = 'Unable to cancel the task.';
             let showmessage = true;
             try {
                 const response = await fetch(`/tasks/${taskId}/cancel`, { method: 'POST' });
                 let result = await response.json();
                 if (result && result.error) {
-                    message += `error: ${result.error}`;
+                    throw new Error(result.error);
                 }
                 if (!response.ok) {
                     console.error("error:", result);
-                    // throw new Error('Failed to cancel task');
+                    throw new Error('Failed to stop task');
                 }
                 if (result.status == "Cancelled") {
                     updateStatus('Cancelled');
@@ -228,7 +228,7 @@ function result_html(r) {
                 showAlert('success', 'Task cancelled successfully.');
             } catch (error) {
                 console.error("error:", error);
-                message += `error: ${error}`;
+                message += ` (${error})`;
             }
             if (showmessage) {
                 cancelBtn.disabled = false;
@@ -249,14 +249,14 @@ function result_html(r) {
             restartBtn.disabled = true;
             showAlert('info', 'Restarting task...');
 
-            let message = 'Unable to restart the task. Please try again.';
+            let message = 'Unable to restart the task.';
             let showmessage = true;
 
             try {
                 const response = await fetch(`/tasks/${taskId}/restart`, { method: 'POST' });
                 let data = await response.json();
                 if (data && data.error) {
-                    message += `error: ${data.error}`;
+                    throw new Error(data.error);
                 }
                 if (!response.ok) {
                     throw new Error('Failed to restart task');
@@ -266,10 +266,10 @@ function result_html(r) {
                     throw new Error('Missing task id');
                 }
                 showmessage = false;
-                window.location = `/task2?task_id=${nextTaskId}`;
+                window.location.href = `/task2?task_id=${nextTaskId}`;
             } catch (error) {
                 console.error("error:", error);
-                message += `error: ${error}`;
+                message += ` (${error})`;
             }
             if (showmessage) {
                 restartBtn.disabled = false;

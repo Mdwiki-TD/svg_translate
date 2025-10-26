@@ -7,11 +7,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.app.users import store
+from src.app.db import svg_db
 
 
 @pytest.fixture(autouse=True)
-def reset_db(monkeypatch):
-    monkeypatch.setattr(store, "_db", None)
+def reset_db(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(svg_db, "_db", None)
 
 
 def test_mark_token_used_updates_last_used(monkeypatch):
