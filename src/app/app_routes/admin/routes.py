@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from collections import Counter
+from functools import wraps
+from typing import Callable, TypeVar, cast
 
 from flask import Blueprint, abort, redirect, render_template, url_for
+from flask.typing import ResponseReturnValue
 
 from ...config import settings
 from ...users.current import current_user
@@ -15,19 +18,34 @@ from ..tasks.routes import (
     format_task_message,
 )
 
+F = TypeVar("F", bound=Callable[..., ResponseReturnValue])
+
+
+def admin_required(view: F) -> F:
+    """Decorator enforcing that the current user is an administrator."""
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user:
+            return redirect(url_for("auth.login"))
+        if user.username not in settings.admins:
+            abort(403)
+        return view(*args, **kwargs)
+
+    return cast(F, wrapped)
+
+
 bp_admin = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 @bp_admin.get("/")
 @bp_admin.get("")
+@admin_required
 def dashboard():
     """Render the admin dashboard with summarized task information."""
 
     user = current_user()
-    if not user:
-        return redirect(url_for("auth.login"))
-    if user.username not in settings.admins:
-        abort(403)
 
     with TASKS_LOCK:
         db_tasks = _task_store().list_tasks(
