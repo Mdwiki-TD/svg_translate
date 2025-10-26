@@ -14,17 +14,17 @@ from flask import (
 )
 from werkzeug.datastructures import MultiDict
 
-from ..config import settings
-from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
-from ..users.current import current_user
+from ...config import settings
+from ...db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
+from ...users.current import current_user
 from ..tasks.args_utils import parse_args
 
-from ..threads.task_threads import launch_task_thread, get_cancel_event
+from ...threads.task_threads import launch_task_thread, get_cancel_event
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
 
-bp_tasks_mangers = Blueprint("tasks_mangers", __name__)
+bp_tasks_managers = Blueprint("tasks_managers", __name__)
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +48,7 @@ def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-@bp_tasks_mangers.post("/tasks/<task_id>/cancel")
+@bp_tasks_managers.post("/tasks/<task_id>/cancel")
 @login_required_json
 def cancel(task_id: str):
     if not task_id:
@@ -88,7 +88,7 @@ def cancel(task_id: str):
     return jsonify({"task_id": task_id, "status": "Cancelled"})
 
 
-@bp_tasks_mangers.post("/tasks/<task_id>/restart")
+@bp_tasks_managers.post("/tasks/<task_id>/restart")
 @login_required_json
 def restart(task_id: str):
     if not task_id:
@@ -148,5 +148,5 @@ def restart(task_id: str):
 
 
 __all__ = [
-    "bp_tasks_mangers"
+    "bp_tasks_managers"
 ]

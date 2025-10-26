@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 from cryptography.fernet import Fernet
 import pytest
 
-from src.app.web.upload_task import start_upload, upload_task
+from src.app.upload_tasks import start_upload, upload_task
 
 
 class TestStartUpload:

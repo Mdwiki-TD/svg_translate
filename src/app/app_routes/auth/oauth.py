@@ -6,7 +6,7 @@ import mwoauth
 import logging
 from typing import Tuple
 from flask import url_for
-from ..config import settings
+from ...config import settings
 
 logger = logging.getLogger(__name__)
 

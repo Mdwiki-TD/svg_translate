@@ -11,7 +11,7 @@ from flask import (
     render_template,
     request,
 )
-from ..routes_utils import get_error_message
+from ...routes_utils import get_error_message
 
 bp_main = Blueprint("main", __name__)
 logger = logging.getLogger(__name__)

@@ -4,9 +4,8 @@ from typing import Any, Dict, Optional
 import pytest
 
 from src.app import create_app
-from src.app.tasks import routes
-from src.app.threads import task_threads
-from src.app.threads import web_run_task
+from src.app.app_routes.tasks import routes
+from src.app.threads import task_threads, web_run_task
 from src.app.db.task_store_pymysql import TaskAlreadyExistsError
 
 

@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Optional
 import logging
 from tqdm import tqdm
 
-from .upload.upload_bot import upload_file
+from .upload_bot import upload_file
 
 from ..users.store import mark_token_used
 from ..wiki_client import build_upload_site

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import logging
-from ..svg_config import DISABLE_UPLOADS
+from ...svg_config import DISABLE_UPLOADS
 
 logger = logging.getLogger(__name__)
 
