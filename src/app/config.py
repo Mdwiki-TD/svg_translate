@@ -58,6 +58,7 @@ class Settings:
     oauth_encryption_key: Optional[str]
     cookie: CookieConfig
     oauth: Optional[OAuthConfig]
+    admins: list[str]
 
 
 def _load_oauth_config() -> Optional[OAuthConfig]:
@@ -99,6 +100,8 @@ def get_settings() -> Settings:
             "OAUTH_ENCRYPTION_KEY environment variable is required when USE_MW_OAUTH is enabled"
         )
 
+    admins = [x.strip() for x in os.getenv("ADMINS", "").split(",") if x]
+
     cookie = CookieConfig(
         name=os.getenv("AUTH_COOKIE_NAME", "uid_enc"),
         max_age=_env_int("AUTH_COOKIE_MAX_AGE", 30 * 24 * 3600),
@@ -124,6 +127,7 @@ def get_settings() -> Settings:
         oauth_encryption_key=oauth_encryption_key,
         cookie=cookie,
         oauth=oauth_config,
+        admins=admins,
     )
 
 

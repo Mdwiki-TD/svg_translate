@@ -6,7 +6,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict
 
-from .start_bot import (
+from ..web.start_bot import (
     save_files_stats,
     text_task,
     titles_task,
@@ -14,8 +14,8 @@ from .start_bot import (
     inject_task,
     make_results_summary
 )
-from .download_task import download_task
-from .upload_task import upload_task
+from ..web.download_task import download_task
+from ..web.upload_task import upload_task
 
 from ..db.task_store_pymysql import TaskStorePyMysql
 
@@ -187,6 +187,7 @@ def run_task(
             stages_list["initialize"]["status"] = "Completed"
             push_stage("initialize")
             store.update_status(task_id, "Cancelled")
+            logger.debug(f"Task: {task_id} Cancelled.")
             return True
 
         if cancel_event is not None and cancel_event.is_set():
