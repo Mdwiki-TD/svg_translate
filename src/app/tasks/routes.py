@@ -20,7 +20,8 @@ from ..web.web_run_task import run_task
 from ..db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ..users.current import current_user, oauth_required
 
-from ..routes_utils import load_auth_payload, parse_args, get_error_message, _format_task, _order_stages
+from ..routes_utils import load_auth_payload, get_error_message, _format_task, _order_stages
+from .args_utils import parse_args
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()

@@ -1,16 +1,14 @@
 #
 from __future__ import annotations
 
-from collections import namedtuple
 from datetime import datetime
 import logging
 from typing import Any, Dict, List
-from .svg_config import DISABLE_UPLOADS
 
 logger = logging.getLogger(__name__)
 
 
-def load_auth_payload(user):
+def load_auth_payload(user: Any | None):
     auth_payload: Dict[str, Any] = {}
     if user:
         # returns (access_key, access_secret) and marks token used
@@ -25,42 +23,6 @@ def load_auth_payload(user):
             "access_secret": access_secret,
         }
     return auth_payload
-
-
-def parse_args(request_form) -> Any:
-    Args = namedtuple(
-        "Args",
-        [
-            "titles_limit",
-            "overwrite",
-            "upload",
-            "ignore_existing_task",
-            "manual_main_title",
-        ],
-    )
-    # ---
-    upload = False
-    # ---
-    if DISABLE_UPLOADS != "1":
-        upload = bool(request_form.get("upload"))
-    # ---
-    manual_main_title = request_form.get("manual_main_title", "")
-    if manual_main_title:
-        manual_main_title = manual_main_title.strip()
-        if manual_main_title.lower().startswith("file:"):
-            manual_main_title = manual_main_title.split(":", 1)[1].strip()
-        if not manual_main_title:
-            manual_main_title = None
-    else:
-        manual_main_title = None
-
-    return Args(
-        titles_limit=request_form.get("titles_limit", 1000, type=int),
-        overwrite=bool(request_form.get("overwrite")),
-        ignore_existing_task=bool(request_form.get("ignore_existing_task")),
-        upload=upload,
-        manual_main_title=manual_main_title,
-    )
 
 
 def get_error_message(error_code: str | None) -> str:
@@ -90,22 +52,29 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     """
     if not value:
         return "", ""
+
     dt = None
+
     if isinstance(value, datetime):
         dt = value
     elif isinstance(value, str):
-        for fmt in (None, "%Y-%m-%d %H:%M:%S"):
+        try:
+            # First, try parsing as an ISO 8601 format string.
+            dt = datetime.fromisoformat(value)
+        except (TypeError, ValueError):
             try:
-                dt = datetime.fromisoformat(value) if fmt is None else datetime.strptime(value, fmt)
-                break
+                # If that fails, try the specific "%Y-%m-%d %H:%M:%S" format.
+                dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
             except (TypeError, ValueError):
-                continue
+                # If both fail, dt remains None.
+                pass
 
     if not dt:
         return str(value), str(value)
 
     display = dt.strftime("%Y-%m-%d %H:%M:%S")
     sort_key = dt.isoformat()
+
     return display, sort_key
 
 
