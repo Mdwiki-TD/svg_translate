@@ -75,7 +75,7 @@ def test_sequential_requests_use_cached_connections(monkeypatch):
 
     from app import create_app
     from app.users import store as user_store
-    from app.tasks import routes as task_routes
+    from app.app_routes.tasks import routes as task_routes
 
     user_store._db = None
     task_routes.TASK_STORE = None

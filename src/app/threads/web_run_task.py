@@ -15,7 +15,7 @@ from ..web.start_bot import (
     make_results_summary
 )
 from ..web.download_task import download_task
-from ..web.upload_task import upload_task
+from ..upload_tasks import upload_task
 
 from ..db.task_store_pymysql import TaskStorePyMysql
 

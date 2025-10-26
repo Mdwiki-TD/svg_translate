@@ -3,7 +3,7 @@ import re
 import pytest
 
 from src.app import create_app
-from src.app.tasks import routes as task_routes
+from src.app.app_routes.tasks import routes as task_routes
 
 
 class DummyStore:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from itsdangerous import BadSignature, BadTimeSignature, URLSafeTimedSerializer
 
-from ..config import settings
+from ...config import settings
 
 
 _serializer = URLSafeTimedSerializer(settings.secret_key, salt="svg-translate-uid")
