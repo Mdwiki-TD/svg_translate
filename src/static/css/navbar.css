@@ -1,0 +1,6 @@
+
+/* Custom styles for navbar active links */
+.navbar .nav-link.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 0.25rem;
+}
