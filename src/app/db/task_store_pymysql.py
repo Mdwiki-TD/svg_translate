@@ -8,6 +8,7 @@ from .utils import _serialize, _normalize_title, _deserialize, _current_ts
 
 logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed", "Cancelled")
+TERMINAL_placeholders = ", ".join(["%s"] * len(TERMINAL_STATUSES))
 
 
 class TaskAlreadyExistsError(Exception):
@@ -320,7 +321,7 @@ class TaskStorePyMysql(StageStore):
         if not form or not form.get("ignore_existing_task"):
             # Check for an existing active task
             rows = self.db.fetch_query(
-                """
+                f"""
                     SELECT
                         t.*,
                         ts.stage_name AS stage_name,
@@ -331,7 +332,7 @@ class TaskStorePyMysql(StageStore):
                         ts.updated_at AS stage_updated_at
                     FROM (
                         SELECT * FROM tasks
-                        WHERE normalized_title = %s AND status NOT IN (%s, %s)
+                        WHERE normalized_title = %s AND status NOT IN ({TERMINAL_placeholders})
                         ORDER BY created_at DESC
                         LIMIT 1
                     ) AS t
@@ -428,7 +429,7 @@ class TaskStorePyMysql(StageStore):
         """
         normalized_title = _normalize_title(title)
         rows = self.db.fetch_query_safe(
-            """
+            f"""
             SELECT
                 t.*,
                 ts.stage_name AS stage_name,
@@ -439,7 +440,7 @@ class TaskStorePyMysql(StageStore):
                 ts.updated_at AS stage_updated_at
             FROM (
                 SELECT * FROM tasks
-                WHERE normalized_title = %s AND status NOT IN (%s, %s)
+                WHERE normalized_title = %s AND status NOT IN ({TERMINAL_placeholders})
                 ORDER BY created_at DESC
                 LIMIT 1
             ) AS t
