@@ -254,7 +254,7 @@ def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if not getattr(g, "is_authenticated", False) and not current_user():
+        if not current_user():  # and not getattr(g, "is_authenticated", False)
             # return redirect(url_for("main.index", error="login-required"))
             return jsonify({"error": "login-required"})
         return fn(*args, **kwargs)

@@ -137,7 +137,7 @@ def test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch: 
     client = app.test_client()
     restart_response = client.post(f"/tasks/{existing_id}/restart")
     assert restart_response.status_code == 200
-    payload = restart_response.get_json()
+    payload = restart_response.get_json()  # {'error': 'login-required'}
     new_task_id = payload["task_id"]
 
     assert task_finished.wait(timeout=1), "The fake_run_task did not run in time."
