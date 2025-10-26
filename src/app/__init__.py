@@ -32,7 +32,7 @@ def create_app() -> Flask:
     )
     app.config["USE_MW_OAUTH"] = settings.use_mw_oauth
 
-    if settings.use_mw_oauth:
+    if settings.use_mw_oauth and settings.db_data.get("host"):
         ensure_user_token_table()
 
     app.register_blueprint(bp_main)

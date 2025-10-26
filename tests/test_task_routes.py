@@ -192,3 +192,23 @@ def test_restart_route_creates_new_task_and_replays_form2(app: Any, monkeypatch:
     assert captured["cancel_event"] is not None
     with routes.CANCEL_EVENTS_LOCK:
         assert new_task_id not in routes.CANCEL_EVENTS
+
+
+def test_no_mysql_connection_attempted_with_default_settings(monkeypatch: pytest.MonkeyPatch):
+    """
+    Test that ensures no MySQL connection is attempted when create_app() is
+    called with default test settings. This is achieved by patching the Database
+    class and asserting that it is not instantiated.
+    """
+    database_init = threading.Event()
+
+    def fake_database(*args, **kwargs):
+        database_init.set()
+        raise Exception("MySQL connection should not be attempted")
+
+    monkeypatch.setattr("src.app.db.db_class.Database", fake_database)
+
+    app = create_app()
+
+    # Assert that the fake_database was not initialized, meaning no MySQL connection was attempted.
+    assert not database_init.is_set()
