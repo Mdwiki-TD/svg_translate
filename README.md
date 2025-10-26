@@ -43,8 +43,8 @@ for file_name, file_meta in files.items():
    CREATE TABLE IF NOT EXISTS user_tokens (
      user_id BIGINT PRIMARY KEY,
      username VARCHAR(255) NOT NULL,
-     access_token_enc VARBINARY(2048) NOT NULL,
-     access_secret_enc VARBINARY(2048) NOT NULL,
+     access_token VARBINARY(2048) NOT NULL,
+     access_secret VARBINARY(2048) NOT NULL,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
      last_used_at TIMESTAMP NULL,

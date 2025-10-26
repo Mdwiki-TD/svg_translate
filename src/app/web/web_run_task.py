@@ -2,6 +2,7 @@
 import os
 import re
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Dict
 
@@ -139,6 +140,8 @@ def run_task(
     title: str,
     args: Any,
     user_data: Dict[str, str] | None,
+    *,
+    cancel_event: threading.Event | None = None,
 ) -> None:
     """Execute the full SVG translation pipeline for a queued task.
 
@@ -164,13 +167,13 @@ def run_task(
 
         # store.replace_stages(task_id, stages_list)
 
-        store.update_data(task_id, task_snapshot)
-        store.update_status(task_id, "Running")
-
         def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
             """Persist the latest state for a workflow stage to the database."""
             state = stage_state if stage_state is not None else stages_list[stage_name]
             store.update_stage(task_id, stage_name, state)
+
+        store.update_data(task_id, task_snapshot)
+        store.update_status(task_id, "Running")
 
         # ----------------------------------------------
         # Stage 1: extract text

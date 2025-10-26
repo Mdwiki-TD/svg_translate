@@ -29,21 +29,15 @@ def _require_fernet() -> Fernet:
         if isinstance(settings.oauth_encryption_key, str)
         else settings.oauth_encryption_key
     )
-
+    # with _fernet_lock:
     _fernet = Fernet(key_bytes)
 
-    '''
-    with _fernet_lock:
-        if _fernet is not None:
-            return _fernet
+    try:
+        _fernet = Fernet(key_bytes)
+    except ValueError as exc:
+        # Key must be a 32‑byte urlsafe base64‑encoded string
+        raise RuntimeError("Invalid OAUTH_ENCRYPTION_KEY format") from exc
 
-        try:
-            _fernet = Fernet(key_bytes)
-        except ValueError as exc:
-            raise RuntimeError(
-                "settings.oauth_encryption_key must be a 32-byte urlsafe base64-encoded string"
-            ) from exc
-    '''
     return _fernet
 
 

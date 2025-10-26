@@ -131,6 +131,7 @@ def titles_task(stages, text, manual_main_title, titles_limit=None):
     Parameters:
         stages (dict): Mutable stage metadata for the titles stage.
         text (str): Wikitext retrieved from the main Commons page.
+        manual_main_title (str | None): Optional title to use instead of the extracted main_title.
         titles_limit (int | None): Optional maximum number of titles to keep.
 
     Returns:

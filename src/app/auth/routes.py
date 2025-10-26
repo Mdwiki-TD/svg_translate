@@ -38,7 +38,7 @@ bp_auth = Blueprint("auth", __name__)
 # oauth_state_nonce = settings.STATE_SESSION_KEY
 # request_token = settings.REQUEST_TOKEN_SESSION_KEY
 oauth_state_nonce = "oauth_state_nonce"
-request_token = "request_token"
+request_token_key = "request_token"
 
 
 def _client_key() -> str:
@@ -83,7 +83,7 @@ def login() -> Response:
 
     # ------------------
     # add request_token to session
-    session[request_token] = list(request_token)
+    session[request_token_key] = list(request_token)
     return redirect(redirect_url)
 
 
@@ -124,7 +124,7 @@ def callback() -> Response:
 
     # ------------------
     # token data
-    raw_request_token = session.pop(request_token, None)
+    raw_request_token = session.pop(request_token_key, None)
     oauth_verifier = request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
@@ -224,7 +224,7 @@ def callback() -> Response:
 # @login_required
 def logout() -> Response:
     user_id = session.pop("uid", None)
-    session.pop(request_token, None)
+    session.pop(request_token_key, None)
     session.pop(oauth_state_nonce, None)
     session.pop("username", None)
 
