@@ -26,9 +26,9 @@
                 </button>
 
                 {% if username or is_authenticated %}
-                <span class="navbar-text me-3">
+                <a href="{{ url_for('tasks.user_tasks', user=(username or current_user.username or 'user')) }}" class="navbar-text me-3 text-decoration-none">
                     {{ username or current_user.username or 'Logged in'}}
-                </span>
+                </a>
                 <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
                 {% else %}
                 <a class="btn btn-success btn-sm" href="{{ url_for('auth.login') }}">Login</a>

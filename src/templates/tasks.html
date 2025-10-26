@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}All Tasks · SVG Translate Bot{% endblock %}
+{% block title %}{% if user_specific %}My Tasks{% else %}All Tasks{% endif %} · SVG Translate Bot{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -19,8 +19,20 @@
 
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-    <h1 class="h3 mb-0">All Tasks</h1>
+    <div class="d-flex align-items-center gap-3">
+        <h1 class="h3 mb-0">
+            {% if user_specific %}
+                {% if is_own_tasks %}My Tasks{% else %}{{ tasks_user }}'s Tasks{% endif %}
+            {% else %}All Tasks{% endif %}
+        </h1>
+        {% if user_specific %}
+        <a href="{{ url_for('tasks.tasks') }}" class="btn btn-sm btn-outline-secondary">View All Tasks</a>
+        {% endif %}
+    </div>
     <form class="row g-2 align-items-center" method="get" role="search">
+        {% if tasks_user %}
+            <input id="user" name="user" type="hidden" value="{{ tasks_user }}">
+        {% endif %}
         <div class="col-auto">
             <label class="form-label mb-0" for="status">Status</label>
         </div>
@@ -44,10 +56,14 @@
                 <th scope="col">Task ID</th>
                 <th scope="col">Title</th>
                 <th scope="col">Status</th>
-                <th scope="col">Files Ready</th>
-                <th scope="col">New Translations</th>
+                <!-- <th scope="col">Files Ready</th> -->
+                <th scope="col">Titles</th>
+                <th scope="col">Translations</th>
+                <th scope="col">Download</th>
+                <th scope="col">Inject</th>
+                <th scope="col">Upload</th>
                 <th scope="col">Created</th>
-                <th scope="col">Updated</th>
+                <!-- <th scope="col">Updated</th> -->
                 <th scope="col">User</th>
             </tr>
         </thead>
@@ -55,23 +71,34 @@
             {% for task in tasks %}
             <tr>
                 <td>
-                    <code title="{{ task.id }}">
+                    <!-- <code title="{{ task.id }}"> -->
+                    <a href="{{ url_for('tasks.task1', task_id=task.id) }}" class="text-decoration-none" title="{{ task.id }}">
                         {{ task.id[:10] }}...
-                    </code>
+                    </a>
+                    <!-- </code> -->
                 </td>
                 <td class="text-break">
-                    <a href="{{ url_for('tasks.task1', task_id=task.id) }}" class="text-decoration-none">
-                        {{ task.title }}
-                    </a>
+                    {{ task.title }}
                 </td>
                 <td>
                     <span class="badge bg-{{ status_classes.get(task.status, 'secondary') }}">{{ task.status }}</span>
                 </td>
-                <td>{{ task.files_to_upload_count }}</td>
-                <td>{{ task.new_translations_count }}</td>
+                <!-- <td>{{ task.files_to_upload_count }}</td> -->
+                <!-- <td>{{ task.new_translations_count }}</td> -->
+                <td>{{ task.stages.get('titles', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('translations', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('download', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('inject', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('upload', {}).get('message', '') }}</td>
                 <td data-order="{{ task.created_at_sort }}">{{ task.created_at_display }}</td>
-                <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td>
-                <td>{{ task.username or "" }}</td>
+                <!-- <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td> -->
+                <td>
+                    {% if task.username %}
+                    <a href="{{ url_for('tasks.user_tasks', user=task.username) }}" class="text-decoration-none">
+                        {{ task.username }}
+                    </a>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

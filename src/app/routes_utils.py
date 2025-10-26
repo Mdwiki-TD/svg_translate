@@ -78,13 +78,27 @@ def _format_timestamp(value: datetime | str | None) -> tuple[str, str]:
     return display, sort_key
 
 
-def _format_task(task: dict) -> dict:
+def order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, Any]]]:
+    if not stages:
+        return []
+    ordered = [
+        (name, data)
+        for name, data in stages.items()
+        if isinstance(data, dict)
+    ]
+    ordered.sort(key=lambda item: item[1].get("number", 0))
+    return ordered
+
+
+def format_task(task: dict) -> dict:
     """Formats a task dictionary for the tasks list view."""
     results = task.get("results") or {}
     injects = results.get("injects_result") or {}
 
     created_display, created_sort = _format_timestamp(task.get("created_at"))
     updated_display, updated_sort = _format_timestamp(task.get("updated_at"))
+
+    stages = task.get("stages") or {}
 
     return {
         "id": task.get("id"),
@@ -98,17 +112,6 @@ def _format_task(task: dict) -> dict:
         "created_at_sort": created_sort,
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
-        "username": task.get("username", "")
+        "username": task.get("username", ""),
+        "stages": stages
     }
-
-
-def _order_stages(stages: Dict[str, Any] | None) -> List[tuple[str, Dict[str, Any]]]:
-    if not stages:
-        return []
-    ordered = [
-        (name, data)
-        for name, data in stages.items()
-        if isinstance(data, dict)
-    ]
-    ordered.sort(key=lambda item: item[1].get("number", 0))
-    return ordered

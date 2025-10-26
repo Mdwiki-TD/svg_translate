@@ -18,7 +18,7 @@ from ...config import settings
 from ...db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
 from ...users.current import current_user, oauth_required
 
-from ...routes_utils import load_auth_payload, get_error_message, _format_task, _order_stages
+from ...routes_utils import load_auth_payload, get_error_message, format_task, order_stages
 from .args_utils import parse_args
 
 from ...threads.task_threads import launch_task_thread
@@ -80,7 +80,7 @@ def task2():
 
     error_message = get_error_message(request.args.get("error"))
 
-    stages = _order_stages(task.get("stages") if isinstance(task, dict) else None)
+    stages = order_stages(task.get("stages") if isinstance(task, dict) else None)
 
     return render_template(
         "task2.html",
@@ -158,7 +158,7 @@ def tasks():
             descending=True,
         )
 
-    formatted = [_format_task(task) for task in db_tasks]
+    formatted = [format_task(task) for task in db_tasks]
     available_statuses = sorted(
         {
             task.get("status", "") for task in db_tasks  # if task.get("status")
@@ -194,3 +194,52 @@ def status(task_id: str):
         return jsonify({"error": "not-found"}), 404
 
     return jsonify(task)
+
+
+@bp_tasks.get("/user-tasks")
+def user_tasks():
+    """
+    Render a page showing tasks created by a specific user.
+
+    Query Parameters:
+        username (str): Username to filter tasks by. If not provided, uses the current user.
+        status (str): Optional status filter for tasks.
+
+    Returns:
+        A Flask response object rendering "tasks.html" with only the tasks created by the specified user.
+    """
+
+    # Get username from query parameter, default to current user
+    user = request.args.get("user", "")
+    current_user_obj = current_user()
+
+    status_filter = request.args.get("status")
+
+    with TASKS_LOCK:
+        db_tasks = _task_store().user_tasks(
+            username=user,
+            status=status_filter,
+            order_by="created_at",
+            descending=True,
+        )
+
+    formatted = [format_task(task) for task in db_tasks]
+    available_statuses = sorted(
+        {
+            task.get("status", "") for task in db_tasks
+        }
+    )
+
+    # Determine if viewing own tasks or another user's tasks
+    is_own_tasks = current_user_obj and user == current_user_obj.username
+
+    return render_template(
+        "tasks.html",
+        tasks=formatted,
+        status_filter=status_filter,
+        available_statuses=available_statuses,
+        current_user=current_user_obj,
+        tasks_user=user,
+        is_own_tasks=is_own_tasks,
+        user_specific=True,
+    )
