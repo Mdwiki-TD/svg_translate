@@ -10,7 +10,8 @@ from .main.routes import bp_main
 from .tasks.routes import bp_tasks, close_task_store
 
 from .users.current import context_user
-from .users.store import ensure_user_token_table, close_cached_db
+from .users.store import ensure_user_token_table
+from .db import close_cached_db
 
 from .cookies import CookieHeaderClient
 
@@ -32,7 +33,10 @@ def create_app() -> Flask:
     )
     app.config["USE_MW_OAUTH"] = settings.use_mw_oauth
 
-    if settings.use_mw_oauth and settings.db_data.get("host"):
+    if settings.use_mw_oauth and (
+        settings.db_data.get("host")
+        or settings.db_data.get("db_connect_file")
+    ):
         ensure_user_token_table()
 
     app.register_blueprint(bp_main)
