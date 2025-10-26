@@ -17,6 +17,13 @@
                         {% if request.endpoint == 'tasks.tasks' %}aria-current="page" {% endif %}
                         href="{{ url_for('tasks.tasks') }}"><i class="bi bi-list-task"></i> All Tasks</a>
                 </li>
+                {% if is_admin %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'admin.dashboard' %}active fw-bold{% endif %}"
+                        {% if request.endpoint == 'admin.dashboard' %}aria-current="page" {% endif %}
+                        href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Admin Dashboard</a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link" href="https://github.com/Mdwiki-TD/svg_translate_web" target="_blank" rel="noopener noreferrer">
                         <i class="bi bi-github"></i> GitHub

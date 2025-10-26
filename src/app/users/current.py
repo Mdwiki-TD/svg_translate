@@ -71,5 +71,6 @@ def context_user() -> dict[str, Any]:
     return {
         "current_user": user,
         "is_authenticated": user is not None,
+        "is_admin": bool(user and user.username in settings.admins),
         "username": user.username if user else None,
     }

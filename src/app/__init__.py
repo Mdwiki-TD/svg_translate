@@ -5,7 +5,14 @@ from __future__ import annotations
 from flask import Flask
 
 from .config import settings
-from .app_routes import bp_auth, bp_main, bp_tasks, bp_tasks_managers, close_task_store
+from .app_routes import (
+    bp_admin,
+    bp_auth,
+    bp_main,
+    bp_tasks,
+    bp_tasks_managers,
+    close_task_store,
+)
 
 from .users.current import context_user
 from .users.store import ensure_user_token_table
@@ -40,6 +47,7 @@ def create_app() -> Flask:
     app.register_blueprint(bp_main)
     app.register_blueprint(bp_tasks)
     app.register_blueprint(bp_tasks_managers)
+    app.register_blueprint(bp_admin)
     app.register_blueprint(bp_auth)
 
     @app.context_processor
