@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Callable
 
 import logging
+import mwclient
 from tqdm import tqdm
 
 from .upload_bot import upload_file
@@ -33,11 +34,11 @@ def _coerce_encrypted(value: object) -> bytes | None:
 def start_upload(
     files_to_upload: Dict[str, Dict[str, object]],
     main_title_link: str,
-    site,
-    stages,
-    task_id,
-    store,
-    check_cancel
+    site: mwclient.Site,
+    stages: Dict[str, Any],
+    task_id: str,
+    store: TaskStorePyMysql,
+    check_cancel: Callable[[str | None], bool]
 ):
     """Upload files to Wikimedia Commons using an authenticated mwclient site."""
 
@@ -192,7 +193,7 @@ def upload_task(
     main_title_link = f"[[:File:{main_title}]]"
 
     if check_cancel("upload"):
-        return {"done": 0, "not_done": 0, "no_changes": 0, "errors": 0}, stages
+        return {"done": 0, "not_done": total, "no_changes": 0, "errors": 0}, stages
 
     upload_result, stages = start_upload(
         files_to_upload,
