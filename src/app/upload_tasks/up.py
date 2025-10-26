@@ -56,7 +56,7 @@ def start_upload(
     no_changes += total - len(to_work)
 
     for index, (file_name, file_data) in enumerate(
-        tqdm(to_work.items(), desc="uploading files", total=total),
+        tqdm(to_work.items(), desc="uploading files", total=len(to_work)),
         start=1,
     ):
 
@@ -123,7 +123,7 @@ def upload_task(
     user: Dict[str, str] = None,
     store: TaskStorePyMysql =None,
     task_id: str = "",
-    check_cancel: Callable = None,
+    check_cancel: Callable | None = None,
 ):
     """
     Coordinate and run the file upload process, updating stage status and progress as files are processed.

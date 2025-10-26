@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Get the dark mode toggle button
     const darkModeToggle = document.getElementById('darkModeToggle');
+    if (!darkModeToggle) {
+        console.warn('Dark mode toggle button not found');
+        return;
+    }
     const html = document.documentElement;
 
     // Check for saved theme preference or default to 'light'
@@ -9,8 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update the navbar theme
     const navbar = document.querySelector('nav.navbar');
-    navbar.setAttribute('data-bs-theme', currentTheme);
-
+    if (navbar) {
+        navbar.setAttribute('data-bs-theme', currentTheme);
+    }
     // Update the button icon based on current theme
     updateDarkModeIcon(currentTheme);
 
@@ -24,8 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update the html attribute
         html.setAttribute('data-bs-theme', newTheme);
-        navbar.setAttribute('data-bs-theme', newTheme);
-
+        if (navbar) {
+            navbar.setAttribute('data-bs-theme', newTheme);
+        }
         // Save the preference in localStorage
         localStorage.setItem('theme', newTheme);
 
@@ -36,6 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to update the dark mode icon
     function updateDarkModeIcon(theme) {
         const icon = darkModeToggle.querySelector('i');
+        if (!icon) {
+            console.warn('Dark mode icon element not found');
+            return;
+        }
         if (theme === 'dark') {
             icon.className = 'bi bi-sun-fill';
         } else {
