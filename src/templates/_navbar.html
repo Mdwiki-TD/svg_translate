@@ -10,12 +10,17 @@
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'main.index' %}active fw-bold{% endif %}"
                         {% if request.endpoint == 'main.index' %}aria-current="page" {% endif %}
-                        href="{{ url_for('main.index') }}">Home</a>
+                        href="{{ url_for('main.index') }}"><i class="bi bi-house-door-fill"></i> Home</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'tasks.tasks' %}active fw-bold{% endif %}"
                         {% if request.endpoint == 'tasks.tasks' %}aria-current="page" {% endif %}
-                        href="{{ url_for('tasks.tasks') }}">All Tasks</a>
+                        href="{{ url_for('tasks.tasks') }}"><i class="bi bi-list-task"></i> All Tasks</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="https://github.com/Mdwiki-TD/svg_translate_web" target="_blank" rel="noopener noreferrer">
+                        <i class="bi bi-github"></i> GitHub
+                    </a>
                 </li>
             </ul>
             <div class="d-flex align-items-center">
@@ -25,9 +30,9 @@
                     <i class="bi bi-moon-stars-fill"></i>
                 </button>
 
-                {% if username or is_authenticated %}
-                <a href="{{ url_for('tasks.user_tasks', user=(username or current_user.username or 'user')) }}" class="navbar-text me-3 text-decoration-none">
-                    {{ username or current_user.username or 'Logged in'}}
+                {% if current_user or is_authenticated %}
+                <a href="{{ url_for('tasks.user_tasks', user=current_user.username) }}" class="navbar-text me-3 text-decoration-none">
+                    {{ current_user.username }}
                 </a>
                 <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
                 {% else %}

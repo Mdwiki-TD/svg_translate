@@ -4,9 +4,9 @@ from urllib.parse import quote
 import logging
 from typing import Any
 from CopySvgTranslate import start_injects, extract
-from .commons import get_files, get_wikitext
 
-from .download_task import download_one_file
+from .commons import get_files, get_wikitext
+from ..download_tasks import download_one_file
 
 logger = logging.getLogger(__name__)
 

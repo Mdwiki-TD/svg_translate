@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Callable
 from urllib.parse import quote
 
 import requests
@@ -79,7 +79,8 @@ def download_task(
     stages: Dict[str, Any],
     output_dir_main: Path,
     titles: Iterable[str],
-    store: TaskStorePyMysql =None,
+    store: TaskStorePyMysql | None = None,
+    check_cancel: Callable[[str | None], bool] | None = None,
 ):
     """
     Orchestrates downloading a set of Wikimedia Commons SVGs while updating a mutable stages dict and an optional progress updater.
@@ -88,7 +89,6 @@ def download_task(
         stages (Dict[str, str]): Mutable mapping that will be updated with "message" and "status" to reflect current progress and final outcome.
         output_dir_main (Path): Directory where downloaded files will be saved.
         titles (Iterable[str]): Iterable of file titles to download.
-
     Returns:
         (files, stages) (Tuple[List[str], Dict[str, str]]): `files` is the list of downloaded file paths (as strings); `stages` is the same dict passed in, updated with a final "status" of "Completed" or "Failed" and a final "message" summarizing processed and failed counts.
     """
@@ -140,6 +140,10 @@ def download_task(
             f"failed to download: {not_done:,}"
         )
         message_updater(stages["message"])
+
+        if index % 10 == 0:
+            if check_cancel and check_cancel("download"):
+                return files, stages
 
     logger.debug("files: %s", len(files))
 

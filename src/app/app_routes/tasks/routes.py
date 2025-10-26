@@ -30,6 +30,14 @@ bp_tasks = Blueprint("tasks", __name__)
 logger = logging.getLogger(__name__)
 
 
+def format_task_message(formatted):
+    for v in formatted:
+        if v.get('stages'):
+            for s in v['stages']:
+                v['stages'][s]['message'] = '<br>'.join(v['stages'][s]['message'].split(','))
+    return formatted
+
+
 def _task_store() -> TaskStorePyMysql:
     global TASK_STORE
     if TASK_STORE is None:
@@ -57,9 +65,11 @@ def task1():
 
     error_message = get_error_message(request.args.get("error"))
 
+    current_user_obj = current_user()
     return render_template(
         "task1.html",
         task_id=task_id,
+        current_user=current_user_obj,
         task=task,
         form=task.get("form", {}) if isinstance(task, dict) else {},
         error_message=error_message,
@@ -82,9 +92,11 @@ def task2():
 
     stages = order_stages(task.get("stages") if isinstance(task, dict) else None)
 
+    current_user_obj = current_user()
     return render_template(
         "task2.html",
         task_id=task_id,
+        current_user=current_user_obj,
         title=title or task.get("title", "") if isinstance(task, dict) else "",
         task=task,
         stages=stages,
@@ -159,15 +171,19 @@ def tasks():
         )
 
     formatted = [format_task(task) for task in db_tasks]
+    formatted = format_task_message(formatted)
+
     available_statuses = sorted(
         {
             task.get("status", "") for task in db_tasks  # if task.get("status")
         }
     )
 
+    current_user_obj = current_user()
     return render_template(
         "tasks.html",
         tasks=formatted,
+        current_user=current_user_obj,
         status_filter=status_filter,
         available_statuses=available_statuses,
     )
@@ -216,7 +232,7 @@ def user_tasks():
     status_filter = request.args.get("status")
 
     with TASKS_LOCK:
-        db_tasks = _task_store().user_tasks(
+        db_tasks = _task_store().list_tasks(
             username=user,
             status=status_filter,
             order_by="created_at",
@@ -224,6 +240,8 @@ def user_tasks():
         )
 
     formatted = [format_task(task) for task in db_tasks]
+    formatted = format_task_message(formatted)
+
     available_statuses = sorted(
         {
             task.get("status", "") for task in db_tasks
