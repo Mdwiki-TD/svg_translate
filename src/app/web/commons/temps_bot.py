@@ -57,7 +57,14 @@ def get_titles(text):
 
 
 def get_files(text):
-
+    """
+    Returns (main_title, titles).
+    main_title:
+      - From SVGLanguages: filename (no 'File:'), underscores -> spaces.
+      - From Translate: 'File:...' string, underscores -> spaces.
+    titles:
+      - Filenames from all owidslidersrcs (no 'File:'), duplicates preserved.
+    """
     titles = get_titles(text)
 
     main_title = find_main_title(text)
