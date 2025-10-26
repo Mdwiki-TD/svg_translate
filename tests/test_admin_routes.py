@@ -1,43 +1,13 @@
-import threading
+from html import unescape
 from types import SimpleNamespace
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 import pytest
-from pytest import FixtureRequest
 
 from src.app import create_app
 from src.app.config import settings
-from src.app.app_routes.tasks import routes as task_routes
 from src.app.app_routes.admin import routes as admin_routes
-
-
-class InMemoryTaskStore:
-    def __init__(self) -> None:
-        self._tasks: List[Dict[str, Any]] = []
-
-    def add_task(self, task: Dict[str, Any]) -> None:
-        self._tasks.append(dict(task))
-
-    def list_tasks(
-        self,
-        *,
-        status: Optional[str] = None,
-        username: Optional[str] = None,
-        order_by: str | None = None,
-        descending: bool = False,
-    ) -> List[Dict[str, Any]]:
-        tasks: Iterable[Dict[str, Any]] = list(self._tasks)
-        if status:
-            tasks = [task for task in tasks if task.get("status") == status]
-        if username:
-            tasks = [task for task in tasks if task.get("username") == username]
-        tasks = list(tasks)
-        if descending:
-            tasks.reverse()
-        return [dict(task) for task in tasks]
-
-    def close(self) -> None:  # pragma: no cover - compatibility shim
-        pass
+from src.app.users import admin_service
 
 
 def _set_current_user(monkeypatch: pytest.MonkeyPatch, user: Any) -> None:
@@ -50,62 +20,39 @@ def _set_current_user(monkeypatch: pytest.MonkeyPatch, user: Any) -> None:
 
 
 @pytest.fixture
-def app_and_store(monkeypatch: pytest.MonkeyPatch, request: FixtureRequest):
+def app_and_store(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("FLASK_SECRET_KEY", "test-secret")
     original_admins = list(settings.admins)
     object.__setattr__(settings, "admins", ["admin"])  # ensure deterministic admin list
-    request.addfinalizer(lambda: object.__setattr__(settings, "admins", original_admins))
 
+    store = admin_service.InMemoryCoordinatorStore(["admin"])
+    admin_service.set_store_for_testing(store)
+
+    admin_routes.admin_service.set_store_for_testing(store)
     app = create_app()
     app.config["TESTING"] = True
 
-    store = InMemoryTaskStore()
-    monkeypatch.setattr(task_routes, "_task_store", lambda: store)
-    monkeypatch.setattr(admin_routes, "_task_store", lambda: store)
-    task_routes.TASK_STORE = store
-    admin_routes.TASKS_LOCK = task_routes.TASKS_LOCK = threading.Lock()
+    try:
+        yield app, store
+    finally:
+        admin_service.set_store_for_testing(None)
+        admin_routes.admin_service.set_store_for_testing(None)
+        object.__setattr__(settings, "admins", original_admins)
 
-    return app, store
 
-
-def test_admin_dashboard_access_granted(app_and_store, monkeypatch: pytest.MonkeyPatch):
+def test_coordinator_dashboard_access_granted(app_and_store, monkeypatch: pytest.MonkeyPatch):
     app, store = app_and_store
-
-    store.add_task(
-        {
-            "id": "task-1",
-            "title": "Translate icons",
-            "status": "Running",
-            "username": "editor",
-            "created_at": "2024-01-01 12:00:00",
-            "updated_at": "2024-01-01 12:30:00",
-            "results": {"new_translations_count": 2, "files_to_upload_count": 1},
-        }
-    )
-    store.add_task(
-        {
-            "id": "task-2",
-            "title": "Upload batch",
-            "status": "Completed",
-            "username": "other",
-            "created_at": "2024-01-02 10:00:00",
-            "updated_at": "2024-01-02 11:00:00",
-            "results": {"new_translations_count": 5, "files_to_upload_count": 5},
-        }
-    )
-
     _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
 
     response = app.test_client().get("/admin")
     assert response.status_code == 200
-    page = response.get_data(as_text=True)
-    assert "Admin Dashboard" in page
-    assert "Translate icons" in page
-    assert "Total Tasks" in page
-    assert "Active Tasks" in page
+    page = unescape(response.get_data(as_text=True))
+    assert "Coordinator Tools" in page
+    assert "Total Coordinators" in page
+    assert "admin" in page
 
 
-def test_admin_dashboard_requires_admin_user(app_and_store, monkeypatch: pytest.MonkeyPatch):
+def test_coordinator_dashboard_requires_admin_user(app_and_store, monkeypatch: pytest.MonkeyPatch):
     app, _store = app_and_store
     _set_current_user(monkeypatch, SimpleNamespace(username="not_admin"))
 
@@ -113,7 +60,7 @@ def test_admin_dashboard_requires_admin_user(app_and_store, monkeypatch: pytest.
     assert response.status_code == 403
 
 
-def test_admin_dashboard_redirects_when_anonymous(app_and_store, monkeypatch: pytest.MonkeyPatch):
+def test_coordinator_dashboard_redirects_when_anonymous(app_and_store, monkeypatch: pytest.MonkeyPatch):
     app, _store = app_and_store
     _set_current_user(monkeypatch, None)
 
@@ -129,10 +76,57 @@ def test_navbar_shows_admin_link_only_for_admin(app_and_store, monkeypatch: pyte
     _set_current_user(monkeypatch, SimpleNamespace(username="viewer"))
     response = app.test_client().get("/")
     html = response.get_data(as_text=True)
-    assert "Admin Dashboard" not in html
+    assert "Coordinators" not in html
 
     # Admin should see the link
     _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
     response = app.test_client().get("/")
     html = response.get_data(as_text=True)
-    assert "Admin Dashboard" in html
+    assert "Coordinators" in html
+
+
+def test_add_coordinator(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    response = app.test_client().post("/admin/add", data={"username": "new_admin"}, follow_redirects=True)
+    assert response.status_code == 200
+    page = unescape(response.get_data(as_text=True))
+    assert "new_admin" in page
+    assert "Coordinator 'new_admin' added." in page
+    assert "new_admin" in settings.admins
+    assert any(record.username == "new_admin" for record in store.list())
+
+
+def test_toggle_coordinator_active(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    new_record = store.add("helper")
+    admin_service.set_coordinator_active(new_record.id, True)  # ensure sync
+
+    response = app.test_client().post(
+        f"/admin/{new_record.id}/active",
+        data={"active": "0"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Coordinator 'helper' deactivated." in unescape(response.get_data(as_text=True))
+    assert "helper" not in settings.admins
+
+
+def test_delete_coordinator(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    record = store.add("to_remove")
+    admin_service.set_coordinator_active(record.id, True)
+
+    response = app.test_client().post(
+        f"/admin/{record.id}/delete",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Coordinator 'to_remove' removed." in unescape(response.get_data(as_text=True))
+    assert "to_remove" not in settings.admins
+    assert all(r.username != "to_remove" for r in store.list())

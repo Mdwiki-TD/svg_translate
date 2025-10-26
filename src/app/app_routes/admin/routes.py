@@ -1,22 +1,24 @@
-"""Admin-only routes for monitoring application tasks."""
+"""Admin-only routes for managing coordinator access."""
 
 from __future__ import annotations
 
-from collections import Counter
 from functools import wraps
 from typing import Callable, TypeVar, cast
 
-from flask import Blueprint, abort, redirect, render_template, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask.typing import ResponseReturnValue
 
 from ...config import settings
 from ...users.current import current_user
-from ..tasks.routes import (
-    TASKS_LOCK,
-    _task_store,
-    format_task,
-    format_task_message,
-)
+from ...users import admin_service
 
 F = TypeVar("F", bound=Callable[..., ResponseReturnValue])
 
@@ -43,28 +45,78 @@ bp_admin = Blueprint("admin", __name__, url_prefix="/admin")
 @bp_admin.get("")
 @admin_required
 def dashboard():
-    """Render the admin dashboard with summarized task information."""
+    """Render the coordinator management dashboard."""
 
     user = current_user()
-
-    with TASKS_LOCK:
-        db_tasks = _task_store().list_tasks(
-            order_by="created_at",
-            descending=True,
-        )
-
-    formatted = [format_task(task) for task in db_tasks]
-    formatted = format_task_message(formatted)
-
-    status_counts = Counter(task.get("status", "Unknown") for task in formatted)
-    active_statuses = {"Running", "Pending"}
-    active_tasks = sum(1 for task in formatted if task.get("status") in active_statuses)
+    coordinators = admin_service.list_coordinators()
+    total = len(coordinators)
+    active = sum(1 for coord in coordinators if coord.is_active)
 
     return render_template(
-        "admin_dashboard.html",
+        "coordinators.html",
         current_user=user,
-        tasks=formatted,
-        total_tasks=len(formatted),
-        active_tasks=active_tasks,
-        status_counts=status_counts,
+        coordinators=coordinators,
+        total_coordinators=total,
+        active_coordinators=active,
+        inactive_coordinators=total - active,
     )
+
+
+@bp_admin.post("/add")
+@admin_required
+def add_coordinator() -> ResponseReturnValue:
+    """Create a new coordinator from the submitted username."""
+
+    username = request.form.get("username", "").strip()
+    if not username:
+        flash("Username is required to add a coordinator.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    try:
+        record = admin_service.add_coordinator(username)
+    except ValueError as exc:
+        flash(str(exc), "warning")
+    except LookupError as exc:
+        flash(str(exc), "warning")
+    except Exception:  # pragma: no cover - defensive guard
+        flash("Unable to add coordinator. Please try again.", "danger")
+    else:
+        flash(f"Coordinator '{record.username}' added.", "success")
+
+    return redirect(url_for("admin.dashboard"))
+
+
+@bp_admin.post("/<int:coordinator_id>/active")
+@admin_required
+def update_coordinator_active(coordinator_id: int) -> ResponseReturnValue:
+    """Toggle the active flag for a coordinator."""
+
+    desired = request.form.get("active", "0") == "1"
+    try:
+        record = admin_service.set_coordinator_active(coordinator_id, desired)
+    except LookupError as exc:
+        flash(str(exc), "warning")
+    except Exception:  # pragma: no cover - defensive guard
+        flash("Unable to update coordinator status. Please try again.", "danger")
+    else:
+        state = "activated" if record.is_active else "deactivated"
+        flash(f"Coordinator '{record.username}' {state}.", "success")
+
+    return redirect(url_for("admin.dashboard"))
+
+
+@bp_admin.post("/<int:coordinator_id>/delete")
+@admin_required
+def delete_coordinator(coordinator_id: int) -> ResponseReturnValue:
+    """Remove a coordinator entirely."""
+
+    try:
+        record = admin_service.delete_coordinator(coordinator_id)
+    except LookupError as exc:
+        flash(str(exc), "warning")
+    except Exception:  # pragma: no cover - defensive guard
+        flash("Unable to delete coordinator. Please try again.", "danger")
+    else:
+        flash(f"Coordinator '{record.username}' removed.", "success")
+
+    return redirect(url_for("admin.dashboard"))
