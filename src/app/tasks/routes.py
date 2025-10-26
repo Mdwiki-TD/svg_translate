@@ -247,6 +247,7 @@ def status(task_id: str):
 
 
 @bp_tasks.post("/tasks/<task_id>/cancel")
+@oauth_required
 def cancel(task_id: str):
     if not task_id:
         return jsonify({"error": "no-task-id"}), 400
@@ -270,6 +271,7 @@ def cancel(task_id: str):
 
 
 @bp_tasks.post("/tasks/<task_id>/restart")
+@oauth_required
 def restart(task_id: str):
     if not task_id:
         return jsonify({"error": "no-task-id"}), 400
@@ -324,4 +326,4 @@ def restart(task_id: str):
 
     _launch_task_thread(new_task_id, title, args, user_payload)
 
-    return jsonify({"task_id": new_task_id})
+    return jsonify({"task_id": new_task_id, "status": "Running"})

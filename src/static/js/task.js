@@ -213,9 +213,15 @@ function result_html(r) {
                 if (!response.ok) {
                     throw new Error('Failed to cancel task');
                 }
-                await response.json();
-                updateStatus('Cancelled');
-                updateControls('Cancelled');
+                let result = await response.json();
+                if (result.status == "Cancelled") {
+                    updateStatus('Cancelled');
+                    updateControls('Cancelled');
+                } else {
+                    cancelBtn.disabled = false;
+                    showAlert('danger', 'Unable to cancel the task. Please try again.');
+                    timer = setInterval(refresh, 2000);
+                }
                 showAlert('success', 'Task cancelled successfully.');
             } catch (error) {
                 cancelBtn.disabled = false;
