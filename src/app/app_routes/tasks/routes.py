@@ -30,10 +30,12 @@ bp_tasks = Blueprint("tasks", __name__)
 logger = logging.getLogger(__name__)
 
 
-def format_task_message(stages, key):
-    result = stages.get(key, {}).get('message', '')
-    result = '<br>'.join(result.split(','))
-    return result
+def format_task_message(formatted):
+    for v in formatted:
+        if v.get('stages'):
+            for s in v['stages']:
+                v['stages'][s]['message'] = '<br>'.join(v['stages'][s]['message'].split(','))
+    return formatted
 
 
 def _task_store() -> TaskStorePyMysql:
@@ -169,10 +171,7 @@ def tasks():
         )
 
     formatted = [format_task(task) for task in db_tasks]
-    for v in formatted:
-        if v.get('stages'):
-            for s in v['stages']:
-                v['stages'][s]['message'] = format_task_message(v['stages'], s)
+    formatted = format_task_message(formatted)
 
     available_statuses = sorted(
         {
@@ -187,7 +186,6 @@ def tasks():
         current_user=current_user_obj,
         status_filter=status_filter,
         available_statuses=available_statuses,
-        format_task_message=format_task_message
     )
 
 
@@ -242,10 +240,7 @@ def user_tasks():
         )
 
     formatted = [format_task(task) for task in db_tasks]
-    for v in formatted:
-        if v.get('stages'):
-            for s in v['stages']:
-                v['stages'][s]['message'] = format_task_message(v['stages'], s)
+    formatted = format_task_message(formatted)
 
     available_statuses = sorted(
         {
@@ -265,5 +260,4 @@ def user_tasks():
         tasks_user=user,
         is_own_tasks=is_own_tasks,
         user_specific=True,
-        format_task_message=format_task_message
     )

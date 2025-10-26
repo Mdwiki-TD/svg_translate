@@ -79,8 +79,8 @@ def download_task(
     stages: Dict[str, Any],
     output_dir_main: Path,
     titles: Iterable[str],
-    store: TaskStorePyMysql = None,
-    check_cancel: Callable[[str | None], bool] = None,
+    store: TaskStorePyMysql | None = None,
+    check_cancel: Callable[[str | None], bool] | None = None,
 ):
     """
     Orchestrates downloading a set of Wikimedia Commons SVGs while updating a mutable stages dict and an optional progress updater.
