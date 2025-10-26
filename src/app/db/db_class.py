@@ -331,7 +331,7 @@ class Database:
             return self.fetch_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_fetch_failed sql=%s error=%s", sql_query, e)
-            logger.debug(f"fetch_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.debug(f"fetch_query - SQL error: {e}\n{sql_query}, params:")
             logger.debug(params)
             return []
 
@@ -341,7 +341,7 @@ class Database:
             return self.execute_query(sql_query, params, timeout_override=timeout_override)
         except pymysql.MySQLError as e:
             logger.error("event=db_execute_failed sql=%s error=%s", sql_query, e)
-            logger.debug(f"execute_query - SQL error: {e}<br>{sql_query}, params:")
+            logger.debug(f"execute_query - SQL error: {e}\n{sql_query}, params:")
             logger.debug(params)
             if sql_query.strip().lower().startswith("select"):
                 return []

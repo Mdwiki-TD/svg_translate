@@ -14,7 +14,7 @@ from ..web.start_bot import (
     inject_task,
     make_results_summary
 )
-from ..web.download_task import download_task
+from ..download_tasks import download_task
 from ..upload_tasks import upload_task
 
 from ..db.task_store_pymysql import TaskStorePyMysql
@@ -242,10 +242,11 @@ def run_task(
         # Stage 4: download SVG files
         files, stages_list["download"] = download_task(
             task_id,
-            stages_list["download"],
-            output_dir_main,
-            titles,
-            store
+            stages=stages_list["download"],
+            output_dir_main=output_dir_main,
+            titles=titles,
+            store=store,
+            check_cancel=check_cancel
         )
         push_stage("download")
         if check_cancel("download"):
