@@ -56,10 +56,14 @@
                 <th scope="col">Task ID</th>
                 <th scope="col">Title</th>
                 <th scope="col">Status</th>
-                <th scope="col">Files Ready</th>
-                <th scope="col">New Translations</th>
+                <!-- <th scope="col">Files Ready</th> -->
+                <th scope="col">Titles</th>
+                <th scope="col">Translations</th>
+                <th scope="col">Download</th>
+                <th scope="col">Inject</th>
+                <th scope="col">Upload</th>
                 <th scope="col">Created</th>
-                <th scope="col">Updated</th>
+                <!-- <th scope="col">Updated</th> -->
                 <th scope="col">User</th>
             </tr>
         </thead>
@@ -67,22 +71,27 @@
             {% for task in tasks %}
             <tr>
                 <td>
-                    <code title="{{ task.id }}">
+                    <!-- <code title="{{ task.id }}"> -->
+                    <a href="{{ url_for('tasks.task1', task_id=task.id) }}" class="text-decoration-none" title="{{ task.id }}">
                         {{ task.id[:10] }}...
-                    </code>
+                    </a>
+                    <!-- </code> -->
                 </td>
                 <td class="text-break">
-                    <a href="{{ url_for('tasks.task1', task_id=task.id) }}" class="text-decoration-none">
-                        {{ task.title }}
-                    </a>
+                    {{ task.title }}
                 </td>
                 <td>
                     <span class="badge bg-{{ status_classes.get(task.status, 'secondary') }}">{{ task.status }}</span>
                 </td>
-                <td>{{ task.files_to_upload_count }}</td>
-                <td>{{ task.new_translations_count }}</td>
+                <!-- <td>{{ task.files_to_upload_count }}</td> -->
+                <!-- <td>{{ task.new_translations_count }}</td> -->
+                <td>{{ task.stages.get('titles', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('translations', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('download', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('inject', {}).get('message', '') }}</td>
+                <td>{{ task.stages.get('upload', {}).get('message', '') }}</td>
                 <td data-order="{{ task.created_at_sort }}">{{ task.created_at_display }}</td>
-                <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td>
+                <!-- <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td> -->
                 <td>
                     {% if task.username %}
                     <a href="{{ url_for('tasks.user_tasks', user=task.username) }}" class="text-decoration-none">
