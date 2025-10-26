@@ -203,6 +203,9 @@ function result_html(r) {
             if (cancelBtn.disabled) {
                 return;
             }
+            if (timer) {
+                clearInterval(timer);
+            }
             cancelBtn.disabled = true;
             showAlert('info', 'Stopping task...');
             try {
@@ -214,12 +217,10 @@ function result_html(r) {
                 updateStatus('Cancelled');
                 updateControls('Cancelled');
                 showAlert('success', 'Task cancelled successfully.');
-                if (timer) {
-                    clearInterval(timer);
-                }
             } catch (error) {
                 cancelBtn.disabled = false;
                 showAlert('danger', 'Unable to cancel the task. Please try again.');
+                timer = setInterval(refresh, 2000);
             }
         });
     }
@@ -229,6 +230,9 @@ function result_html(r) {
             event.preventDefault();
             if (restartBtn.disabled) {
                 return;
+            }
+            if (timer) {
+                clearInterval(timer);
             }
             restartBtn.disabled = true;
             showAlert('info', 'Restarting task...');
