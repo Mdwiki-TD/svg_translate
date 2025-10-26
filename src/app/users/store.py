@@ -7,24 +7,11 @@ import datetime
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from ..config import settings
-
-# from ..svg_config import db_data
-from ..db.db_class import Database
 from ..crypto import decrypt_value, encrypt_value
 
-from ..db import get_db
+from ..db import get_db, has_db_config
 
 logger = logging.getLogger(__name__)
-
-_db: Database | None = None
-
-
-def has_db_config() -> bool:
-    """Return ``True`` when database connection details are configured."""
-
-    db_settings = settings.db_data or {}
-    return bool(db_settings.get("host") or db_settings.get("db_connect_file"))
 
 
 def _current_ts() -> str:

@@ -93,6 +93,7 @@
 <hr />
 {% if task_id %}
 <div id="progress-section" data-task-id="{{ task_id }}">
+    <!-- The status_classes dictionary is defined here in the Jinja2 template, and also in task2.html and src/static/js/task.js. This duplication makes it harder to maintain. If you need to add or change a status, you'll have to update it in three different places. Consider defining this mapping in a single place, for example in your Python backend, and passing it to the templates. The JavaScript code could then read it from a data attribute on an element or from a global JS variable initialized by the template. -->
     {% set status_classes = {
         'Completed': 'success',
         'Failed': 'danger',
@@ -143,18 +144,10 @@
     </div>
     <div class="col-sm-12" id="alert_div">
     </div>
-    {% set stage_colors = {
-        'Completed': 'success',
-        'Failed': 'danger',
-        'Skipped': 'warning',
-        'Running': 'primary',
-        'Pending': 'secondary',
-        'Cancelled': 'warning'
-    } %}
     <ul id="stagesnew" class="list-group">
         {% for name, st in stages %}
         {% set status = st.status or 'Pending' %}
-        {% set color = stage_colors.get(status, 'secondary') %}
+        {% set color = status_classes.get(status, 'secondary') %}
         {% if status == 'Completed' %}
         {% set percent = 100 %}
         {% elif status == 'Running' %}

@@ -10,6 +10,7 @@ from typing import Any, Dict, Callable
 
 from flask import (
     Blueprint,
+    g,
     jsonify,
     redirect,
     render_template,
@@ -28,8 +29,10 @@ from .args_utils import parse_args
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
+
 CANCEL_EVENTS: Dict[str, threading.Event] = {}
 CANCEL_EVENTS_LOCK = threading.Lock()
+# The use of a global dictionary CANCEL_EVENTS with a threading.Lock ties the cancellation mechanism to a single-process, multi-threaded server model. This approach will not work correctly in a multi-process environment (e.g., when using Gunicorn with multiple worker processes), as each process would have its own independent copy of CANCEL_EVENTS. For a more scalable and robust solution, consider using a shared external store like Redis or a database to manage cancellation state across processes.
 
 bp_tasks = Blueprint("tasks", __name__)
 logger = logging.getLogger(__name__)
@@ -176,7 +179,7 @@ def start():
             )
         except TaskAlreadyExistsError as exc:
             existing = exc.task
-            logger.debug("Restart for %s blocked by existing task %s", task_id, existing.get("id"))
+            logger.debug("Task creation for %s blocked by existing task %s", task_id, existing.get("id"))
             return redirect(url_for("tasks.task1", task_id=existing["id"], title=title, error="task-active"))
         except Exception:
             logger.exception("Failed to create task")
@@ -246,8 +249,21 @@ def status(task_id: str):
     return jsonify(task)
 
 
+def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that redirects anonymous users to the index page."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not getattr(g, "is_authenticated", False) and not current_user():
+            # return redirect(url_for("main.index", error="login-required"))
+            return jsonify({"error": "login-required"})
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
 @bp_tasks.post("/tasks/<task_id>/cancel")
-@oauth_required
+@login_required_json
 def cancel(task_id: str):
     if not task_id:
         return jsonify({"error": "no-task-id"}), 400
@@ -263,7 +279,7 @@ def cancel(task_id: str):
 
     user = current_user()
     if not user:
-        logger.error("Restart requested without authenticated user for task %s", task_id)
+        logger.error("Cancel requested without authenticated user for task %s", task_id)
         return jsonify({"error": "You are not authenticated"}), 401
 
     task_username = task.get("username", "")
@@ -287,7 +303,7 @@ def cancel(task_id: str):
 
 
 @bp_tasks.post("/tasks/<task_id>/restart")
-@oauth_required
+@login_required_json
 def restart(task_id: str):
     if not task_id:
         return jsonify({"error": "no-task-id"}), 400

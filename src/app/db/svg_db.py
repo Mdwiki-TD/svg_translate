@@ -72,6 +72,7 @@ def fetch_query_safe(sql_query: str, params: Optional[Any] = None):
 
 __all__ = [
     "get_db",
+    "has_db_config",
     "close_cached_db",
     "execute_query",
     "fetch_query",

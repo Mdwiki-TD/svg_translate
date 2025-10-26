@@ -156,44 +156,6 @@ def test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch: 
         assert new_task_id not in routes.CANCEL_EVENTS
 
 
-def test_restart_route_creates_new_task_and_replays_form2(app: Any, monkeypatch: pytest.MonkeyPatch):
-    store: InMemoryTaskStore = routes._task_store()  # type: ignore[assignment]
-
-    existing_id = "existing"
-    store.create_task(existing_id, "Title", form={"title": "Title", "titles_limit": "5", "upload": "on"})
-    store.update_status(existing_id, "Cancelled")
-
-    captured: Dict[str, Any] = {}
-
-    def fake_run_task(db_data, task_id, title, args, user_payload, *, cancel_event=None):
-        captured["task_id"] = task_id
-        captured["title"] = title
-        captured["args"] = args
-        captured["user_payload"] = user_payload
-        captured["cancel_event"] = cancel_event
-
-    monkeypatch.setattr(routes, "run_task", fake_run_task)
-
-    client = app.test_client()
-    restart_response = client.post(f"/tasks/{existing_id}/restart")
-    assert restart_response.status_code == 200
-    payload = restart_response.get_json()
-    new_task_id = payload["task_id"]
-
-    assert new_task_id != existing_id
-    assert new_task_id in store.tasks
-    assert store.tasks[new_task_id]["title"] == "Title"
-    assert store.tasks[new_task_id]["form"] == {"title": "Title", "titles_limit": "5", "upload": "on"}
-
-    assert captured["task_id"] == new_task_id
-    assert captured["title"] == "Title"
-    assert hasattr(captured["args"], "titles_limit")
-    assert captured["args"].titles_limit == 5
-    assert captured["cancel_event"] is not None
-    with routes.CANCEL_EVENTS_LOCK:
-        assert new_task_id not in routes.CANCEL_EVENTS
-
-
 def test_no_mysql_connection_attempted_with_default_settings(monkeypatch: pytest.MonkeyPatch):
     """
     Test that ensures no MySQL connection is attempted when create_app() is
