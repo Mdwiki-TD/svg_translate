@@ -192,7 +192,7 @@ def upload_task(
     main_title_link = f"[[:File:{main_title}]]"
 
     if check_cancel("upload"):
-        return
+        return {"done": 0, "not_done": 0, "no_changes": 0, "errors": 0}, stages
 
     upload_result, stages = start_upload(
         files_to_upload,
