@@ -82,10 +82,41 @@
 </form>
 {% if task_id %}
 <div id="progress-section" data-task-id="{{ task_id }}">
-    <h2 class="h5">
-        Task Status <span id="task_status">
-        </span>
-    </h2>
+    {% set status_classes = {
+        'Completed': 'success',
+        'Failed': 'danger',
+        'Skipped': 'warning',
+        'Running': 'primary',
+        'Pending': 'secondary',
+        'Cancelled': 'warning',
+        'error': 'danger'
+    } %}
+    {% set current_status = task.status if task and task.status else '' %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="h5 m-0 d-flex align-items-center gap-2">
+            <span>Task Status</span>
+            <span id="task_status" data-status="{{ current_status }}">
+                {% if current_status %}
+                <span
+                    class="badge text-bg-{{ status_classes.get(current_status, 'secondary') }}">{{ current_status }}</span>
+                {% elif task and task.error == 'not-found' %}
+                <span class="badge text-bg-danger">Not Found</span>
+                {% endif %}
+            </span>
+        </h2>
+        {% set hide_cancel = (current_status in ['Completed', 'Failed', 'Cancelled']) or (task and task.error == 'not-found') %}
+        {% set show_restart = current_status in ['Completed', 'Failed', 'Cancelled'] %}
+        <div class="btn-group" role="group" aria-label="Task actions">
+            <button type="button" class="btn btn-outline-danger {% if hide_cancel %}d-none{% endif %}"
+                id="cancel-task-btn" data-task-id="{{ task_id }}">
+                Stop
+            </button>
+            <button type="button" class="btn btn-outline-primary {% if not show_restart %}d-none{% endif %}"
+                id="restart-task-btn" data-task-id="{{ task_id }}">
+                Restart
+            </button>
+        </div>
+    </div>
 
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
         <div id="task-meta" class="mb-2 text-muted">

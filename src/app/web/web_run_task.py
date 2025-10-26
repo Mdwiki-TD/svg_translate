@@ -2,6 +2,7 @@
 import os
 import re
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Dict
 
@@ -139,6 +140,8 @@ def run_task(
     title: str,
     args: Any,
     user_data: Dict[str, str] | None,
+    *,
+    cancel_event: threading.Event | None = None,
 ) -> None:
     """Execute the full SVG translation pipeline for a queued task.
 
@@ -164,18 +167,40 @@ def run_task(
 
         # store.replace_stages(task_id, stages_list)
 
-        store.update_data(task_id, task_snapshot)
-        store.update_status(task_id, "Running")
-
         def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
             """Persist the latest state for a workflow stage to the database."""
             state = stage_state if stage_state is not None else stages_list[stage_name]
             store.update_stage(task_id, stage_name, state)
 
+        store.update_data(task_id, task_snapshot)
+
+        def check_cancel(stage_name: str | None = None) -> bool:
+            if cancel_event is None or not cancel_event.is_set():
+                return False
+
+            if stage_name:
+                stage_state = stages_list.get(stage_name)
+                if stage_state and stage_state.get("status") == "Running":
+                    stage_state["status"] = "Cancelled"
+                    push_stage(stage_name, stage_state)
+
+            stages_list["initialize"]["status"] = "Completed"
+            push_stage("initialize")
+            store.update_status(task_id, "Cancelled")
+            return True
+
+        if cancel_event is not None and cancel_event.is_set():
+            if check_cancel("initialize"):
+                return
+
+        store.update_status(task_id, "Running")
+
         # ----------------------------------------------
         # Stage 1: extract text
         text, stages_list["text"] = text_task(stages_list["text"], title)
         push_stage("text")
+        if check_cancel("text"):
+            return
         if not text:
             return fail_task(store, task_id, stages_list, "No text extracted")
 
@@ -189,6 +214,8 @@ def run_task(
         )
 
         push_stage("titles")
+        if check_cancel("titles"):
+            return
 
         main_title, titles = titles_result["main_title"], titles_result["titles"]
 
@@ -204,6 +231,8 @@ def run_task(
 
         translations, stages_list["translations"] = translations_task(stages_list["translations"], main_title, output_dir_main)
         push_stage("translations")
+        if check_cancel("translations"):
+            return
 
         if not translations:
             return fail_task(store, task_id, stages_list, "No translations available")
@@ -218,6 +247,8 @@ def run_task(
             store
         )
         push_stage("download")
+        if check_cancel("download"):
+            return
 
         if not files:
             return fail_task(store, task_id, stages_list, "No files downloaded")
@@ -226,6 +257,8 @@ def run_task(
         # Stage 5: inject translations
         injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
         push_stage("inject")
+        if check_cancel("inject"):
+            return
 
         if not injects_result or injects_result.get("saved_done", 0) == 0:
             return fail_task(store, task_id, stages_list, "Injection saved 0 files")
@@ -249,6 +282,8 @@ def run_task(
         )
 
         push_stage("upload")
+        if check_cancel("upload"):
+            return
 
         # ----------------------------------------------
         # Stage 7: save stats and mark done
@@ -277,5 +312,8 @@ def run_task(
         final_status = "Failed" if any(s.get("status") == "Failed" for s in stages_list.values()) else "Completed"
         stages_list["initialize"]["status"] = "Completed"
         push_stage("initialize")
+
+        if check_cancel("initialize"):
+            return
 
         store.update_status(task_id, final_status)
