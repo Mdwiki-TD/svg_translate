@@ -85,7 +85,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                 existing_task_row = task_rows[0]
                 existing_task = self._row_to_task(
                     existing_task_row,
-                    stages=stage_map.get(existing_task_row["id"]) or self.fetch_stages(existing_task_row["id"])
+                    stages=stage_map.get(existing_task_row["id"], {})  # or self.fetch_stages(existing_task_row["id"])
                 )
                 raise TaskAlreadyExistsError(existing_task)
         try:
@@ -156,7 +156,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         task_row = task_rows[0]
         return self._row_to_task(
             task_row,
-            stages=stage_map.get(task_row["id"]) or self.fetch_stages(task_row["id"])
+            stages=stage_map.get(task_row["id"], {})  # or self.fetch_stages(task_row["id"])
         )
 
     def get_active_task_by_title(self, title: str) -> Optional[Dict[str, Any]]:
@@ -203,7 +203,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         task_row = task_rows[0]
         return self._row_to_task(
             task_row,
-            stages=stage_map.get(task_row["id"]) or self.fetch_stages(task_row["id"])
+            stages=stage_map.get(task_row["id"], {})  # or self.fetch_stages(task_row["id"])
         )
 
     def update_task(

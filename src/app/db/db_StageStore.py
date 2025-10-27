@@ -93,52 +93,6 @@ class StageStore:  # (DbUtils)
         except Exception:
             logger.error("Failed to update stage '%s' for task %s", stage_name, task_id)
 
-    def replace_stages(self, task_id: str, stages: Dict[str, Dict[str, Any]]) -> None:
-        """Replace all stages for a task with the provided mapping.
-
-        Parameters:
-            task_id (str): Task identifier whose stages should be reset.
-            stages (dict[str, dict]): Mapping of stage name to metadata.
-
-        Side Effects:
-            Deletes existing rows in ``task_stages`` for the task and re-inserts
-            the provided entries in bulk.
-        """
-
-        now = self._current_ts()
-
-        if not stages:
-            return
-
-        # NOTE: This method is not atomic. The DELETE and INSERTs should be wrapped in a single transaction.
-        self.db.execute_query_safe("DELETE FROM task_stages WHERE task_id = %s", [task_id])
-
-        params_seq = [
-            (
-                f"{task_id}:{stage_name}",
-                task_id,
-                stage_name,
-                stage_data.get("number", 0),
-                stage_data.get("status", "Pending"),
-                stage_data.get("sub_name"),
-                stage_data.get("message"),
-                now,
-            )
-            for stage_name, stage_data in stages.items()
-        ]
-        if params_seq:
-            self.db.execute_many(
-                """
-                INSERT INTO task_stages (
-                    stage_id, task_id,
-                    stage_name, stage_number,
-                    stage_status, stage_sub_name,
-                    stage_message, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                params_seq,
-            )
-
     def fetch_stages(self, task_id: str) -> Dict[str, Dict[str, Any]]:
         """Fetch persisted stages for a given task as a mapping.
 

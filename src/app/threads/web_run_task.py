@@ -165,8 +165,6 @@ def run_task(
     with TaskStorePyMysql(db_data) as store:
         stages_list = make_stages()
 
-        # store.replace_stages(task_id, stages_list)
-
         def push_stage(stage_name: str, stage_state: Dict[str, Any] | None = None) -> None:
             """Persist the latest state for a workflow stage to the database."""
             state = stage_state if stage_state is not None else stages_list[stage_name]
