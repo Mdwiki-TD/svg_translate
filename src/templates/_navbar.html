@@ -1,9 +1,5 @@
-{% set isactive = {
-    request.endpoint: 'active fw-bold',
-} %}
-
 {% macro nav_link(endpoint, icon, text, url) %}
-{% set is_active = request.endpoint.startswith(endpoint) %}
+{% set is_active = request and request.endpoint and request.endpoint.startswith(endpoint) %}
 <a class="nav-link {{ 'active fw-bold' if is_active }}" href="{{ url }}" {% if is_active %}aria-current="page"
     {% endif %}>
     <i class="bi {{ icon }}"></i> {{ text }}
