@@ -15,5 +15,5 @@ def test_rate_limiter_allow_and_try_after():
     wait = rl.try_after(key)
     assert wait.total_seconds() > 0
     # After the period passes, it's allowed again
-    time.sleep(0.25)
+    time.sleep(0.3)
     assert rl.allow(key) is True

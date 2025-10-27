@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+
 class FakeCursor:
     def __init__(self) -> None:
         self.description = None

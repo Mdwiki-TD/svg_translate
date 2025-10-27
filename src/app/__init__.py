@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
-from flask import Flask
-
+from flask import Flask, render_template
+from typing import Tuple
 from .config import settings
-from .app_routes import bp_auth, bp_main, bp_tasks, bp_tasks_managers, close_task_store
+from .app_routes import (
+    bp_auth,
+    bp_main,
+    bp_tasks,
+    bp_tasks_managers,
+    close_task_store,
+)
 
 from .users.current import context_user
 from .users.store import ensure_user_token_table
@@ -22,6 +28,7 @@ def create_app() -> Flask:
         template_folder="../templates",
         static_folder="../static",
     )
+    app.url_map.strict_slashes = False
     app.test_client_class = CookieHeaderClient
     app.secret_key = settings.secret_key
     app.config.update(
@@ -52,5 +59,15 @@ def create_app() -> Flask:
     def _cleanup_connections(exception: Exception | None) -> None:  # pragma: no cover - teardown
         close_cached_db()
         close_task_store()
+
+    @app.errorhandler(404)
+    def page_not_found(e: Exception) -> Tuple[str, int]:
+        """Handle 404 errors"""
+        return render_template("error.html", title="Page Not Found", tt="invalid_url", error=str(e)), 404
+
+    @app.errorhandler(500)
+    def internal_server_error(e: Exception) -> Tuple[str, int]:
+        """Handle 500 errors"""
+        return render_template("error.html", title="Internal Server Error", tt="unexpected_error", error=str(e)), 500
 
     return app
