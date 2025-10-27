@@ -80,6 +80,13 @@ class DbUtils:
                 - updated_at: ISO 8601 timestamp string if available, otherwise string representation
                 - stages: Mapping of stage names to stage details
         """
+        if stages is None:
+            # Only fall back to fetching stages from the database when no
+            # pre-computed mapping was provided. This ensures that an empty
+            # dict coming from a join (meaning "no stages") is preserved
+            # without triggering an additional query.
+            stages = self.fetch_stages(row["id"])
+
         return {
             "id": row["id"],
             "username": row.get("username", ""),
