@@ -347,4 +347,4 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                 [column_value, self._current_ts(), task_id],
             )
         except Exception:
-            logger.error(f"Failed to update '{column_name}' for task {task_id}")
+            logger.error(f"Failed to update '{column_name}' for task {task_id}", exc_info=True)
