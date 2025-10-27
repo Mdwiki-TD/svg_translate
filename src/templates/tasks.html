@@ -34,7 +34,7 @@
             <a href="{{ url_for('tasks.tasks') }}" class="btn btn-sm btn-outline-secondary">View All Tasks</a>
             {% endif %}
         </div>
-        <div class="row g-2 align-items-center" method="get" role="search">
+        <div class="row g-2 align-items-center">
             <div class="col-auto">
                 <label class="form-label mb-0" for="status">Status</label>
             </div>
@@ -97,7 +97,7 @@
                     <!-- <td data-order="{{ task.updated_at_sort }}">{{ task.updated_at_display }}</td> -->
                     <td>
                         {% if task.username %}
-                        <a href="{{ url_for('tasks.user_tasks', user=task.username) }}" class="text-decoration-none">
+                        <a href="{{ url_for('tasks.tasks', user=task.username) }}" class="text-decoration-none">
                             {{ task.username }}
                         </a>
                         {% endif %}

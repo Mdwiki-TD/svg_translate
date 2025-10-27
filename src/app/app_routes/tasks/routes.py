@@ -57,14 +57,14 @@ def close_task_store() -> None:
 def task1(task_id: str | None = None):
     if not task_id:
         return redirect(url_for("main.index", error="no-task-id"))
-    task = None
-    if task_id:
-        task = _task_store().get_task(task_id)
+
+    task = _task_store().get_task(task_id)
 
     if not task:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
+    title = request.args.get("title")
     error_message = get_error_message(request.args.get("error"))
 
     current_user_obj = current_user()
@@ -72,6 +72,7 @@ def task1(task_id: str | None = None):
         "task1.html",
         task_id=task_id,
         current_user=current_user_obj,
+        title=title or task.get("title", "") if isinstance(task, dict) else "",
         task=task,
         form=task.get("form", {}) if isinstance(task, dict) else {},
         error_message=error_message,
@@ -81,15 +82,17 @@ def task1(task_id: str | None = None):
 @bp_tasks.get("/task2")
 def task2():
     task_id = request.args.get("task_id")
-    title = request.args.get("title")
-    task = None
-    if task_id:
-        task = _task_store().get_task(task_id)
+
+    if not task_id:
+        return redirect(url_for("main.index", error="no-task-id"))
+
+    task = _task_store().get_task(task_id)
 
     if not task:
         task = {"error": "not-found"}
         logger.debug(f"Task {task_id} not found!!")
 
+    title = request.args.get("title")
     error_message = get_error_message(request.args.get("error"))
 
     stages = order_stages(task.get("stages") if isinstance(task, dict) else None)
@@ -153,44 +156,6 @@ def start():
     return redirect(url_for("tasks.task1", title=title, task_id=task_id))
 
 
-@bp_tasks.get("/tasks")
-def tasks():
-    """
-    Render the task listing page with formatted task metadata and available status filters.
-
-    Retrieve tasks from the global task store, optionally filter by status, and produce a list of task dictionaries with selected fields and display/sortable timestamp values. Also collect the distinct task statuses found and pass the tasks, the current status filter, and the sorted available statuses to the "tasks.html" template.
-
-    Returns:
-        A Flask response object rendering "tasks.html" with the context keys `tasks`, `status_filter`, and `available_statuses`.
-    """
-    status_filter = request.args.get("status")
-
-    with TASKS_LOCK:
-        db_tasks = _task_store().list_tasks(
-            status=status_filter,
-            order_by="created_at",
-            descending=True,
-        )
-
-    formatted = [format_task(task) for task in db_tasks]
-    formatted = format_task_message(formatted)
-
-    available_statuses = sorted(
-        {
-            task.get("status", "") for task in db_tasks  # if task.get("status")
-        }
-    )
-
-    current_user_obj = current_user()
-    return render_template(
-        "tasks.html",
-        tasks=formatted,
-        current_user=current_user_obj,
-        status_filter=status_filter,
-        available_statuses=available_statuses,
-    )
-
-
 @bp_tasks.get("/status/<task_id>")
 def status(task_id: str):
     """
@@ -214,30 +179,25 @@ def status(task_id: str):
     return jsonify(task)
 
 
-@bp_tasks.get("/user-tasks")
-@bp_tasks.get("/user-tasks/<user>")
-def user_tasks(user: str = None):
+@bp_tasks.get("/tasks")
+@bp_tasks.get("/tasks/<user>")
+def tasks(user: str | None = None):
     """
-    Render a page showing tasks created by a specific user.
+    Render the task listing page with formatted task metadata and available status filters.
 
-    Query Parameters:
-        username (str): Username to filter tasks by. If not provided, uses the current user.
-        status (str): Optional status filter for tasks.
+    Retrieve tasks from the global task store, optionally filter by status, and produce a list of task dictionaries with selected fields and display/sortable timestamp values. Also collect the distinct task statuses found and pass the tasks, the current status filter, and the sorted available statuses to the "tasks.html" template.
 
     Returns:
-        A Flask response object rendering "tasks.html" with only the tasks created by the specified user.
+        A Flask response object rendering "tasks.html" with the context keys `tasks`, and `available_statuses`.
     """
 
     # Get username from query parameter, default to current user
     # user = request.args.get("user", "")
     current_user_obj = current_user()
 
-    status_filter = request.args.get("status")
-
     with TASKS_LOCK:
         db_tasks = _task_store().list_tasks(
             username=user,
-            status=status_filter,
             order_by="created_at",
             descending=True,
         )
@@ -247,7 +207,7 @@ def user_tasks(user: str = None):
 
     available_statuses = sorted(
         {
-            task.get("status", "") for task in db_tasks
+            task.get("status", "") for task in db_tasks if task.get("status")
         }
     )
 
@@ -257,7 +217,6 @@ def user_tasks(user: str = None):
     return render_template(
         "tasks.html",
         tasks=formatted,
-        status_filter=status_filter,
         available_statuses=available_statuses,
         current_user=current_user_obj,
         tasks_user=user,

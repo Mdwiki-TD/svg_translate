@@ -61,13 +61,13 @@ def create_app() -> Flask:
         close_task_store()
 
     @app.errorhandler(404)
-    def page_not_found(e) -> Tuple[str, int]:
+    def page_not_found(e: Exception) -> Tuple[str, int]:
         """Handle 404 errors"""
-        return render_template("error.html", tt="invalid_url", error=str(e)), 404
+        return render_template("error.html", title="Page Not Found", tt="invalid_url", error=str(e)), 404
 
     @app.errorhandler(500)
-    def internal_server_error(e) -> Tuple[str, int]:
+    def internal_server_error(e: Exception) -> Tuple[str, int]:
         """Handle 500 errors"""
-        return render_template("error.html", tt="unexpected_error", error=str(e)), 500
+        return render_template("error.html", title="Internal Server Error", tt="unexpected_error", error=str(e)), 500
 
     return app

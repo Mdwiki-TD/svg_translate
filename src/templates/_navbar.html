@@ -37,7 +37,7 @@
                 </button>
 
                 {% if current_user or is_authenticated %}
-                <a href="{{ url_for('tasks.user_tasks', user=current_user.username) }}"
+                <a href="{{ url_for('tasks.tasks', user=current_user.username) }}"
                     class="navbar-text me-3 text-decoration-none">
                     {{ current_user.username }}
                 </a>

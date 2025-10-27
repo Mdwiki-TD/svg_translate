@@ -97,4 +97,4 @@ def test_sequential_requests_use_cached_connections(monkeypatch):
     response = client.get("/tasks")
     assert response.status_code == 200
 
-    # assert len(connect_calls) <= 3
+    assert len(connect_calls) <= 3
