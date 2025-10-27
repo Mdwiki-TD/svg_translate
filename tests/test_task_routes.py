@@ -120,7 +120,6 @@ def test_cancel_route_signals_event_and_updates_status(app: Any, monkeypatch: py
         cancel_event.wait(1)
         finished.set()
 
-    monkeypatch.setattr(web_run_task, "run_task", fake_run_task)
     monkeypatch.setattr(task_threads, "run_task", fake_run_task)
 
     client = app.test_client()
