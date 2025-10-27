@@ -17,6 +17,17 @@ class DummyStore:
 @pytest.fixture
 def app_factory(monkeypatch):
     def _factory(task):
+        import importlib
+
+        app_module = importlib.import_module("src.app.__init__")
+        admin_service = importlib.import_module("src.app.users.admin_service")
+
+        class _DummyCoordinatorStore:
+            def list(self):  # pragma: no cover - trivial stub
+                return []
+
+        monkeypatch.setattr(app_module, "initialize_coordinators", lambda: None)
+        monkeypatch.setattr(admin_service, "_ensure_store", lambda: _DummyCoordinatorStore())
         app = create_app()
         app.config["TESTING"] = True
         monkeypatch.setattr(task_routes, "TASK_STORE", None)
@@ -83,7 +94,7 @@ def test_task2_terminal_shows_restart_button(app_factory):
     assert "badge text-bg-success" in html
 
 
-def _test_stage_cancelled_renders_warning_badge(app_factory):
+def test_stage_cancelled_renders_warning_badge(app_factory):
     # TODO: FAILED tests/test_task2_ui.py::test_stage_cancelled_renders_warning_badge - AssertionError: Expected status badge in header
     task = {
         "id": "cancelled-task",
@@ -99,9 +110,11 @@ def _test_stage_cancelled_renders_warning_badge(app_factory):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
-    header_badge = re.search(r'id="task_status"[^<]*<span class="badge ([^"]+)"', html)
+    header_badge = re.search(
+        r'<span id="task_status"[^>]*class="badge text-bg-warning"[^>]*>\s*Cancelled\s*</span>',
+        html,
+        flags=re.DOTALL,
+    )
     assert header_badge, "Expected status badge in header"
-    assert "text-bg-warning" in header_badge.group(1)
-    assert "Cancelled" in html
 
     assert 'badge text-bg-warning border border-warning">Cancelled' in html
