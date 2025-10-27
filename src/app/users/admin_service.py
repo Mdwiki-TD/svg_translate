@@ -9,7 +9,6 @@ from typing import Any, Iterable, List, Optional
 from ..config import settings
 from ..db import Database, has_db_config
 from .admin_service_utils import CoordinatorStore, CoordinatorRecord
-from .admin_service_in_memory import InMemoryCoordinatorStore
 
 logger = logging.getLogger(__name__)
 
@@ -139,18 +138,18 @@ def _ensure_store() -> CoordinatorStore:
     global _STORE
 
     if _STORE is None:
-        if has_db_config():
-            try:
-                _STORE = MySQLCoordinatorStore(settings.db_data)
-            except Exception:  # pragma: no cover - defensive guard for startup failures
-                logger.exception("Failed to initialize MySQL coordinator store")  # ; falling back to in-memory store
-                # _STORE = InMemoryCoordinatorStore()
-        # else:
-            # _STORE = InMemoryCoordinatorStore()
+        if not has_db_config():
+            raise RuntimeError(
+                "Coordinator administration requires database configuration; no fallback store is available."
+            )
 
-            if _STORE:
-                # _STORE.seed(settings.admins)
-                _refresh_settings(_STORE)
+        try:
+            _STORE = MySQLCoordinatorStore(settings.db_data)
+        except Exception as exc:  # pragma: no cover - defensive guard for startup failures
+            logger.exception("Failed to initialize MySQL coordinator store")
+            raise RuntimeError("Unable to initialize coordinator store") from exc
+
+        _refresh_settings(_STORE)
 
     return _STORE
 
@@ -231,7 +230,6 @@ __all__ = [
     "CoordinatorRecord",
     "CoordinatorStore",
     "MySQLCoordinatorStore",
-    "InMemoryCoordinatorStore",
     "initialize_coordinators",
     "list_coordinators",
     "add_coordinator",
