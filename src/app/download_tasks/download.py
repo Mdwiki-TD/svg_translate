@@ -148,7 +148,7 @@ def download_task(
 
     logger.debug("files: %s", len(files))
 
-    stages["status"] = "Failed" if not_done and not_done > 10 else "Completed"
+    stages["status"] = "Failed" if not_done >= 10 else "Completed"
 
     logger.debug(
         "Downloaded %s files, skipped %s existing files, failed to download %s files",
