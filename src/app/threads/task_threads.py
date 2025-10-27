@@ -7,7 +7,7 @@ import logging
 from typing import Any, Dict
 
 from ..config import settings
-from .web_run_task import run_task
+from . import web_run_task
 
 CANCEL_EVENTS: Dict[str, threading.Event] = {}
 CANCEL_EVENTS_LOCK = threading.Lock()
@@ -42,7 +42,7 @@ def launch_task_thread(
 
     def _runner() -> None:
         try:
-            run_task(
+            web_run_task.run_task(
                 settings.db_data,
                 task_id,
                 title,
