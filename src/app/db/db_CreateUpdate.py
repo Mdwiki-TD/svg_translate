@@ -334,12 +334,11 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         column_name: str,
         column_value: Any,
     ) -> None:
-        try:
-            safe_column = ALLOWED_TASK_UPDATE_COLUMNS[column_name]
-        except KeyError as exc:
-            raise ValueError(f"Invalid task column requested: {column_name}") from exc
+        if column_name not in ALLOWED_TASK_UPDATE_COLUMNS:
+            logger.error(f"Invalid task column requested: {column_name}")
+            return
 
-        sql = f"UPDATE tasks SET {safe_column} = %s, updated_at = %s WHERE id = %s"
+        sql = f"UPDATE tasks SET {column_name} = %s, updated_at = %s WHERE id = %s"
 
         try:
             self.db.execute_query(
