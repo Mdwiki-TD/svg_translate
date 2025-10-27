@@ -245,6 +245,19 @@ def _ensure_store() -> CoordinatorStore:
 
 
 def _refresh_settings(store: Optional[CoordinatorStore] = None) -> List[CoordinatorRecord]:
+    """
+    TODO:
+    The _refresh_settings function modifies the global settings.admins list at runtime. The settings object is intended to be a source of static configuration and is even defined as a frozen dataclass. Modifying it at runtime, especially to reflect database state, is a significant design issue.
+
+    More critically, this creates a race condition. The admin_required decorator reads from settings.admins without any locking, while this function (and others that call it) writes to it. This can lead to inconsistent state and incorrect authorization decisions under concurrent load.
+
+    A better approach would be to:
+
+    Keep settings.admins for initial, configuration-defined admins only.
+    Create a separate, thread-safe mechanism for checking if a user is a dynamic admin (from the database). This could be a function like is_admin(username) that checks the database, perhaps with its own caching layer protected by a lock.
+    Update admin_required to use this new function in addition to (or instead of) settings.admins.
+    This is a high-priority issue as it affects the correctness of the application's authorization logic.
+    """
     store = store or _ensure_store()
     records = store.list()
     active = [record.username for record in records if record.is_active]

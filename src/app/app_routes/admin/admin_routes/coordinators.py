@@ -1,7 +1,7 @@
 """Admin-only routes for managing coordinator access."""
 
 from __future__ import annotations
-
+import logging
 from flask import (
     Blueprint,
     flash,
@@ -17,6 +17,8 @@ from ....users import admin_service
 from ..admin_required import admin_required
 
 bp_admin = Blueprint("admin", __name__, url_prefix="/admin")
+
+logger = logging.getLogger(__name__)
 
 
 def _coordinators_dashboard():
@@ -52,6 +54,7 @@ def _add_coordinator() -> ResponseReturnValue:
     except LookupError as exc:
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
+        logger.exception("Unable to add coordinator.")
         flash("Unable to add coordinator. Please try again.", "danger")
     else:
         flash(f"Coordinator '{record.username}' added.", "success")
@@ -106,10 +109,10 @@ class Coordinators:
 
         @bp_admin.post("/coordinators/<int:coordinator_id>/active")
         @admin_required
-        def update_coordinator_active(*args, **kwargs) -> ResponseReturnValue:
-            return _update_coordinator_active(*args, **kwargs)
+        def update_coordinator_active(coordinator_id: int) -> ResponseReturnValue:
+            return _update_coordinator_active(coordinator_id)
 
         @bp_admin.post("/coordinators/<int:coordinator_id>/delete")
         @admin_required
-        def delete_coordinator(*args, **kwargs) -> ResponseReturnValue:
-            return _delete_coordinator(*args, **kwargs)
+        def delete_coordinator(coordinator_id: int) -> ResponseReturnValue:
+            return _delete_coordinator(coordinator_id)
