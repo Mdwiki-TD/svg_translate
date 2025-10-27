@@ -11,6 +11,16 @@ logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed", "Cancelled")
 TERMINAL_PLACEHOLDERS = ", ".join(["%s"] * len(TERMINAL_STATUSES))
 
+ALLOWED_TASK_UPDATE_COLUMNS: Dict[str, str] = {
+    "title": "title",
+    "normalized_title": "normalized_title",
+    "main_file": "main_file",
+    "status": "status",
+    "form_json": "form_json",
+    "data_json": "data_json",
+    "results_json": "results_json",
+}
+
 
 class TaskAlreadyExistsError(Exception):
     """Raised when attempting to create a duplicate active task."""
@@ -242,7 +252,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         main_file = main_file if main_file else None
 
         # Early exit if nothing to update
-        if all(v is None for v in (title, status, form, data, results)):
+        if all(v is None for v in (title, status, form, data, results, main_file)):
             return
 
         # Build dynamic UPDATE using COALESCE to keep existing values
@@ -324,12 +334,17 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         column_name: str,
         column_value: Any,
     ) -> None:
-        sql = f"UPDATE tasks SET {column_name} = %s WHERE id = %s"
+        try:
+            safe_column = ALLOWED_TASK_UPDATE_COLUMNS[column_name]
+        except KeyError as exc:
+            raise ValueError(f"Invalid task column requested: {column_name}") from exc
+
+        sql = f"UPDATE tasks SET {safe_column} = %s, updated_at = %s WHERE id = %s"
 
         try:
             self.db.execute_query(
                 sql,
-                [column_value, task_id],
+                [column_value, self._current_ts(), task_id],
             )
         except Exception:
             logger.error(f"Failed to update '{column_name}' for task {task_id}")
