@@ -324,6 +324,11 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         column_name: str,
         column_value: Any,
     ) -> None:
+        ALLOWED_COLUMNS = {"main_file"}  # Add other allowed columns here
+        if column_name not in ALLOWED_COLUMNS:
+            logger.error(f"Attempted to update a non-whitelisted column: '{column_name}' for task {task_id}")
+            raise ValueError(f"Invalid column name: {column_name}")
+
         sql = f"UPDATE tasks SET {column_name} = %s WHERE id = %s"
 
         try:
@@ -332,4 +337,4 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                 [column_value, task_id],
             )
         except Exception:
-            logger.error(f"Failed to update '{column_name}' for task {task_id}")
+            logger.error(f"Failed to update '{column_name}' for task {task_id}", exc_info=True)
