@@ -53,8 +53,10 @@ def close_task_store() -> None:
 
 
 @bp_tasks.get("/task1")
-def task1():
-    task_id = request.args.get("task_id")
+@bp_tasks.get("/task1/<task_id>")
+def task1(task_id: str | None = None):
+    if not task_id:
+        return redirect(url_for("main.index", error="no-task-id"))
     task = None
     if task_id:
         task = _task_store().get_task(task_id)
@@ -213,7 +215,8 @@ def status(task_id: str):
 
 
 @bp_tasks.get("/user-tasks")
-def user_tasks():
+@bp_tasks.get("/user-tasks/<user>")
+def user_tasks(user: str = None):
     """
     Render a page showing tasks created by a specific user.
 
@@ -226,7 +229,7 @@ def user_tasks():
     """
 
     # Get username from query parameter, default to current user
-    user = request.args.get("user", "")
+    # user = request.args.get("user", "")
     current_user_obj = current_user()
 
     status_filter = request.args.get("status")
