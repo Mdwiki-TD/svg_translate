@@ -179,6 +179,9 @@ def _refresh_settings(store: Optional[CoordinatorStore] = None) -> List[Coordina
 def initialize_coordinators() -> None:
     """Ensure the backing store exists and synchronize settings.admins."""
 
+    if not has_db_config():  # pragma: no cover - exercised indirectly in tests
+        return
+
     _refresh_settings()
 
 
