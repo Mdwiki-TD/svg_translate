@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import threading
 import uuid
 import logging
 from functools import wraps
@@ -18,22 +17,25 @@ from ...config import settings
 from ...db.task_store_pymysql import TaskStorePyMysql
 from ...db import TaskAlreadyExistsError
 from ...users.current import current_user
+from ..tasks import routes as task_routes
 from ..tasks.args_utils import parse_args
 
 from ...threads.task_threads import launch_task_thread, get_cancel_event
 
 TASK_STORE: TaskStorePyMysql | None = None
-TASKS_LOCK = threading.Lock()
 
 bp_tasks_managers = Blueprint("tasks_managers", __name__)
 logger = logging.getLogger(__name__)
 
 
 def _task_store() -> TaskStorePyMysql:
+    """Return the shared task store used by the primary task routes."""
+
     global TASK_STORE
-    if TASK_STORE is None:
-        TASK_STORE = TaskStorePyMysql(settings.db_data)
-    return TASK_STORE
+
+    store = task_routes._task_store()
+    TASK_STORE = store
+    return store
 
 
 def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -124,7 +126,7 @@ def restart(task_id: str):
 
     new_task_id = uuid.uuid4().hex
 
-    with TASKS_LOCK:
+    with task_routes.TASKS_LOCK:
         try:
             store.create_task(
                 new_task_id,

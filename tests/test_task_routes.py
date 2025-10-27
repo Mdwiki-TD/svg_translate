@@ -1,4 +1,5 @@
 import threading
+from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
 import pytest
@@ -68,18 +69,45 @@ class InMemoryTaskStore:
 @pytest.fixture
 def app(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("FLASK_SECRET_KEY", "test-secret")
+
+    user = SimpleNamespace(
+        user_id=1,
+        username="tester",
+        access_token="token",
+        access_secret="secret",
+    )
+
+    monkeypatch.setattr("src.app.users.current.current_user", lambda: user)
+
+    from src.app.users import admin_service
+
+    admin_service.set_store_for_testing(admin_service.InMemoryCoordinatorStore())
+
     app = create_app()
     app.config["TESTING"] = True
+
     store = InMemoryTaskStore()
+    lock = threading.Lock()
+
     monkeypatch.setattr(routes, "_task_store", lambda: store)
+    monkeypatch.setattr(routes, "current_user", lambda: user)
     routes.TASK_STORE = store
-    routes.TASKS_LOCK = threading.Lock()
+    routes.TASKS_LOCK = lock
+
+    from src.app.app_routes.cancel_restart import routes as cancel_routes
+
+    monkeypatch.setattr(cancel_routes, "_task_store", lambda: store)
+    monkeypatch.setattr(cancel_routes, "current_user", lambda: user)
+    cancel_routes.TASK_STORE = store
+    cancel_routes.TASKS_LOCK = lock
+
     with task_threads.CANCEL_EVENTS_LOCK:
         task_threads.CANCEL_EVENTS.clear()
+
     return app
 
 
-def _test_cancel_route_signals_event_and_updates_status(app: Any, monkeypatch: pytest.MonkeyPatch):
+def test_cancel_route_signals_event_and_updates_status(app: Any, monkeypatch: pytest.MonkeyPatch):
     # TODO: FAILED tests/test_task_routes.py::test_cancel_route_signals_event_and_updates_status - assert False
     store: InMemoryTaskStore = routes._task_store()  # type: ignore[assignment]
 
@@ -93,6 +121,7 @@ def _test_cancel_route_signals_event_and_updates_status(app: Any, monkeypatch: p
         finished.set()
 
     monkeypatch.setattr(web_run_task, "run_task", fake_run_task)
+    monkeypatch.setattr(task_threads, "run_task", fake_run_task)
 
     client = app.test_client()
     response = client.post("/", data={"title": "Sample"})
@@ -116,8 +145,8 @@ def _test_cancel_route_signals_event_and_updates_status(app: Any, monkeypatch: p
         assert task_id not in task_threads.CANCEL_EVENTS
 
 
-def _test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch: pytest.MonkeyPatch):
-    # TODO: FAILED tests/test_task_routes.py::test_restart_route_creates_new_task_and_replays_form - KeyError: 'task_id' new_task_id = payload["task_id"]
+def test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch: pytest.MonkeyPatch):
+    # TODO: FAILED tests/test_task_routes.py::test_restart_route_creates_new_task_and_replays_form - KeyError: 'task_id'
     store: InMemoryTaskStore = routes._task_store()  # type: ignore[assignment]
 
     existing_id = "existing"
@@ -136,6 +165,7 @@ def _test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch:
         task_finished.set()
 
     monkeypatch.setattr(web_run_task, "run_task", fake_run_task)
+    monkeypatch.setattr(task_threads, "run_task", fake_run_task)
 
     client = app.test_client()
     restart_response = client.post(f"/tasks/{existing_id}/restart")
@@ -155,8 +185,8 @@ def _test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch:
     assert hasattr(captured["args"], "titles_limit")
     assert captured["args"].titles_limit == 5
     assert captured["cancel_event"] is not None
-    with routes.CANCEL_EVENTS_LOCK:
-        assert new_task_id not in routes.CANCEL_EVENTS
+    with task_threads.CANCEL_EVENTS_LOCK:
+        assert new_task_id not in task_threads.CANCEL_EVENTS
 
 
 def test_no_mysql_connection_attempted_with_default_settings(monkeypatch: pytest.MonkeyPatch):
