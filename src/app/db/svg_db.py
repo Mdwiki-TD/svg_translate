@@ -34,6 +34,7 @@ def get_db() -> Database:
     if _db is None:
         _db = Database(settings.db_data)
         _ensure_shutdown_hook()
+    _ensure_shutdown_hook()
     return _db
 
 
