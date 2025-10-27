@@ -218,11 +218,15 @@ def run_task(
 
         main_title, titles = titles_result["main_title"], titles_result["titles"]
 
+        if not main_title:
+            return fail_task(store, task_id, stages_list, "No main title found")
+
+        value = f"File:{main_title}" if not main_title.lower().startswith("file:") else main_title
+        store.update_task_one_column(task_id, "main_file", value)
+
         if not titles:
             return fail_task(store, task_id, stages_list, "No titles found")
 
-        if not main_title:
-            return fail_task(store, task_id, stages_list, "No main title found")
         # ----------------------------------------------
         # Stage 3: get translations
         output_dir_main = output_dir / "files"
@@ -238,7 +242,7 @@ def run_task(
 
         # ----------------------------------------------
         # Stage 4: download SVG files
-        files, stages_list["download"] = download_task(
+        files, stages_list["download"], not_done_list = download_task(
             task_id,
             stages=stages_list["download"],
             output_dir_main=output_dir_main,
@@ -246,6 +250,10 @@ def run_task(
             store=store,
             check_cancel=check_cancel
         )
+        if not_done_list:
+            task_snapshot["not_done_list"] = not_done_list
+            store.update_data(task_id, task_snapshot)
+
         push_stage("download")
         if check_cancel("download"):
             return
