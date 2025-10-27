@@ -1,0 +1,15 @@
+<div class="d-none d-md-block p-2 mt-3 position-relative d-flex align-items-center">
+    <div class="">
+        <span class="logo-text fw-bold mb-0 h5"> <span _class="hide-on-collapse-inline">Tools</span>
+        </span>
+    </div>
+    <button class="main-toggle-btn position-absolute top-50 start-100 translate-middle" onclick="toggleSidebar()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+</div>
+<div class="d-block d-md-none Dropdown_menu_toggle px-3">☰ Open Sidebar</div>
+<hr>
+<div class="div_menu navbar-collapse">
+    {{ sidebar|safe }}
+</div>

@@ -6,6 +6,7 @@ from flask import Flask, render_template
 from typing import Tuple
 from .config import settings
 from .app_routes import (
+    bp_admin,
     bp_auth,
     bp_main,
     bp_tasks,
@@ -13,6 +14,7 @@ from .app_routes import (
     close_task_store,
 )
 
+from .users.admin_service import initialize_coordinators
 from .users.current import context_user
 from .users.store import ensure_user_token_table
 from .db import close_cached_db
@@ -38,6 +40,8 @@ def create_app() -> Flask:
     )
     app.config["USE_MW_OAUTH"] = settings.use_mw_oauth
 
+    initialize_coordinators()
+
     if settings.use_mw_oauth and (
         settings.db_data.get("host")
         or settings.db_data.get("db_connect_file")
@@ -47,6 +51,7 @@ def create_app() -> Flask:
     app.register_blueprint(bp_main)
     app.register_blueprint(bp_tasks)
     app.register_blueprint(bp_tasks_managers)
+    app.register_blueprint(bp_admin)
     app.register_blueprint(bp_auth)
 
     @app.context_processor
