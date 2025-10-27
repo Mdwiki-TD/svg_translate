@@ -74,7 +74,7 @@ def task1(task_id: str | None = None):
         current_user=current_user_obj,
         title=title or task.get("title", "") if isinstance(task, dict) else "",
         task=task,
-        form=task.get("form", {}) if isinstance(task, dict) else {},
+        form=task.get("form", {}),
         error_message=error_message,
     )
 
