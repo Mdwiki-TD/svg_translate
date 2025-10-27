@@ -1,0 +1,116 @@
+:root {
+    --btn_toggle_color: #000000A6;
+    --btn_toggle_hover-color: #000000;
+    /* --btn_toggle_hover-bg: #d2f4ea; */
+    --btn_toggle_active-color: #000000;
+    --btn_toggle_nav-active-bg: #dee2e6;
+    --btn_toggle_nav-hover-bg: #d2f4ea;
+}
+
+:root[data-bs-theme="dark"] {
+    --btn_toggle_color: #A0A0A0;
+    --btn_toggle_hover-color: #FFFFFF;
+    --btn_toggle_hover-bg: #3A3A3A;
+    --btn_toggle_active-color: #FFFFFF;
+    --btn_toggle_nav-active-bg: #505050;
+    --btn_toggle_nav-hover-bg: #3A3A3A;
+}
+
+.dropdown-toggle {
+    outline: 0;
+}
+
+.btn-toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem .5rem;
+    font-weight: 600;
+    color: var(--btn_toggle_color);
+    background-color: transparent;
+    border: 0;
+}
+
+.btn-toggle:hover,
+.btn-toggle:focus {
+    color: var(--btn_toggle_hover-color);
+    background-color: var(--btn_toggle_hover-bg);
+}
+
+.btn-toggle-nav-mobile a {
+    display: inline-flex;
+    padding: .1875rem .5rem;
+    margin-top: .125rem;
+    margin-left: 1.25rem;
+    text-decoration: none;
+}
+
+.btn-toggle-nav-mobile li.active>a {
+    background-color: var(--btn_toggle_nav-active-bg);
+}
+
+.btn-toggle-nav-mobile a:hover,
+.btn-toggle-nav-mobile a:focus {
+    background-color: var(--btn_toggle_nav-hover-bg);
+}
+
+.scrollarea {
+    overflow-y: auto;
+}
+
+.fw-semibold {
+    font-weight: 600;
+}
+
+.btn-toggle[aria-expanded="true"] {
+    background-color: var(--btn_toggle_hover-bg);
+    /* color: var(--btn_toggle_active-color); */
+}
+
+@media (max-width: 767.98px) {
+
+    .btn-toggle::before {
+        width: 1.25em;
+        line-height: 0;
+        content: "\f285";
+        /* \f285: <i class="bi bi-chevron-right"></i> */
+        font-family: "bootstrap-icons";
+        transition: transform .35s ease;
+        transform-origin: .5em 50%;
+    }
+
+
+    .btn-toggle[aria-expanded="true"]::before {
+        content: "\f282";
+        /* \f282: <i class="bi bi-chevron-down"></i> */
+    }
+
+    .Dropdown_menu_toggle {
+        cursor: pointer;
+        display: block;
+        padding: 0.5rem;
+        margin: 1rem;
+        border-radius: 10px;
+        border-width: 0.5px;
+        border-style: solid;
+        border-color: rgba(44, 62, 80, 0.98);
+    }
+
+    .div_menu {
+        display: none;
+    }
+
+    .div_menu {
+        margin: 1rem;
+        padding: 0.5rem;
+        border-radius: 10px;
+        border-width: 1px;
+        border-style: solid;
+        border-color: rgba(44, 62, 80, 0.98);
+        border-image: initial;
+        flex-direction: column;
+    }
+
+    .div_menu.mactive {
+        display: block;
+    }
+}
