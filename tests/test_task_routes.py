@@ -164,7 +164,6 @@ def test_restart_route_creates_new_task_and_replays_form(app: Any, monkeypatch: 
         captured["cancel_event"] = cancel_event
         task_finished.set()
 
-    monkeypatch.setattr(web_run_task, "run_task", fake_run_task)
     monkeypatch.setattr(task_threads, "run_task", fake_run_task)
 
     client = app.test_client()
