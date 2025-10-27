@@ -15,7 +15,8 @@ from flask import (
 from werkzeug.datastructures import MultiDict
 
 from ...config import settings
-from ...db.task_store_pymysql import TaskAlreadyExistsError, TaskStorePyMysql
+from ...db.task_store_pymysql import TaskStorePyMysql
+from ...db import TaskAlreadyExistsError
 from ...users.current import current_user
 from ..tasks.args_utils import parse_args
 

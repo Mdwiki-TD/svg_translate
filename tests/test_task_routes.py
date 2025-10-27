@@ -6,7 +6,7 @@ import pytest
 from src.app import create_app
 from src.app.app_routes.tasks import routes
 from src.app.threads import task_threads, web_run_task
-from src.app.db.task_store_pymysql import TaskAlreadyExistsError
+from src.app.db import TaskAlreadyExistsError
 
 
 class InMemoryTaskStore:
