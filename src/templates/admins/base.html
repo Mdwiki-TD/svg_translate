@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Admins{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-desktop.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar-mobile.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row content">
+        <div class="col-md-2 px-0 colmd2 border">
+            {% include "admins/_sidebar.html" %}
+        </div>
+        <div class="px-0 col-md-10 colmd10">
+            <div class="container-fluid">
+                {% block contents %}{% endblock %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+
+{% endblock %}

@@ -22,6 +22,11 @@
                 <li class="nav-item">
                     {{ nav_link('tasks.', 'bi-list-task', 'All Tasks', url_for('tasks.tasks')) }}
                 </li>
+                {% if is_admin %}
+                <li class="nav-item">
+                    {{ nav_link('admin.', 'bi-people-fill', 'Admins', url_for('admin.admin_dashboard')) }}
+                </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link" href="https://github.com/Mdwiki-TD/svg_translate_web" target="_blank"
                         rel="noopener noreferrer">
