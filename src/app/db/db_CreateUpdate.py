@@ -54,8 +54,8 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
             Exception: Propagates any underlying database or execution errors encountered during insert.
         """
         now = self._current_ts()
-        normalized_title = self._normalize_title(title)
-        # Application-level guard to ensure at most one active task per normalized_title.
+        normalized_name = self._normalize_title(title)
+        # Application-level guard to ensure at most one active task per normalized_name.
         # with self._lock:
         if not form or not form.get("ignore_existing_task"):
             # Check for an existing active task
@@ -78,7 +78,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                     LEFT JOIN task_stages ts ON t.id = ts.task_id
                     ORDER BY COALESCE(ts.stage_number, 0) ASC
                     """,
-                [normalized_title, *TERMINAL_STATUSES],
+                [normalized_name, *TERMINAL_STATUSES],
             )
             if rows:
                 task_rows, stage_map = self._rows_to_tasks_with_stages(rows)
@@ -101,7 +101,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                     task_id,
                     username,
                     title,
-                    normalized_title,
+                    normalized_name,
                     status,
                     self._serialize(form),
                     None,
@@ -169,7 +169,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         Returns:
             dict: Task dictionary with deserialized JSON fields and ISO-formatted timestamps, or `None` if no active task is found or an error occurs.
         """
-        normalized_title = self._normalize_title(title)
+        normalized_name = self._normalize_title(title)
         rows = self.db.fetch_query_safe(
             f"""
             SELECT
@@ -189,7 +189,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
             LEFT JOIN task_stages ts ON t.id = ts.task_id
             ORDER BY COALESCE(ts.stage_number, 0) ASC
             """,
-            [normalized_title, *TERMINAL_STATUSES],
+            [normalized_name, *TERMINAL_STATUSES],
         )
         if not rows:
             logger.error("Failed to get task")

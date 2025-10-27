@@ -55,6 +55,7 @@ class TaskStorePyMysql(StageStore, TasksListDB, CreateUpdateTask, DbUtils):
                 username TEXT NULL,
                 title TEXT NOT NULL,
                 normalized_title VARCHAR(512) NOT NULL,
+                main_file VARCHAR(512) NULL,
                 status VARCHAR(64) NOT NULL,
                 form_json LONGTEXT NULL,
                 data_json LONGTEXT NULL,
