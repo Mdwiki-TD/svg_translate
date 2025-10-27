@@ -112,7 +112,7 @@ def text_task(stages, title):
 
     stages["status"] = "Running"
 
-    stages["sub_name"] = commons_link(title)
+    stages["sub_name"] = title  # commons_link(title)
     stages["message"] = "Load wikitext"
     # ---
     text = get_wikitext(title)
@@ -183,7 +183,7 @@ def translations_task(stages, main_title, output_dir_main):
     Returns:
         tuple: (translations, stages) where `translations` is a dict of extracted translations (empty if none were found or download failed) and `stages` is the same stages mapping updated to reflect the final status and messages.
     """
-    stages["sub_name"] = commons_link(f'File:{main_title}')
+    stages["sub_name"] = f'File:{main_title}'  # commons_link(f'File:{main_title}')
     # ---
     stages["message"] = "Load translations from main file"
     # ---

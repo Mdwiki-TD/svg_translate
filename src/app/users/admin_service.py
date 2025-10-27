@@ -4,43 +4,14 @@ from __future__ import annotations
 
 import logging
 import pymysql
-from dataclasses import dataclass
-from typing import Any, Iterable, List, Optional, Protocol
+from typing import Any, Iterable, List, Optional
 
 from ..config import settings
 from ..db import Database, has_db_config
+from .admin_service_utils import CoordinatorStore, CoordinatorRecord
+from .admin_service_in_memory import InMemoryCoordinatorStore
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class CoordinatorRecord:
-    """Representation of a coordinator/admin account."""
-
-    id: int
-    username: str
-    is_active: bool
-    created_at: Any | None = None
-    updated_at: Any | None = None
-
-
-class CoordinatorStore(Protocol):
-    """Minimal persistence interface for coordinator records."""
-
-    def seed(self, usernames: Iterable[str]) -> None:
-        """Ensure the provided usernames exist as active coordinators."""
-
-    def list(self) -> List[CoordinatorRecord]:
-        """Return all known coordinators ordered by identifier."""
-
-    def add(self, username: str) -> CoordinatorRecord:
-        """Persist a new coordinator and return the created record."""
-
-    def set_active(self, coordinator_id: int, is_active: bool) -> CoordinatorRecord:
-        """Toggle the active flag for a coordinator and return the updated record."""
-
-    def delete(self, coordinator_id: int) -> CoordinatorRecord:
-        """Remove a coordinator and return the deleted record."""
 
 
 class MySQLCoordinatorStore(CoordinatorStore):
@@ -127,8 +98,6 @@ class MySQLCoordinatorStore(CoordinatorStore):
         )
         return [self._row_to_record(row) for row in rows]
 
-    # ... in MySQLCoordinatorStore.add ...
-
     def add(self, username: str) -> CoordinatorRecord:
         username = username.strip()
         if not username:
@@ -163,86 +132,26 @@ class MySQLCoordinatorStore(CoordinatorStore):
         return record
 
 
-class InMemoryCoordinatorStore(CoordinatorStore):
-    """Simple in-memory coordinator store used for tests or no-DB setups."""
-
-    def __init__(self, initial: Optional[Iterable[str]] = None) -> None:
-        self._records: list[CoordinatorRecord] = []
-        self._next_id = 1
-        if initial:
-            self.seed(initial)
-
-    def seed(self, usernames: Iterable[str]) -> None:
-        for username in usernames:
-            username = username.strip() if username else ""
-            if not username:
-                continue
-            if any(rec.username == username for rec in self._records):
-                continue
-            self._records.append(
-                CoordinatorRecord(
-                    id=self._consume_id(),
-                    username=username,
-                    is_active=True,
-                )
-            )
-
-    def _consume_id(self) -> int:
-        current = self._next_id
-        self._next_id += 1
-        return current
-
-    def list(self) -> List[CoordinatorRecord]:
-        return [CoordinatorRecord(**rec.__dict__) for rec in self._records]
-
-    def add(self, username: str) -> CoordinatorRecord:
-        username = username.strip()
-        if not username:
-            raise ValueError("Username is required")
-        if any(rec.username == username for rec in self._records):
-            raise ValueError(f"Coordinator '{username}' already exists")
-        record = CoordinatorRecord(
-            id=self._consume_id(),
-            username=username,
-            is_active=True,
-        )
-        self._records.append(record)
-        return CoordinatorRecord(**record.__dict__)
-
-    def _get_index(self, coordinator_id: int) -> int:
-        for index, record in enumerate(self._records):
-            if record.id == coordinator_id:
-                return index
-        raise LookupError(f"Coordinator id {coordinator_id} was not found")
-
-    def set_active(self, coordinator_id: int, is_active: bool) -> CoordinatorRecord:
-        index = self._get_index(coordinator_id)
-        self._records[index].is_active = bool(is_active)
-        return CoordinatorRecord(**self._records[index].__dict__)
-
-    def delete(self, coordinator_id: int) -> CoordinatorRecord:
-        index = self._get_index(coordinator_id)
-        record = self._records.pop(index)
-        return CoordinatorRecord(**record.__dict__)
-
-
 _STORE: CoordinatorStore | None = None
 
 
 def _ensure_store() -> CoordinatorStore:
     global _STORE
+
     if _STORE is None:
         if has_db_config():
             try:
                 _STORE = MySQLCoordinatorStore(settings.db_data)
             except Exception:  # pragma: no cover - defensive guard for startup failures
-                logger.exception("Failed to initialize MySQL coordinator store; falling back to in-memory store")
-                _STORE = InMemoryCoordinatorStore()
-        else:
-            _STORE = InMemoryCoordinatorStore()
+                logger.exception("Failed to initialize MySQL coordinator store")  # ; falling back to in-memory store
+                # _STORE = InMemoryCoordinatorStore()
+        # else:
+            # _STORE = InMemoryCoordinatorStore()
 
-        _STORE.seed(settings.admins)
-        _refresh_settings(_STORE)
+            if _STORE:
+                # _STORE.seed(settings.admins)
+                _refresh_settings(_STORE)
+
     return _STORE
 
 

@@ -215,6 +215,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         form: Optional[Dict[str, Any]] = None,
         data: Optional[Dict[str, Any]] = None,
         results: Optional[Dict[str, Any]] = None,
+        main_file: str | None = None
     ) -> None:
         # Prepare JSON and normalized title only when provided
         """
@@ -235,8 +236,10 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
             data = dict(data)
             data.pop("stages", None)
         data_json = self._serialize(data) if data is not None else None
+
         results_json = self._serialize(results) if results is not None else None
         norm_title = self._normalize_title(title) if title is not None else None
+        main_file = main_file if main_file else None
 
         # Early exit if nothing to update
         if all(v is None for v in (title, status, form, data, results)):
@@ -250,6 +253,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                 SET
                   title = COALESCE(%s, title),
                   normalized_title = COALESCE(%s, normalized_title),
+                  main_file = COALESCE(%s, main_file),
                   status = COALESCE(%s, status),
                   form_json = COALESCE(%s, form_json),
                   data_json = COALESCE(%s, data_json),
@@ -260,6 +264,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                 [
                     title,
                     norm_title,
+                    main_file,
                     status,
                     form_json,
                     data_json,
@@ -302,3 +307,29 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
             results (Dict[str, Any]): Results payload to store for the task.
         """
         self.update_task(task_id, results=results)
+
+    def update_main_title(self, task_id: str, main_title: str) -> None:
+        """
+        Set the status of the task identified by task_id.
+
+        Parameters:
+            task_id (str): The unique identifier of the task to update.
+            main_title (str): The new value.
+        """
+        self.update_task(task_id, main_file=main_title)
+
+    def update_task_one_column(
+        self,
+        task_id: str,
+        column_name: str,
+        column_value: Any,
+    ) -> None:
+        sql = f"UPDATE tasks SET {column_name} = %s WHERE id = %s"
+
+        try:
+            self.db.execute_query(
+                sql,
+                [column_value, task_id],
+            )
+        except Exception:
+            logger.error(f"Failed to update '{column_name}' for task {task_id}")

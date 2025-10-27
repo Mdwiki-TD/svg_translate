@@ -117,7 +117,7 @@ def download_task(
     done = 0
     not_done = 0
     existing = 0
-
+    not_done_list = []
     for index, title in enumerate(tqdm(titles, total=len(titles), desc="Downloading files"), 1):
         result = download_one_file(title, out_dir, index, session)
         status = result["result"] or "failed"
@@ -127,6 +127,7 @@ def download_task(
             existing += 1
         else:
             not_done += 1
+            not_done_list.append(title)
 
         stages["message"] = f"Downloading {index:,}/{len(titles):,}"
 
@@ -143,11 +144,11 @@ def download_task(
 
         if index % 10 == 0:
             if check_cancel and check_cancel("download"):
-                return files, stages
+                return files, stages, not_done_list
 
     logger.debug("files: %s", len(files))
 
-    stages["status"] = "Failed" if not_done else "Completed"
+    stages["status"] = "Failed" if not_done and not_done > 10 else "Completed"
 
     logger.debug(
         "Downloaded %s files, skipped %s existing files, failed to download %s files",
@@ -156,7 +157,7 @@ def download_task(
         not_done,
     )
 
-    return files, stages
+    return files, stages, not_done_list
 
 
 def download_commons_svgs(titles, files_dir):
