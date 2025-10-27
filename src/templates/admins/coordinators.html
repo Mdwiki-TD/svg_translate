@@ -89,11 +89,13 @@
                                 action="{{ url_for('admin.update_coordinator_active', coordinator_id=coordinator.id) }}"
                                 class="d-inline">
                                 <div class="form-check form-switch d-inline-flex align-items-center">
+                                    <input type="hidden" name="active"
+                                        id="coordinator-active-value-{{ coordinator.id }}"
+                                        value="{{ 1 if coordinator.is_active else 0 }}">
                                     <input class="form-check-input" type="checkbox" role="switch"
-                                        id="coordinator-active-{{ coordinator.id }}" name="active"
-                                        value="{{ 1 if coordinator.is_active else 0 }}"
+                                        id="coordinator-active-{{ coordinator.id }}"
                                         {% if coordinator.is_active %}checked{% endif %}
-                                        onchange="this.value = this.checked ? '1' : '0'; this.form.submit();">
+                                        onchange="document.getElementById('coordinator-active-value-{{ coordinator.id }}').value = this.checked ? '1' : '0'; this.form.submit();">
                                     <label class="visually-hidden" for="coordinator-active-{{ coordinator.id }}">Toggle
                                         coordinator active state</label>
                                 </div>
