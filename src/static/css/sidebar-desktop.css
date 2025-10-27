@@ -1,0 +1,87 @@
+.btn-toggle-nav a {
+    display: inline-flex;
+    padding: .1875rem .5rem;
+    margin-top: .125rem;
+    margin-left: 1.25rem;
+    text-decoration: none;
+}
+
+.btn-toggle-nav li.active>a {
+    background-color: var(--btn_toggle_nav-active-bg);
+}
+
+.btn-toggle-nav a:hover,
+.btn-toggle-nav a:focus {
+    background-color: var(--btn_toggle_nav-hover-bg);
+}
+
+
+@media (min-width: 768px) {
+
+    .main-toggle-btn {
+        background: white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        border: none;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .collapsed-toggle-btn {
+        transform: rotate(180deg);
+    }
+
+    body.sidebar-collapsed .sidebar .hide-on-collapse-inline {
+        display: inline;
+    }
+
+    /* preserve some of your utility classes */
+    .collapsed1 .hide-on-collapse-inline {
+        display: none;
+    }
+
+    .collapsed1 .btn-toggle {
+        display: block;
+        font-size: 1.8rem;
+        text-align: center;
+        width: 100%;
+    }
+
+    .collapsed1 .linknave {
+        font-size: 1rem;
+        text-align: center;
+    }
+
+    body.sidebar-collapsed .sidebar .hide-on-collapse {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    /* preserve some of your utility classes */
+    .collapsed1 .hide-on-collapse {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    /* not mobile */
+    .colmd2 {
+        width: 16%;
+        transition: all 0.3s ease;
+    }
+
+    .colmd10 {
+        width: 84%;
+        transition: all 0.3s ease;
+    }
+
+    .colmd2.collapsed1 {
+        width: 6%;
+    }
+
+    .colmd10.expanded {
+        width: 94%;
+    }
+
+}
