@@ -57,9 +57,12 @@ def _ensure_shutdown_hook() -> None:
     """Register an ``atexit`` hook to clean up the cached database connection."""
 
     global _shutdown_hook_registered
-    if not _shutdown_hook_registered:
+    try:
         atexit.register(close_cached_db)
-        _shutdown_hook_registered = True
+    except Exception as e:
+        logger.error(f"Failed to register atexit hook: {e}")
+        return # non-critical, continue to set the flag
+    _shutdown_hook_registered = True
 
 
 def execute_query(sql_query: str, params: Optional[Any] = None):
