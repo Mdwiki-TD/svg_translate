@@ -45,11 +45,11 @@
         <div class="row justify-content-between align-items-center">
             <div class="col-sm-12 col-md-3">
                 <label for="manual_main_title" class="form-label">Main File</label>
-                {% set commons_link = task.main_title or form.manual_main_title or "!" %}
+                {% set commons_link = task.main_file or form.manual_main_title or "!" %}
                 {% if commons_link %}
-                <a href='https://commons.wikimedia.org/wiki/File:{{ commons_link }}' target='_blank'
+                <a href='https://commons.wikimedia.org/wiki/{{ commons_link }}' target='_blank'
                     rel='noopener noreferrer'>
-                    File:{{ commons_link }}
+                    {{ commons_link }}
                 </a>
                 {% endif %}
             </div>

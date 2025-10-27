@@ -167,11 +167,11 @@ function result_html(r) {
                 stagesContainerNew.innerHTML = stages_obj.map(([name, st]) => stages_html_new(st, name)).join('');
             }
 
-            const results = document.getElementById('results');
-            if (taskData && taskData.results && results) {
-                const r = taskData.results;
-                results.innerHTML = result_html(r);
-            }
+            // const results = document.getElementById('results');
+            // if (taskData && taskData.results && results) {
+            //     const r = taskData.results;
+            //     results.innerHTML = result_html(r);
+            // }
 
             if (taskData.status) {
                 updateStatus(taskData.status);
