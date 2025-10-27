@@ -17,7 +17,6 @@ from .app_routes import (
 from .users.admin_service import initialize_coordinators
 from .users.current import context_user
 from .users.store import ensure_user_token_table
-from .db import close_cached_db
 
 from .cookies import CookieHeaderClient
 
@@ -62,7 +61,6 @@ def create_app() -> Flask:
 
     @app.teardown_appcontext
     def _cleanup_connections(exception: Exception | None) -> None:  # pragma: no cover - teardown
-        close_cached_db()
         close_task_store()
 
     @app.errorhandler(404)

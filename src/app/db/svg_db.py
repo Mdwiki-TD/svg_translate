@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import logging
 from typing import Any, Optional
 
@@ -11,6 +12,7 @@ from .db_class import Database
 
 db_data = svg_config.db_data
 _db: Database | None = None
+_shutdown_hook_registered = False
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +33,33 @@ def get_db() -> Database:
 
     if _db is None:
         _db = Database(settings.db_data)
+        _ensure_shutdown_hook()
     return _db
 
 
 def close_cached_db() -> None:
-    """Close the cached :class:`Database` instance if it has been initialized."""
+    """Release the cached :class:`Database` instance when it is no longer needed.
+
+    The connection is intentionally kept alive for the lifetime of the process so
+    that sequential requests can reuse it.  :func:`close_cached_db` is registered
+    via ``atexit`` (triggered the first time :func:`get_db` is called) so that the
+    handle is cleaned up automatically when the service shuts down.  Tests or
+    manual callers can still invoke this helper explicitly to dispose of the
+    cached connection earlier in the lifecycle.
+    """
     global _db
     if _db is not None:
         _db.close()
         _db = None
+
+
+def _ensure_shutdown_hook() -> None:
+    """Register an ``atexit`` hook to clean up the cached database connection."""
+
+    global _shutdown_hook_registered
+    if not _shutdown_hook_registered:
+        atexit.register(close_cached_db)
+        _shutdown_hook_registered = True
 
 
 def execute_query(sql_query: str, params: Optional[Any] = None):
