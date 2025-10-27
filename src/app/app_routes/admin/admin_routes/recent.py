@@ -12,6 +12,7 @@ from ...tasks.routes import (
     _task_store,
     format_task,
     format_task_message,
+    TASKS_LOCK,
 )
 from ..admin_required import admin_required
 
@@ -19,11 +20,11 @@ from ..admin_required import admin_required
 def _recent_routes():
     """Render the admin dashboard with summarized task information."""
 
-    # with TASKS_LOCK:
-    db_tasks = _task_store().list_tasks(
-        order_by="created_at",
-        descending=True,
-    )
+    with TASKS_LOCK:
+        db_tasks = _task_store().list_tasks(
+            order_by="created_at",
+            descending=True,
+        )
 
     formatted = [format_task(task) for task in db_tasks]
     formatted = format_task_message(formatted)

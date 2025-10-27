@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import pymysql
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional, Protocol
 
@@ -126,22 +127,23 @@ class MySQLCoordinatorStore(CoordinatorStore):
         )
         return [self._row_to_record(row) for row in rows]
 
+    # ... in MySQLCoordinatorStore.add ...
+
     def add(self, username: str) -> CoordinatorRecord:
         username = username.strip()
         if not username:
             raise ValueError("Username is required")
 
-        existing = self.db.fetch_query_safe(
-            "SELECT id FROM admin_users WHERE username = %s",
-            (username,),
-        )
-        if existing:
-            raise ValueError(f"Coordinator '{username}' already exists")
+        try:
+            # Use execute_query to allow exception to propagate
+            self.db.execute_query(
+                "INSERT INTO admin_users (username, is_active) VALUES (%s, 1)",
+                (username,),
+            )
+        except pymysql.err.IntegrityError:
+            # This assumes a UNIQUE constraint on the username column
+            raise ValueError(f"Coordinator '{username}' already exists") from None
 
-        self.db.execute_query_safe(
-            "INSERT INTO admin_users (username, is_active) VALUES (%s, 1)",
-            (username,),
-        )
         return self._fetch_by_username(username)
 
     def set_active(self, coordinator_id: int, is_active: bool) -> CoordinatorRecord:
