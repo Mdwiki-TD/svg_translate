@@ -88,8 +88,8 @@ def make_results_summary(len_files, files_to_upload_count, no_file_path, injects
         "no_file_path": no_file_path,
         "injects_result": {
             "nested_files": injects_result.get('nested_files', 0),
-            "saved_done": injects_result.get('saved_done', 0),
-            "no_save": injects_result.get('no_save', 0),
+            "success": injects_result.get('success', 0),
+            "failed": injects_result.get('failed', 0),
         },
         "new_translations_count": len(translations.get("new", {})),
         "upload_result": upload_result,
