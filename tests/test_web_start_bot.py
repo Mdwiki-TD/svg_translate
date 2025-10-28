@@ -12,7 +12,7 @@ from src.app.web import start_bot
         # extract() returns an empty dict
         ({}, "No translations found in main file"),
         # extract() returns None
-        (None, "Couldn't load translations from main file"),
+        (None, "No translations found in main file"),
     ],
 )
 def test_translations_task_stops_on_failure(
@@ -43,7 +43,7 @@ def test_translations_task_stops_on_failure(
     assert translations == {}
     assert updated_stages["status"] == "Failed"
     assert updated_stages["message"] == expected_message
-    
+
 def test_translations_task_stops_when_no_new_translations(monkeypatch, tmp_path):
     stages = {"status": None, "message": None, "sub_name": None}
 

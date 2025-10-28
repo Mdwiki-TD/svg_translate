@@ -199,8 +199,8 @@ def translations_task(stages, main_title, output_dir_main):
     translations = extract(main_title_path, case_insensitive=True)
 
     if not translations:
-        logger.debug(f"Couldn't load translations from main file: {main_title}")
-        stages["message"] = "Couldn't load translations from main file"
+        logger.debug(f"No translations found in main file: {main_title}")
+        stages["message"] = "No translations found in main file"
         stages["status"] = "Failed"
         # ---
         return {}, stages
