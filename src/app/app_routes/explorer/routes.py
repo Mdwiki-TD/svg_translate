@@ -28,7 +28,7 @@ def by_title_downloaded(title_dir: str):
     title = get_temp_title(title_dir)
 
     return render_template(
-        "explorer/explore_files1.html",
+        "explorer/explore_files.html",
         head_title=f"{title} downloaded Files ({len(files):,})",
         path=str(title_path),
         title=title,
@@ -45,7 +45,7 @@ def by_title_translated(title_dir: str):
     title = get_temp_title(title_dir)
 
     return render_template(
-        "explorer/explore_files1.html",
+        "explorer/explore_files.html",
         head_title=f"({title}) Translated Files ({len(files):,})",
         path=str(title_path),
         title=title,
@@ -66,7 +66,7 @@ def by_title_not_translated(title_dir: str):
     not_translated = [x for x in downloaded if x not in set(translated)]
 
     return render_template(
-        "explorer/explore_files1.html",
+        "explorer/explore_files.html",
         head_title=f"({title}) Not Translated Files ({len(not_translated):,})",
         path=str(title_path),
         title=title,
@@ -135,6 +135,8 @@ def compare(title_dir: str, filename: str):
     # ---
     return render_template(
         "explorer/compare.html",
+        file=filename,
+        title_dir=title_dir,
         compare_result=compare_result,
     )
 
