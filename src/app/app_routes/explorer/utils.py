@@ -2,7 +2,6 @@
 import json
 import logging
 from pathlib import Path
-
 from ...config import settings
 
 logger = logging.getLogger(__name__)
@@ -11,6 +10,7 @@ logger = logging.getLogger(__name__)
 # svg_data_path = Path("I:/SVG/svg_data")
 # svg_data_path = Path(__name__).parent.parent.parent / "svg_data"
 svg_data_path = Path(settings.paths.svg_data)
+svg_data_thumb_path = Path(settings.paths.svg_data_thumb)
 
 
 def get_main_data(title, filename="files_stats.json"):

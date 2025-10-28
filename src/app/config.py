@@ -21,6 +21,7 @@ class DbConfig:
 @dataclass(frozen=True)
 class Paths:
     svg_data: str
+    svg_data_thumb: str
     log_dir: str
 
 
@@ -88,13 +89,20 @@ def _load_db_data() -> dict[str, str]:
 
 def _get_paths() -> Paths:
     svg_data = os.getenv("SVG_DATA_PATH") or f"{os.path.expanduser('~')}/www/svg_data"
+    svg_data_thumb = os.getenv("SVG_DATA_THUMB_PATH") or f"{os.path.expanduser('~')}/www/svg_data_thumb"
+
     log_dir = os.getenv("LOG_PATH") or f"{os.path.expanduser('~')}/logs"
 
     # Ensure directories exist
     Path(svg_data).mkdir(parents=True, exist_ok=True)
     Path(log_dir).mkdir(parents=True, exist_ok=True)
+    Path(svg_data_thumb).mkdir(parents=True, exist_ok=True)
 
-    return Paths(svg_data=svg_data, log_dir=log_dir)
+    return Paths(
+        svg_data=svg_data,
+        svg_data_thumb=svg_data_thumb,
+        log_dir=log_dir
+    )
 
 
 def _env_bool(name: str, default: bool = False) -> bool:

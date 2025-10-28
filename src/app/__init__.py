@@ -1,7 +1,7 @@
 """Flask application factory."""
 
 from __future__ import annotations
-
+import os
 from flask import Flask, render_template
 from typing import Tuple
 from .config import settings
@@ -38,6 +38,7 @@ def create_app() -> Flask:
         SESSION_COOKIE_SECURE=settings.cookie.secure,
         SESSION_COOKIE_SAMESITE=settings.cookie.samesite,
     )
+
     app.config["USE_MW_OAUTH"] = settings.use_mw_oauth
 
     if settings.use_mw_oauth and (
