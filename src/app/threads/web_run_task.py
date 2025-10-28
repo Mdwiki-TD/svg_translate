@@ -42,9 +42,18 @@ def _compute_output_dir(title: str) -> Path:
     # name = death rate from obesity
     slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(name)).strip("._") or "untitled"
     # ---
+    slug = slug.replace(" ", "_").lower()
+    # ---
     out = Path(settings.paths.svg_data) / slug
     # ---
     out.mkdir(parents=True, exist_ok=True)
+    # ---
+    # log title to out/title.txt
+    try:
+        with open(out / "title.txt", "w", encoding="utf-8") as f:
+            f.write(name)
+    except Exception as e:
+        logger.error(f"Failed to write title to {out / 'title.txt'}: {e}")
     # ---
     return out
 

@@ -1,7 +1,7 @@
 """Flask application factory."""
 
 from __future__ import annotations
-
+import os
 from flask import Flask, render_template
 from typing import Tuple
 from .config import settings
@@ -10,6 +10,7 @@ from .app_routes import (
     bp_auth,
     bp_main,
     bp_tasks,
+    bp_explorer,
     bp_tasks_managers,
     close_task_store,
 )
@@ -37,6 +38,7 @@ def create_app() -> Flask:
         SESSION_COOKIE_SECURE=settings.cookie.secure,
         SESSION_COOKIE_SAMESITE=settings.cookie.samesite,
     )
+
     app.config["USE_MW_OAUTH"] = settings.use_mw_oauth
 
     if settings.use_mw_oauth and (
@@ -47,6 +49,7 @@ def create_app() -> Flask:
 
     app.register_blueprint(bp_main)
     app.register_blueprint(bp_tasks)
+    app.register_blueprint(bp_explorer)
     app.register_blueprint(bp_tasks_managers)
     app.register_blueprint(bp_admin)
     app.register_blueprint(bp_auth)

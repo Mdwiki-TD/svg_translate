@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{{ result.title }} - SVG Explorer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+
+    .file-link {
+        transition: all 0.2s ease;
+    }
+
+    .file-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h3 class="mb-0">
+                <a href='https://commons.wikimedia.org/wiki/Template:OWID/{{ result.title }}' target='_blank'
+                    rel='noopener noreferrer'>
+                    Template:OWID/{{ result.title }}
+                </a> (Files: {{ result.len_titles }})
+            </h3>
+            <hr />
+            <span class="text-muted">
+                {% if result.main_file %}
+                Main File:
+                <a href='https://commons.wikimedia.org/wiki/{{ result.main_file }}' target='_blank'
+                    rel='noopener noreferrer'>
+                    {{ result.main_file }}
+                </a>
+                {% if result.languages %}
+                <span class="text-muted">
+                    ({{ result.languages }})
+                </span>
+                {% endif %}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card h-100 border-primary">
+                <div class="card-body text-center">
+                    <div class="stats-number text-primary">{{ result.len_files.downloaded }}</div>
+                    <div class="card-text">Downloaded Files</div>
+                    <a href="{{ url_for('explorer.by_title_downloaded', title_dir=result.title_dir) }}"
+                        class="btn btn-sm btn-outline-secondary mt-2 file-link">
+                        View All
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card h-100 border-success">
+                <div class="card-body text-center">
+                    <div class="stats-number text-success">{{ result.len_files.translated }}</div>
+                    <div class="card-text">Translated Files</div>
+                    <a href="{{ url_for('explorer.by_title_translated', title_dir=result.title_dir) }}"
+                        class="btn btn-sm btn-outline-secondary mt-2 file-link">
+                        View All
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card h-100 border-warning">
+                <div class="card-body text-center">
+                    <div class="stats-number text-warning">{{ result.len_files.not_translated }}</div>
+                    <div class="card-text">Not Translated Files</div>
+                    <a href="{{ url_for('explorer.by_title_not_translated', title_dir=result.title_dir) }}"
+                        class="btn btn-sm btn-outline-secondary mt-2 file-link">
+                        View All
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Links Section -->
+    <div class="row">
+        {% if result.len_files.not_downloaded %}
+        <div class="col-12">
+            <h3 class="h5 mb-3">Files not downloaded: ({{ result.len_files.not_downloaded }})</h3>
+            <ul class="list-group list-group-numbered">
+                {% for title in result.not_downloaded %}
+                <li class="list-group-item">
+                    <a href='https://commons.wikimedia.org/wiki/{{ title }}' target='_blank' rel='noopener noreferrer'>
+                        {{ title }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <!-- <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('explorer.by_title_downloaded', title_dir=result.title_dir) }}"
+                    class="btn btn-outline-primary file-link">
+                    <i class="bi bi-download"></i> Downloaded Files ({{ result.len_files.downloaded }})
+                </a>
+                <a href="{{ url_for('explorer.by_title_translated', title_dir=result.title_dir) }}"
+                    class="btn btn-outline-success file-link">
+                    <i class="bi bi-translate"></i> Translated Files ({{ result.len_files.translated }})
+                </a>
+                <a href="{{ url_for('explorer.by_title_not_translated', title_dir=result.title_dir) }}"
+                    class="btn btn-outline-warning file-link">
+                    <i class="bi bi-exclamation-triangle"></i> Not Translated ({{ result.len_files.not_translated }})
+                </a>
+            </div> -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function () {
+        // Add any interactive functionality here if needed
+    });
+</script>
+{% endblock %}

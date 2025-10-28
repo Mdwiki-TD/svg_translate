@@ -12,5 +12,5 @@ requests
 tqdm
 uvicorn
 wikitextparser
-CopySvgTranslate==0.1.0
+CopySvgTranslate==0.1.1
 pytest
