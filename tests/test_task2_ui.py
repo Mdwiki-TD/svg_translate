@@ -46,7 +46,8 @@ def _get_button_classes(html, button_id):
     return class_match.group(1)
 
 
-def _test_task2_active_shows_cancel_button(app_factory):
+@pytest.mark.skip(reason="Pending rewrite")
+def test_task2_active_shows_cancel_button(app_factory):
     # TODO: FAILED tests/test_task2_ui.py::test_task2_active_shows_cancel_button - AttributeError: <module 'src.app.__init__' from 'I:\\SVG\\svg_repo\\src\\app\\__init__.py'> has no attribute 'init...
     task = {
         "id": "running-task",
@@ -71,7 +72,8 @@ def _test_task2_active_shows_cancel_button(app_factory):
     assert "badge text-bg-primary" in html  # running badge
 
 
-def _test_task2_terminal_shows_restart_button(app_factory):
+@pytest.mark.skip(reason="Pending rewrite")
+def test_task2_terminal_shows_restart_button(app_factory):
     # TODO: FAILED tests/test_task2_ui.py::test_task2_terminal_shows_restart_button - AttributeError: <module 'src.app.__init__' from 'I:\\SVG\\svg_repo\\src\\app\\__init__.py'> has no attribute 'init...
     task = {
         "id": "complete-task",
@@ -96,7 +98,8 @@ def _test_task2_terminal_shows_restart_button(app_factory):
     assert "badge text-bg-success" in html
 
 
-def _test_stage_cancelled_renders_warning_badge(app_factory):
+@pytest.mark.skip(reason="Pending rewrite")
+def test_stage_cancelled_renders_warning_badge(app_factory):
     # TODO: FAILED tests/test_task2_ui.py::test_stage_cancelled_renders_warning_badge - AssertionError: Expected status badge in header
     task = {
         "id": "cancelled-task",

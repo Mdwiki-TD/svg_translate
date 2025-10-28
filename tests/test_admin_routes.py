@@ -154,35 +154,99 @@ def app_and_store(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_coordinator_dashboard_access_granted():
-    pass
+def test_coordinator_dashboard_access_granted(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    response = app.test_client().get("/admin/coordinators")
+    assert response.status_code == 200
+    page = unescape(response.get_data(as_text=True))
+    assert "Coordinators" in page
+    assert "Total Coordinators" in page
+    assert "admin" in page
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_coordinator_dashboard_requires_admin_user():
-    pass
+def test_coordinator_dashboard_requires_admin_user(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, _store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="not_admin"))
+
+    response = app.test_client().get("/admin/coordinators")
+    assert response.status_code == 403
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_coordinator_dashboard_redirects_when_anonymous():
-    pass
+def test_coordinator_dashboard_redirects_when_anonymous(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, _store = app_and_store
+    _set_current_user(monkeypatch, None)
+
+    response = app.test_client().get("/admin/coordinators", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_navbar_shows_admin_link_only_for_admin():
-    pass
+def test_navbar_shows_admin_link_only_for_admin(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, _store = app_and_store
+
+    # Non-admin should not see the link
+    _set_current_user(monkeypatch, SimpleNamespace(username="viewer"))
+    response = app.test_client().get("/")
+    html = response.get_data(as_text=True)
+    assert "Admins" not in html
+
+    # Admin should see the link
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+    response = app.test_client().get("/")
+    html = response.get_data(as_text=True)
+    assert "Admins" in html
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_add_coordinator():
-    pass
+def test_add_coordinator(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    response = app.test_client().post("/admin/coordinators/add", data={"username": "new_admin"}, follow_redirects=True)
+    assert response.status_code == 200
+    page = unescape(response.get_data(as_text=True))
+    assert "new_admin" in page
+    assert "Coordinator 'new_admin' added." in page
+    assert "new_admin" in settings.admins
+    assert any(record.username == "new_admin" for record in store.list())
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_toggle_coordinator_active():
-    pass
+def test_toggle_coordinator_active(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    new_record = store.add("helper")
+    admin_service.set_coordinator_active(new_record.id, True)  # ensure sync
+
+    response = app.test_client().post(
+        f"/admin/coordinators/{new_record.id}/active",
+        data={"active": "0"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Coordinator 'helper' deactivated." in unescape(response.get_data(as_text=True))
+    assert "helper" not in settings.admins
 
 
 @pytest.mark.skip(reason="Pending rewrite to new admin checks.")
-def test_delete_coordinator():
-    pass
+def test_delete_coordinator(app_and_store, monkeypatch: pytest.MonkeyPatch):
+    app, store = app_and_store
+    _set_current_user(monkeypatch, SimpleNamespace(username="admin"))
+
+    record = store.add("to_remove")
+    admin_service.set_coordinator_active(record.id, True)
+
+    response = app.test_client().post(
+        f"/admin/coordinators/{record.id}/delete",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Coordinator 'to_remove' removed." in unescape(response.get_data(as_text=True))
+    assert "to_remove" not in settings.admins
+    assert all(r.username != "to_remove" for r in store.list())

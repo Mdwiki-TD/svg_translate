@@ -1,10 +1,12 @@
 """Unit tests for args parsing utilities."""
+import pytest
 from werkzeug.datastructures import MultiDict
 
 from src.app.app_routes.tasks import args_utils
 
 
-def _test_parse_args_upload_disabled_by_config(monkeypatch):
+@pytest.mark.skip(reason="Pending rewrite")
+def test_parse_args_upload_disabled_by_config(monkeypatch):
     # dataclasses.FrozenInstanceError: cannot assign to field 'disable_uploads'
     monkeypatch.setattr(args_utils.settings, "disable_uploads", "1")
     form = MultiDict([("upload", "1")])
@@ -12,7 +14,8 @@ def _test_parse_args_upload_disabled_by_config(monkeypatch):
     assert parsed.upload is False
 
 
-def _test_parse_args_manual_main_title_and_limits(monkeypatch):
+@pytest.mark.skip(reason="Pending rewrite")
+def test_parse_args_manual_main_title_and_limits(monkeypatch):
     # dataclasses.FrozenInstanceError: cannot assign to field 'disable_uploads'
     monkeypatch.setattr(args_utils.settings, "disable_uploads", "0")
     form = MultiDict(
@@ -30,7 +33,8 @@ def _test_parse_args_manual_main_title_and_limits(monkeypatch):
     assert parsed.upload is True
 
 
-def _test_parse_args_empty_manual_main_title(monkeypatch):
+@pytest.mark.skip(reason="Pending rewrite")
+def test_parse_args_empty_manual_main_title(monkeypatch):
     # dataclasses.FrozenInstanceError: cannot assign to field 'disable_uploads'
     monkeypatch.setattr(args_utils.settings, "disable_uploads", "0")
     form = MultiDict([])
