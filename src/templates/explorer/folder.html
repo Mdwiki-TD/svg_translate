@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ main_title or result.title }} - SVG Explorer{% endblock %}
+{% block title %}{{ result.main_file or result.title }} - SVG Explorer{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -39,19 +39,20 @@
                     Template:OWID/{{ result.title }}
                 </a> (Files: {{ result.len_titles }})
             </h3>
-            <span class="text-muted">Main File: {% if main_title %}
-                <a href='https://commons.wikimedia.org/wiki/{{ main_title }}' target='_blank' rel='noopener noreferrer'>
-                    {{ main_title }}
-                </a>
-                {% endif %}
-            </span>
-        </div>
-        <div>
-            <h5 class="mb-0">
-                Languages from main file:
-            </h5>
+            <hr />
             <span class="text-muted">
-                {{ result.languages }}
+                {% if result.main_file %}
+                Main File:
+                <a href='https://commons.wikimedia.org/wiki/{{ result.main_file }}' target='_blank'
+                    rel='noopener noreferrer'>
+                    {{ result.main_file }}
+                </a>
+                {% if result.languages %}
+                <span class="text-muted">
+                    ({{ result.languages }})
+                </span>
+                {% endif %}
+                {% endif %}
             </span>
         </div>
     </div>
@@ -98,10 +99,11 @@
 
     <!-- File Links Section -->
     <div class="row">
+        {% if result.len_files.not_downloaded %}
         <div class="col-12">
             <h3 class="h5 mb-3">Files not downloaded: ({{ result.len_files.not_downloaded }})</h3>
             <ul class="list-group list-group-numbered">
-                {% for title in not_downloaded %}
+                {% for title in result.not_downloaded %}
                 <li class="list-group-item">
                     <a href='https://commons.wikimedia.org/wiki/{{ title }}' target='_blank' rel='noopener noreferrer'>
                         {{ title }}
@@ -109,7 +111,9 @@
                 </li>
                 {% endfor %}
             </ul>
-            <!-- <div class="d-flex flex-wrap gap-2">
+        </div>
+        {% endif %}
+        <!-- <div class="d-flex flex-wrap gap-2">
                 <a href="{{ url_for('explorer.by_title_downloaded', title=result.title) }}"
                     class="btn btn-outline-primary file-link">
                     <i class="bi bi-download"></i> Downloaded Files ({{ result.len_files.downloaded }})
@@ -123,7 +127,6 @@
                     <i class="bi bi-exclamation-triangle"></i> Not Translated ({{ result.len_files.not_translated }})
                 </a>
             </div> -->
-        </div>
     </div>
 </div>
 {% endblock %}
