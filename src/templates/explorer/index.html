@@ -15,11 +15,11 @@
         </div>
     </div>
     <div class="table-responsive">
-        <ul class="list-group list-group-flush">
+        <ul class="list-group list-group-numbered">
             {% for title in titles %}
             <li class="list-group-item">
-                <a href="{{ url_for('explorer.by_title', title=title) }}" class="btn btn-sm btn-outline-secondary">
-                    {{ title }}
+                <a href="{{ url_for('explorer.by_title', title=title) }}" class="">
+                    Template:OWID/{{ title }}
                 </a>
             </li>
             {% endfor %}
