@@ -87,15 +87,14 @@ def _load_db_data() -> dict[str, str]:
 
 
 def _get_paths() -> Paths:
-    result = Paths(
-        svg_data=os.getenv("SVG_DATA_PATH", f"{os.path.expanduser('~')}/www/svg_data"),
-        log_dir=os.getenv("LOG_PATH", f"{os.path.expanduser("~")}/logs")
-    )
+    svg_data = os.getenv("SVG_DATA_PATH") or f"{os.path.expanduser('~')}/www/svg_data"
+    log_dir = os.getenv("LOG_PATH") or f"{os.path.expanduser('~')}/logs"
 
-    svg_data_dir = Path(result.svg_data)
-    svg_data_dir.mkdir(parents=True, exist_ok=True)
+    # Ensure directories exist
+    Path(svg_data).mkdir(parents=True, exist_ok=True)
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
 
-    return result
+    return Paths(svg_data=svg_data, log_dir=log_dir)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:

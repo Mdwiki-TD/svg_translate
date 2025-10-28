@@ -153,29 +153,36 @@ def app_and_store(monkeypatch: pytest.MonkeyPatch):
         object.__setattr__(settings, "admins", original_admins)
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_coordinator_dashboard_access_granted():
     pass
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_coordinator_dashboard_requires_admin_user():
     pass
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_coordinator_dashboard_redirects_when_anonymous():
     pass
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_navbar_shows_admin_link_only_for_admin():
     pass
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_add_coordinator():
     pass
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_toggle_coordinator_active():
     pass
 
 
+@pytest.mark.skip(reason="Pending rewrite to new admin checks.")
 def test_delete_coordinator():
     pass

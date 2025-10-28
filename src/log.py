@@ -6,7 +6,7 @@ from pathlib import Path
 # from app.config import settings
 # Create log directory if needed
 # log_dir_path = settings.paths.log_dir
-log_dir_path = os.getenv("LOG_PATH", f"{os.path.expanduser("~")}/logs")
+log_dir_path = os.getenv("LOG_PATH", f"{os.path.expanduser('~')}/logs")
 
 log_dir = Path(log_dir_path)
 log_dir.mkdir(parents=True, exist_ok=True)
