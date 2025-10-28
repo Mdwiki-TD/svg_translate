@@ -203,7 +203,7 @@ def translations_task(stages, main_title, output_dir_main):
         stages["message"] = "Couldn't load translations from main file"
         stages["status"] = "Failed"
         # ---
-        return translations, stages
+        return {}, stages
     # ---
     new_translations = (translations.get("new") or {}) if isinstance(translations, dict) else {}
 
