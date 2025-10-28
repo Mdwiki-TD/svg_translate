@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
+# from pathlib import Path
 
 from flask import (
     Blueprint,
@@ -12,13 +12,15 @@ from flask import (
 )
 
 from flask import send_from_directory
+from ...config import settings
 
 bp_explorer = Blueprint("explorer", __name__, url_prefix="/explorer")
 logger = logging.getLogger(__name__)
 
 
 # svg_data_path = Path("I:/SVG/svg_data")
-svg_data_path = Path(__name__).parent.parent.parent / "svg_data"
+# svg_data_path = Path(__name__).parent.parent.parent / "svg_data"
+svg_data_path = settings.paths.svg_data
 
 
 def get_main_data(title, filename="files_stats.json"):
