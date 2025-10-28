@@ -1,29 +1,126 @@
 {% extends "base.html" %}
 
-{% block title %}SVG Files{% endblock %}
+{% block title %}{{ main_title or result.title }} - SVG Explorer{% endblock %}
 
 {% block extra_css %}
+<style>
+    .stats-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+
+    .file-link {
+        transition: all 0.2s ease;
+    }
+
+    .file-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <h1 class="h3 mb-0">
-                SVG Files
-            </h1>
+        <div>
+            <h3 class="mb-0">
+                {{ result.title }} (Files: {{ result.len_titles }})
+            </h3>
+            <span class="text-muted">Main File: {% if main_title %}
+                <a href='https://commons.wikimedia.org/wiki/{{ main_title }}' target='_blank' rel='noopener noreferrer'>
+                    {{ main_title }}
+                </a>
+                {% endif %}
+            </span>
+        </div>
+        <div>
+            <h5 class="mb-0">
+                Languages from main file:
+            </h5>
+            <span class="text-muted">
+                {{ result.languages }}
+            </span>
         </div>
     </div>
-    <div class="table-responsive">
-        <ul class="list-group list-group-flush">
-            {% for title in titles %}
-            <li class="list-group-item">
-                <a href="{{ url_for('explorer.by_title', title=title) }}" class="btn btn-sm btn-outline-secondary">
-                    {{ title }}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card h-100 border-primary">
+                <div class="card-body text-center">
+                    <div class="stats-number text-primary">{{ result.len_files.downloaded }}</div>
+                    <div class="card-text">Downloaded Files</div>
+                    <a href="{{ url_for('explorer.by_title_downloaded', title=result.title) }}"
+                        class="btn btn-sm btn-outline-secondary mt-2 file-link">
+                        View All
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card h-100 border-success">
+                <div class="card-body text-center">
+                    <div class="stats-number text-success">{{ result.len_files.translated }}</div>
+                    <div class="card-text">Translated Files</div>
+                    <a href="{{ url_for('explorer.by_title_translated', title=result.title) }}"
+                        class="btn btn-sm btn-outline-secondary mt-2 file-link">
+                        View All
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card stats-card h-100 border-warning">
+                <div class="card-body text-center">
+                    <div class="stats-number text-warning">{{ result.len_files.not_translated }}</div>
+                    <div class="card-text">Not Translated Files</div>
+                    <a href="{{ url_for('explorer.by_title_not_translated', title=result.title) }}"
+                        class="btn btn-sm btn-outline-secondary mt-2 file-link">
+                        View All
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Links Section -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="h5 mb-3">Files not downloaded: ({{ result.len_files.not_downloaded }})</h3>
+            <ul class="list-group list-group-numbered">
+                {% for title in not_downloaded %}
+                <li class="list-group-item">
+                    <a href='https://commons.wikimedia.org/wiki/{{ title }}' target='_blank' rel='noopener noreferrer'>
+                        {{ title }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            <!-- <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('explorer.by_title_downloaded', title=result.title) }}"
+                    class="btn btn-outline-primary file-link">
+                    <i class="bi bi-download"></i> Downloaded Files ({{ result.len_files.downloaded }})
                 </a>
-            </li>
-            {% endfor %}
-        </ul>
+                <a href="{{ url_for('explorer.by_title_translated', title=result.title) }}"
+                    class="btn btn-outline-success file-link">
+                    <i class="bi bi-translate"></i> Translated Files ({{ result.len_files.translated }})
+                </a>
+                <a href="{{ url_for('explorer.by_title_not_translated', title=result.title) }}"
+                    class="btn btn-outline-warning file-link">
+                    <i class="bi bi-exclamation-triangle"></i> Not Translated ({{ result.len_files.not_translated }})
+                </a>
+            </div> -->
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -31,19 +128,7 @@
 {% block extra_js %}
 <script>
     $(document).ready(function () {
-        let table = $('#tasks-table').DataTable({
-            responsive: true,
-            pageLength: 25,
-            order: [[5, 'desc']],
-            columnDefs: [
-                { targets: 0, responsivePriority: 1 },
-                { targets: 1, responsivePriority: 2 },
-                { targets: [3, 4], className: 'text-center' }
-            ]
-        });
-        $('#status').on('change', function () {
-            table.column(2).search($(this).val()).draw();
-        });
+        // Add any interactive functionality here if needed
     });
 </script>
 {% endblock %}
