@@ -8,7 +8,7 @@ from flask import (
     send_from_directory,
 )
 from .thumbnail_utils import save_thumb
-from .compare import compare_svg_files
+from .compare import analyze_file
 from .utils import (
     svg_data_path,
     svg_data_thumb_path,
@@ -129,15 +129,17 @@ def compare(title_dir: str, filename: str):
     """Compare SVG files"""
     # ---
     file_path = svg_data_path / title_dir / "files" / filename
-    translated_path = svg_data_thumb_path / title_dir / "translated" / filename
+    translated_path = svg_data_path / title_dir / "translated" / filename
     # ---
-    compare_result = compare_svg_files(file_path, translated_path)
+    file1_result = analyze_file(file_path)
+    file2_result = analyze_file(translated_path)
     # ---
     return render_template(
         "explorer/compare.html",
         file=filename,
         title_dir=title_dir,
-        compare_result=compare_result,
+        downloaded_result=file1_result,
+        translated_result=file2_result,
     )
 
 

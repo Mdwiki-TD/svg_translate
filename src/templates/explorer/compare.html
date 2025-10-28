@@ -19,8 +19,11 @@
             <a href="{{ url_for('explorer.serve_media', filename=file, subdir='files', title_dir=title_dir) }}"
                 target="_blank">
                 <img src="{{ url_for('explorer.serve_media', filename=file, subdir='files', title_dir=title_dir) }}"
-                    alt="{{ file }}" class="img-thumbnail" style="width:auto; height:220px; object-fit:cover;">
+                    alt="{{ file }}" class="img-thumbnail" style="width:auto; height:320px; object-fit:cover;">
             </a>
+            <div class="h4">
+                Langs: {{ ",".join(downloaded_result.languages) }}
+            </div>
         </div>
         <div class="col-md-6 col-sm-12 text-center">
             <div class="h4">
@@ -29,8 +32,11 @@
             <a href="{{ url_for('explorer.serve_media', filename=file, subdir='translated', title_dir=title_dir) }}"
                 target="_blank">
                 <img src="{{ url_for('explorer.serve_media', filename=file, subdir='translated', title_dir=title_dir) }}"
-                    alt="{{ file }}" class="img-thumbnail" style="width:auto; height:220px; object-fit:cover;">
+                    alt="{{ file }}" class="img-thumbnail" style="width:auto; height:320px; object-fit:cover;">
             </a>
+            <div class="h4">
+                Langs: {{ ",".join(translated_result.languages) }}
+            </div>
         </div>
     </div>
 
