@@ -280,7 +280,10 @@ def run_task(
         if check_cancel("inject"):
             return
 
-        if not injects_result or injects_result.get("saved_done", 0) == 0:
+        if not injects_result:
+            return fail_task(store, task_id, stages_list, "Injection result error")
+
+        if injects_result.get("success", 0) == 0 and injects_result.get("saved_done", 0) == 0:
             return fail_task(store, task_id, stages_list, "Injection saved 0 files")
 
         inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
