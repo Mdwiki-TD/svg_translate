@@ -63,7 +63,7 @@ def by_title_not_translated(title_dir: str):
 
     title = get_temp_title(title_dir)
 
-    not_translated = [x for x in downloaded if x not in translated]
+    not_translated = [x for x in downloaded if x not in set(translated)]
 
     return render_template(
         "explorer/explore_files1.html",
@@ -97,7 +97,7 @@ def main():
 
 
 @bp_explorer.route('/media/<title_dir>/<subdir>/<path:filename>')
-def serve_media(title_dir="", subdir="", filename=""):
+def serve_media(title_dir: str, subdir: str, filename: str):
     """Serve SVG files"""
     dir_path = svg_data_path / title_dir / subdir
     dir_path = str(dir_path.absolute())
@@ -107,7 +107,7 @@ def serve_media(title_dir="", subdir="", filename=""):
 
 
 @bp_explorer.route('/media_thumb/<path:filename>')
-def serve_thumb(title_dir="", subdir="", filename=""):
+def serve_thumb(title_dir: str, subdir: str, filename: str):
     # ---
     dir_path = svg_data_path / title_dir / subdir
     thumb_path = svg_data_thumb_path / title_dir / subdir
@@ -125,7 +125,7 @@ def serve_thumb(title_dir="", subdir="", filename=""):
 
 
 @bp_explorer.route('/compare/<title_dir>/<path:filename>')
-def compare(title_dir="", filename=""):
+def compare(title_dir: str, filename: str):
     """Compare SVG files"""
     # ---
     file_path = svg_data_path / title_dir / "files" / filename

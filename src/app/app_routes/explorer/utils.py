@@ -13,18 +13,38 @@ svg_data_path = Path(settings.paths.svg_data)
 svg_data_thumb_path = Path(settings.paths.svg_data_thumb)
 
 
+def _validate_path_under_base(title: str, sub_dir: str) -> Path:
+    """Resolve and validate that title/sub_dir is confined under BASE_SVG."""
+    try:
+        candidate = (svg_data_path / title / sub_dir).resolve()
+    except (ValueError, OSError):
+        raise PermissionError(f"Invalid path: title={title!r}, sub_dir={sub_dir!r}")
+
+    if svg_data_path not in candidate.parents and candidate != svg_data_path:
+        raise PermissionError(f"Path traversal attempt blocked: {candidate}")
+
+    return candidate
+
+
 def get_main_data(title, filename="files_stats.json"):
     file_path = svg_data_path / title / (filename or "files_stats.json")
     try:
         data = json.loads(file_path.read_text(encoding="utf-8"))
         return data
-    except Exception:
-        logger.error(f"File {file_path} does not exist")
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        logger.exception(f"Failed to read or parse {file_path}")
         return {}
 
 
 def get_files_full_path(title, sub_dir):
-    title_path = svg_data_path / title / sub_dir
+    # title_path = svg_data_path / title / sub_dir
+
+    try:
+        title_path = _validate_path_under_base(title, sub_dir)
+    except PermissionError as e:
+        logger.warning(str(e))
+        return [], svg_data_path / title / sub_dir
+
     if not title_path.exists():
         logger.error(f"Title path {title_path} does not exist")
         return [], title_path
@@ -35,7 +55,13 @@ def get_files_full_path(title, sub_dir):
 
 
 def get_files(title, sub_dir):
-    title_path = svg_data_path / title / sub_dir
+    # title_path = svg_data_path / title / sub_dir
+    try:
+        title_path = _validate_path_under_base(title, sub_dir)
+    except PermissionError as e:
+        logger.warning(str(e))
+        return [], svg_data_path / title / sub_dir
+
     if not title_path.exists():
         logger.error(f"Title path {title_path} does not exist")
         return [], title_path
@@ -57,17 +83,13 @@ def get_languages(title: str, translations_data: dict|None=None) -> list:
     # ---
     new = translations_data.get("new", {})
     # ---
-    for x, v in new.items():
-        if "x" == "default_tspans_by_id":
+    for key, v in new.items():
+        if key == "default_tspans_by_id":
             continue
         if isinstance(v, dict):
             languages.extend(v.keys())
     # ---
-    languages = list(set(languages))
-    # ---
-    languages.sort()
-    # ---
-    return languages
+    return sorted(set(languages))
 
 
 def get_temp_title(title):
@@ -96,12 +118,12 @@ def get_informations(title):
 
     languages = get_languages(title, data.get("translations"))
 
-    not_translated = [x for x in downloaded if x not in translated]
-
+    not_translated = [x for x in downloaded if x not in set(translated)]
+    downloaded_set = {f.lower() for f in downloaded}
     not_downloaded = [
         (f"File:{x}" if not x.lower().startswith("file:") else x)
         for x in data.get("titles", [])
-        if x not in downloaded
+        if x.lower() not in downloaded_set
     ]
     temp_title = get_temp_title(title)
 
