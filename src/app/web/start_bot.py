@@ -205,9 +205,7 @@ def translations_task(stages, main_title, output_dir_main):
         # ---
         return translations, stages
     # ---
-    new_translations = {}
-    if isinstance(translations, dict):
-        new_translations = translations.get("new", {}) or {}
+    new_translations = (translations.get("new") or {}) if isinstance(translations, dict) else {}
 
     new_translations_count = len(new_translations)
 
