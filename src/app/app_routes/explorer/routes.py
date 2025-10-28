@@ -8,6 +8,7 @@ from flask import (
     send_from_directory,
 )
 from .thumbnail_utils import save_thumb
+from .compare import compare_svg_files
 from .utils import (
     svg_data_path,
     svg_data_thumb_path,
@@ -51,6 +52,7 @@ def by_title_translated(title_dir: str):
         title_dir=title_dir,
         subdir="translated",
         files=files,
+        compare_link=True,
     )
 
 
@@ -108,8 +110,7 @@ def serve_media(title_dir="", subdir="", filename=""):
 def serve_thumb(title_dir="", subdir="", filename=""):
     # ---
     dir_path = svg_data_path / title_dir / subdir
-    # ---
-    thumb_path = svg_data_thumb_path / filename / title_dir / subdir
+    thumb_path = svg_data_thumb_path / title_dir / subdir
     # ---
     file_path = dir_path / filename
     file_thumb_path = thumb_path / filename
@@ -121,6 +122,21 @@ def serve_thumb(title_dir="", subdir="", filename=""):
         return send_from_directory(str(thumb_path.absolute()), filename)
     # ---
     return send_from_directory(str(dir_path.absolute()), filename)
+
+
+@bp_explorer.route('/compare/<title_dir>/<path:filename>')
+def compare(title_dir="", filename=""):
+    """Compare SVG files"""
+    # ---
+    file_path = svg_data_path / title_dir / "files" / filename
+    translated_path = svg_data_thumb_path / title_dir / "translated" / filename
+    # ---
+    compare_result = compare_svg_files(file_path, translated_path)
+    # ---
+    return render_template(
+        "explorer/compare.html",
+        compare_result=compare_result,
+    )
 
 
 __all__ = [

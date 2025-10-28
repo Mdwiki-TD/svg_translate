@@ -10,6 +10,7 @@ from flask import (
     Blueprint,
     render_template,
     request,
+    send_from_directory,
 )
 from ...routes_utils import get_error_message
 from ...users.current import current_user
@@ -28,6 +29,13 @@ def index():
         form={},
         current_user=current_user_obj,
         error_message=error_message,
+    )
+
+
+@bp_main.get("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        "static", "favicon.ico", mimetype="image/x-icon"
     )
 
 

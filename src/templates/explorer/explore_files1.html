@@ -118,6 +118,13 @@
                         {{ file.split(',', maxsplit=1)[1] }}
                     </a>
                 </div>
+                {% if compare_link %}
+                <div class="gallery-item-title">
+                    <a href="{{ url_for('explorer.compare', filename=file, title_dir=title_dir) }}" target="_blank">
+                        Compare
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             {% endfor %}
