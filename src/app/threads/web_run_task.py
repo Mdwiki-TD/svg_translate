@@ -49,7 +49,7 @@ def _compute_output_dir(title: str) -> Path:
     # log title to out/title.txt
     try:
         with open(out / "title.txt", "w", encoding="utf-8") as f:
-            f.write(title)
+            f.write(name)
     except Exception as e:
         logger.error(f"Failed to write title to {out / 'title.txt'}: {e}")
     # ---
