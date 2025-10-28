@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ result.main_file or result.title }} - SVG Explorer{% endblock %}
+{% block title %}{{ result.title }} - SVG Explorer{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -64,7 +64,7 @@
                 <div class="card-body text-center">
                     <div class="stats-number text-primary">{{ result.len_files.downloaded }}</div>
                     <div class="card-text">Downloaded Files</div>
-                    <a href="{{ url_for('explorer.by_title_downloaded', title=result.title) }}"
+                    <a href="{{ url_for('explorer.by_title_downloaded', title_dir=result.title_dir) }}"
                         class="btn btn-sm btn-outline-secondary mt-2 file-link">
                         View All
                     </a>
@@ -76,7 +76,7 @@
                 <div class="card-body text-center">
                     <div class="stats-number text-success">{{ result.len_files.translated }}</div>
                     <div class="card-text">Translated Files</div>
-                    <a href="{{ url_for('explorer.by_title_translated', title=result.title) }}"
+                    <a href="{{ url_for('explorer.by_title_translated', title_dir=result.title_dir) }}"
                         class="btn btn-sm btn-outline-secondary mt-2 file-link">
                         View All
                     </a>
@@ -88,7 +88,7 @@
                 <div class="card-body text-center">
                     <div class="stats-number text-warning">{{ result.len_files.not_translated }}</div>
                     <div class="card-text">Not Translated Files</div>
-                    <a href="{{ url_for('explorer.by_title_not_translated', title=result.title) }}"
+                    <a href="{{ url_for('explorer.by_title_not_translated', title_dir=result.title_dir) }}"
                         class="btn btn-sm btn-outline-secondary mt-2 file-link">
                         View All
                     </a>
@@ -114,15 +114,15 @@
         </div>
         {% endif %}
         <!-- <div class="d-flex flex-wrap gap-2">
-                <a href="{{ url_for('explorer.by_title_downloaded', title=result.title) }}"
+                <a href="{{ url_for('explorer.by_title_downloaded', title_dir=result.title_dir) }}"
                     class="btn btn-outline-primary file-link">
                     <i class="bi bi-download"></i> Downloaded Files ({{ result.len_files.downloaded }})
                 </a>
-                <a href="{{ url_for('explorer.by_title_translated', title=result.title) }}"
+                <a href="{{ url_for('explorer.by_title_translated', title_dir=result.title_dir) }}"
                     class="btn btn-outline-success file-link">
                     <i class="bi bi-translate"></i> Translated Files ({{ result.len_files.translated }})
                 </a>
-                <a href="{{ url_for('explorer.by_title_not_translated', title=result.title) }}"
+                <a href="{{ url_for('explorer.by_title_not_translated', title_dir=result.title_dir) }}"
                     class="btn btn-outline-warning file-link">
                     <i class="bi bi-exclamation-triangle"></i> Not Translated ({{ result.len_files.not_translated }})
                 </a>

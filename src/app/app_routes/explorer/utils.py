@@ -105,6 +105,7 @@ def get_informations(title):
 
     result = {
         "title": temp_title,
+        "title_dir": title,
         "main_file": main_file,
         "len_titles": len_titles,
         "languages": ", ".join(languages),

@@ -13,44 +13,53 @@ from .utils import (
     svg_data_path,
     get_files,
     get_informations,
+    get_temp_title,
 )
 
 bp_explorer = Blueprint("explorer", __name__, url_prefix="/explorer")
 logger = logging.getLogger(__name__)
 
 
-@bp_explorer.get("/<title>/downloads")
-def by_title_downloaded(title: str):
-    files, title_path = get_files(title, "files")
+@bp_explorer.get("/<title_dir>/downloads")
+def by_title_downloaded(title_dir: str):
+    files, title_path = get_files(title_dir, "files")
+
+    title = get_temp_title(title_dir)
 
     return render_template(
         "explorer/explore_files1.html",
         head_title=f"{title} downloaded Files ({len(files):,})",
         path=str(title_path),
         title=title,
+        title_dir=title_dir,
         subdir="files",
         files=files,
     )
 
 
-@bp_explorer.get("/<title>/translated")
-def by_title_translated(title: str):
-    files, title_path = get_files(title, "translated")
+@bp_explorer.get("/<title_dir>/translated")
+def by_title_translated(title_dir: str):
+    files, title_path = get_files(title_dir, "translated")
+
+    title = get_temp_title(title_dir)
 
     return render_template(
         "explorer/explore_files1.html",
         head_title=f"({title}) Translated Files ({len(files):,})",
         path=str(title_path),
         title=title,
+        title_dir=title_dir,
         subdir="translated",
         files=files,
     )
 
 
-@bp_explorer.get("/<title>/not_translated")
-def by_title_not_translated(title: str):
-    downloaded, title_path = get_files(title, "files")
-    translated, _ = get_files(title, "translated")
+@bp_explorer.get("/<title_dir>/not_translated")
+def by_title_not_translated(title_dir: str):
+    downloaded, title_path = get_files(title_dir, "files")
+    translated, _ = get_files(title_dir, "translated")
+
+    title = get_temp_title(title_dir)
 
     not_translated = [x for x in downloaded if x not in translated]
 
@@ -59,6 +68,7 @@ def by_title_not_translated(title: str):
         head_title=f"({title}) Not Translated Files ({len(not_translated):,})",
         path=str(title_path),
         title=title,
+        title_dir=title_dir,
         subdir="files",
         files=not_translated,
     )
@@ -84,10 +94,10 @@ def main():
     )
 
 
-@bp_explorer.route('/media/<title>/<subdir>/<path:filename>')
-def serve_media(title="", subdir="", filename=""):
+@bp_explorer.route('/media/<title_dir>/<subdir>/<path:filename>')
+def serve_media(title_dir="", subdir="", filename=""):
     """Serve SVG files"""
-    dir_path = svg_data_path / title / subdir
+    dir_path = svg_data_path / title_dir / subdir
     dir_path = str(dir_path.absolute())
 
     # dir_path = "I:/SVG_EXPLORER/svg_data/Parkinsons prevalence/translated"

@@ -108,12 +108,12 @@
             {% for file in files %}
             {% if file.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg')) %}
             <div class="gallery-item" data-file="{{ file }}">
-                <img src="{{ url_for('explorer.serve_media', filename=file, subdir=subdir, title=title) }}"
+                <img src="{{ url_for('explorer.serve_media', filename=file, subdir=subdir, title_dir=title_dir) }}"
                     alt="{{ file }}"
-                    data-src="{{ url_for('explorer.serve_media', filename=file, subdir=subdir, title=title) }}"
+                    data-src="{{ url_for('explorer.serve_media', filename=file, subdir=subdir, title_dir=title_dir) }}"
                     class="lazy-load">
                 <div class="gallery-item-title">
-                    <a href="{{ url_for('explorer.serve_media', filename=file, subdir=subdir, title=title) }}"
+                    <a href="{{ url_for('explorer.serve_media', filename=file, subdir=subdir, title_dir=title_dir) }}"
                         target="_blank">
                         {{ file.split(',', maxsplit=1)[1] }}
                     </a>
