@@ -10,19 +10,19 @@ logger = logging.getLogger(__name__)
 def file_langs(file_path: Path):
     languages = set()
     # ---
-    # try:
-    parser = etree.XMLParser(remove_blank_text=True)
-    tree = etree.parse(str(file_path), parser)
-    root = tree.getroot()
-    # Second pass on text elements for extra checks and switch creation
-    # texts = root.findall(".//{%s}text" % svg_ns)
-    text_elements = root.xpath('.//svg:text', namespaces={'svg': 'http://www.w3.org/2000/svg'})
-    for text in text_elements:
-        # normalize systemLanguage if present
-        if text.get("systemLanguage"):
-            languages.add(text.get("systemLanguage"))
-    # except Exception:
-    #     logger.error(f"Error parsing SVG file: {file_path}")
+    try:
+        parser = etree.XMLParser(remove_blank_text=True)
+        tree = etree.parse(str(file_path), parser)
+        root = tree.getroot()
+        # Second pass on text elements for extra checks and switch creation
+        # texts = root.findall(".//{%s}text" % svg_ns)
+        text_elements = root.xpath('.//svg:text', namespaces={'svg': 'http://www.w3.org/2000/svg'})
+        for text in text_elements:
+            # normalize systemLanguage if present
+            if text.get("systemLanguage"):
+                languages.add(text.get("systemLanguage"))
+    except (etree.XMLSyntaxError, OSError):
+        logger.exception(f"Error parsing SVG file: {file_path}")
     # ---
     return list(languages)
 
