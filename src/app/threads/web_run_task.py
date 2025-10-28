@@ -46,6 +46,13 @@ def _compute_output_dir(title: str) -> Path:
     # ---
     out.mkdir(parents=True, exist_ok=True)
     # ---
+    # log title to out/title.txt
+    try:
+        with open(out / "title.txt", "w", encoding="utf-8") as f:
+            f.write(title)
+    except Exception as e:
+        logger.error(f"Failed to write title to {out / 'title.txt'}: {e}")
+    # ---
     return out
 
 
