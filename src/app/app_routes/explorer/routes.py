@@ -8,6 +8,7 @@ from flask import (
     send_from_directory,
 )
 from .thumbnail_utils import save_thumb
+from .compare import analyze_file
 from .utils import (
     svg_data_path,
     svg_data_thumb_path,
@@ -27,7 +28,7 @@ def by_title_downloaded(title_dir: str):
     title = get_temp_title(title_dir)
 
     return render_template(
-        "explorer/explore_files1.html",
+        "explorer/explore_files.html",
         head_title=f"{title} downloaded Files ({len(files):,})",
         path=str(title_path),
         title=title,
@@ -44,13 +45,14 @@ def by_title_translated(title_dir: str):
     title = get_temp_title(title_dir)
 
     return render_template(
-        "explorer/explore_files1.html",
+        "explorer/explore_files.html",
         head_title=f"({title}) Translated Files ({len(files):,})",
         path=str(title_path),
         title=title,
         title_dir=title_dir,
         subdir="translated",
         files=files,
+        compare_link=True,
     )
 
 
@@ -61,10 +63,10 @@ def by_title_not_translated(title_dir: str):
 
     title = get_temp_title(title_dir)
 
-    not_translated = [x for x in downloaded if x not in translated]
+    not_translated = [x for x in downloaded if x not in set(translated)]
 
     return render_template(
-        "explorer/explore_files1.html",
+        "explorer/explore_files.html",
         head_title=f"({title}) Not Translated Files ({len(not_translated):,})",
         path=str(title_path),
         title=title,
@@ -95,7 +97,7 @@ def main():
 
 
 @bp_explorer.route('/media/<title_dir>/<subdir>/<path:filename>')
-def serve_media(title_dir="", subdir="", filename=""):
+def serve_media(title_dir: str, subdir: str, filename: str):
     """Serve SVG files"""
     dir_path = svg_data_path / title_dir / subdir
     dir_path = str(dir_path.absolute())
@@ -105,11 +107,10 @@ def serve_media(title_dir="", subdir="", filename=""):
 
 
 @bp_explorer.route('/media_thumb/<path:filename>')
-def serve_thumb(title_dir="", subdir="", filename=""):
+def serve_thumb(title_dir: str, subdir: str, filename: str):
     # ---
     dir_path = svg_data_path / title_dir / subdir
-    # ---
-    thumb_path = svg_data_thumb_path / filename / title_dir / subdir
+    thumb_path = svg_data_thumb_path / title_dir / subdir
     # ---
     file_path = dir_path / filename
     file_thumb_path = thumb_path / filename
@@ -121,6 +122,25 @@ def serve_thumb(title_dir="", subdir="", filename=""):
         return send_from_directory(str(thumb_path.absolute()), filename)
     # ---
     return send_from_directory(str(dir_path.absolute()), filename)
+
+
+@bp_explorer.route('/compare/<title_dir>/<path:filename>')
+def compare(title_dir: str, filename: str):
+    """Compare SVG files"""
+    # ---
+    file_path = svg_data_path / title_dir / "files" / filename
+    translated_path = svg_data_path / title_dir / "translated" / filename
+    # ---
+    file1_result = analyze_file(file_path)
+    file2_result = analyze_file(translated_path)
+    # ---
+    return render_template(
+        "explorer/compare.html",
+        file=filename,
+        title_dir=title_dir,
+        downloaded_result=file1_result,
+        translated_result=file2_result,
+    )
 
 
 __all__ = [
