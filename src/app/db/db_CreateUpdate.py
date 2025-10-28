@@ -11,15 +11,15 @@ logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed", "Cancelled")
 TERMINAL_PLACEHOLDERS = ", ".join(["%s"] * len(TERMINAL_STATUSES))
 
-ALLOWED_TASK_UPDATE_COLUMNS: Dict[str, str] = {
-    "title": "title",
-    "normalized_title": "normalized_title",
-    "main_file": "main_file",
-    "status": "status",
-    "form_json": "form_json",
-    "data_json": "data_json",
-    "results_json": "results_json",
-}
+ALLOWED_TASK_UPDATE_COLUMNS: list = [
+    "title",
+    "normalized_title",
+    "main_file",
+    "status",
+    "form_json",
+    "data_json",
+    "results_json",
+]
 
 
 class TaskAlreadyExistsError(Exception):
@@ -335,7 +335,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
         column_value: Any,
     ) -> None:
         if column_name not in ALLOWED_TASK_UPDATE_COLUMNS:
-            logger.error(f"Invalid task column requested: {column_name}")
+            logger.error(f"Attempted to update a non-whitelisted column: '{column_name}' for task {task_id}")
             return
 
         sql = f"UPDATE tasks SET {column_name} = %s, updated_at = %s WHERE id = %s"

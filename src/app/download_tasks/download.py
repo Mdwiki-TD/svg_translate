@@ -11,8 +11,7 @@ from urllib.parse import quote
 import requests
 from tqdm import tqdm
 from ..db.task_store_pymysql import TaskStorePyMysql
-
-USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)")
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
     if not session:
         session = requests.Session()
         session.headers.update({
-            "User-Agent": USER_AGENT,
+            "User-Agent": settings.oauth.user_agent,
         })
     try:
         response = session.get(url, timeout=30, allow_redirects=True)
@@ -106,7 +105,7 @@ def download_task(
     session = requests.Session()
 
     session.headers.update({
-        "User-Agent": USER_AGENT,
+        "User-Agent": settings.oauth.user_agent,
     })
 
     def message_updater(value: str) -> None:

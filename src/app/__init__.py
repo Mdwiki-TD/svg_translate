@@ -14,7 +14,6 @@ from .app_routes import (
     close_task_store,
 )
 
-from .users.admin_service import initialize_coordinators
 from .users.current import context_user
 from .users.store import ensure_user_token_table
 from .db import close_cached_db
@@ -34,13 +33,11 @@ def create_app() -> Flask:
     app.test_client_class = CookieHeaderClient
     app.secret_key = settings.secret_key
     app.config.update(
-        SESSION_COOKIE_HTTPONLY=settings.session_cookie_httponly,
-        SESSION_COOKIE_SECURE=settings.session_cookie_secure,
-        SESSION_COOKIE_SAMESITE=settings.session_cookie_samesite,
+        SESSION_COOKIE_HTTPONLY=settings.cookie.httponly,
+        SESSION_COOKIE_SECURE=settings.cookie.secure,
+        SESSION_COOKIE_SAMESITE=settings.cookie.samesite,
     )
     app.config["USE_MW_OAUTH"] = settings.use_mw_oauth
-
-    initialize_coordinators()
 
     if settings.use_mw_oauth and (
         settings.db_data.get("host")

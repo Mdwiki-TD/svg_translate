@@ -1,11 +1,14 @@
 import sys
+import os
 import logging
 from pathlib import Path
 
-from app.svg_config import LOG_DIR_PATH
-
+# from app.config import settings
 # Create log directory if needed
-log_dir = Path(LOG_DIR_PATH)
+# log_dir_path = settings.paths.log_dir
+log_dir_path = os.getenv("LOG_PATH", f"{os.path.expanduser("~")}/logs")
+
+log_dir = Path(log_dir_path)
 log_dir.mkdir(parents=True, exist_ok=True)
 
 # Define paths

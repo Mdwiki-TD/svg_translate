@@ -19,6 +19,7 @@ from ...db.task_store_pymysql import TaskStorePyMysql
 from ...db import TaskAlreadyExistsError
 from ...users.current import current_user
 from ..tasks.args_utils import parse_args
+from ...db.admins_list import admins
 
 from ...threads.task_threads import launch_task_thread, get_cancel_event
 
@@ -71,7 +72,7 @@ def cancel(task_id: str):
 
     task_username = task.get("username", "")
 
-    if task_username != user.username and user.username not in settings.admins:
+    if task_username != user.username and user.username not in admins.list():
         logger.error(
             "Cancel requested for task %s by user %s, but task is owned by %s",
             task_id,

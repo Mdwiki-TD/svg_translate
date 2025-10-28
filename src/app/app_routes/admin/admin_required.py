@@ -12,8 +12,8 @@ from flask import (
 )
 from flask.typing import ResponseReturnValue
 
-from ...config import settings
 from ...users.current import current_user
+from ...db.admins_list import admins
 
 F = TypeVar("F", bound=Callable[..., ResponseReturnValue])
 
@@ -26,7 +26,7 @@ def admin_required(view: F) -> F:
         user = current_user()
         if not user:
             return redirect(url_for("auth.login"))
-        if user.username not in settings.admins:
+        if user.username not in admins.list():
             abort(403)
         return view(*args, **kwargs)
 

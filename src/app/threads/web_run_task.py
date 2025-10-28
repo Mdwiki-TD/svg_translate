@@ -1,5 +1,4 @@
-#
-import os
+
 import re
 import logging
 import threading
@@ -11,17 +10,15 @@ from ..web.start_bot import (
     text_task,
     titles_task,
     translations_task,
-    inject_task,
     make_results_summary
 )
+from .inject_tasks import inject_task
 from ..download_tasks import download_task
 from ..upload_tasks import upload_task
-
+from ..config import settings
 from ..db.task_store_pymysql import TaskStorePyMysql
 
 logger = logging.getLogger(__name__)
-
-SVG_DATA_PATH = os.getenv("SVG_DATA_PATH", f"{os.path.expanduser('~')}/tmp/svg_data")
 
 
 def _compute_output_dir(title: str) -> Path:
@@ -45,7 +42,7 @@ def _compute_output_dir(title: str) -> Path:
     # name = death rate from obesity
     slug = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(name)).strip("._") or "untitled"
     # ---
-    out = Path(SVG_DATA_PATH) / slug
+    out = Path(settings.paths.svg_data) / slug
     # ---
     out.mkdir(parents=True, exist_ok=True)
     # ---
@@ -263,7 +260,13 @@ def run_task(
 
         # ----------------------------------------------
         # Stage 5: inject translations
-        injects_result, stages_list["inject"] = inject_task(stages_list["inject"], files, translations, output_dir=output_dir, overwrite=args.overwrite)
+        injects_result, stages_list["inject"] = inject_task(
+            stages_list["inject"],
+            files,
+            translations,
+            output_dir=output_dir,
+            overwrite=args.overwrite
+        )
         push_stage("inject")
         if check_cancel("inject"):
             return

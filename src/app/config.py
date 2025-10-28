@@ -4,27 +4,24 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from functools import lru_cache
-from typing import Optional, Dict, Any
-
-from .svg_config import db_data
+from typing import Optional, Dict
 
 
-def _env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+@dataclass(frozen=True)
+class DbConfig:
+    db_name: str
+    db_host: str
+    db_user: str | None
+    db_password: str | None
+    db_connect_file: str | None
 
 
-def _env_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        return int(value)
-    except ValueError as exc:  # pragma: no cover - defensive guard
-        raise ValueError(f"Environment variable {name} must be an integer") from exc
+@dataclass(frozen=True)
+class Paths:
+    svg_data: str
+    log_dir: str
 
 
 @dataclass(frozen=True)
@@ -47,18 +44,76 @@ class OAuthConfig:
 
 @dataclass(frozen=True)
 class Settings:
+    admins: list | None
     db_data: Dict
+    database_data: DbConfig
     STATE_SESSION_KEY: str
     REQUEST_TOKEN_SESSION_KEY: str
     secret_key: str
-    session_cookie_secure: bool
-    session_cookie_httponly: bool
-    session_cookie_samesite: str
     use_mw_oauth: bool
     oauth_encryption_key: Optional[str]
     cookie: CookieConfig
     oauth: Optional[OAuthConfig]
-    admins: list[str]
+    paths: Paths
+    disable_uploads: str
+
+
+def _load_db_data_new() -> DbConfig:
+    db_connect_file = os.getenv("DB_CONNECT_FILE", os.path.join(os.path.expanduser('~'), 'replica.my.cnf'))
+
+    return DbConfig(
+        db_name=os.getenv("DB_NAME", ""),
+        db_host=os.getenv("DB_HOST", ""),
+        db_user=os.getenv("DB_USER", None),
+        db_password=os.getenv("DB_PASSWORD", None),
+        db_connect_file=db_connect_file if os.path.exists(db_connect_file) else None
+    )
+
+
+def _load_db_data() -> dict[str, str]:
+
+    db_connect_file = os.getenv("DB_CONNECT_FILE", os.path.join(os.path.expanduser('~'), 'replica.my.cnf'))
+
+    db_data = {
+        "host": os.getenv("DB_HOST", ""),
+        "dbname": os.getenv("DB_NAME", ""),
+        "user": os.getenv("DB_USER", ""),
+        "password": os.getenv("DB_PASSWORD", ""),
+    }
+
+    if os.path.exists(db_connect_file):
+        db_data["db_connect_file"] = db_connect_file
+
+    return db_data
+
+
+def _get_paths() -> Paths:
+    result = Paths(
+        svg_data=os.getenv("SVG_DATA_PATH", f"{os.path.expanduser('~')}/www/svg_data"),
+        log_dir=os.getenv("LOG_PATH", f"{os.path.expanduser("~")}/logs")
+    )
+
+    svg_data_dir = Path(result.svg_data)
+    svg_data_dir.mkdir(parents=True, exist_ok=True)
+
+    return result
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:  # pragma: no cover - defensive guard
+        raise ValueError(f"Environment variable {name} must be an integer") from exc
 
 
 def _load_oauth_config() -> Optional[OAuthConfig]:
@@ -73,7 +128,7 @@ def _load_oauth_config() -> Optional[OAuthConfig]:
         consumer_key=consumer_key,
         consumer_secret=consumer_secret,
         user_agent=os.getenv(
-            "USER_AGENT", "SVGTranslate/1.0 (svgtranslate@example.org)"
+            "USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)"
         ),
         upload_host=os.getenv("UPLOAD_END_POINT", "commons.wikimedia.org"),
     )
@@ -81,6 +136,7 @@ def _load_oauth_config() -> Optional[OAuthConfig]:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+
     secret_key = os.getenv("FLASK_SECRET_KEY")
     if not secret_key:
         raise RuntimeError("FLASK_SECRET_KEY environment variable is required")
@@ -100,8 +156,6 @@ def get_settings() -> Settings:
             "OAUTH_ENCRYPTION_KEY environment variable is required when USE_MW_OAUTH is enabled"
         )
 
-    admins = [x.strip() for x in os.getenv("ADMINS", "").split(",") if x]
-
     cookie = CookieConfig(
         name=os.getenv("AUTH_COOKIE_NAME", "uid_enc"),
         max_age=_env_int("AUTH_COOKIE_MAX_AGE", 30 * 24 * 3600),
@@ -116,18 +170,18 @@ def get_settings() -> Settings:
         )
 
     return Settings(
-        db_data=db_data,
+        admins=[],
+        paths=_get_paths(),
+        database_data=_load_db_data_new(),
+        db_data=_load_db_data(),
         STATE_SESSION_KEY=STATE_SESSION_KEY,
         REQUEST_TOKEN_SESSION_KEY=REQUEST_TOKEN_SESSION_KEY,
         secret_key=secret_key,
-        session_cookie_secure=session_cookie_secure,
-        session_cookie_httponly=session_cookie_httponly,
-        session_cookie_samesite=session_cookie_samesite,
         use_mw_oauth=use_mw_oauth,
         oauth_encryption_key=oauth_encryption_key,
         cookie=cookie,
         oauth=oauth_config,
-        admins=admins,
+        disable_uploads=os.getenv("DISABLE_UPLOADS", "")
     )
 
 

@@ -11,6 +11,7 @@ from flask import g, redirect, request, session, url_for
 from ..config import settings
 from ..app_routes.auth.cookie import extract_user_id
 from .store import UserTokenRecord, get_user_token
+from ..db.admins_list import admins
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -71,6 +72,6 @@ def context_user() -> dict[str, Any]:
     return {
         "current_user": user,
         "is_authenticated": user is not None,
-        "is_admin": bool(user and user.username in settings.admins),
+        "is_admin": bool(user and user.username in admins.list()),
         "username": user.username if user else None,
     }
