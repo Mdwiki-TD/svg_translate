@@ -21,4 +21,4 @@ os.environ.setdefault("OAUTH_CONSUMER_KEY", "test-consumer-key")
 os.environ.setdefault("OAUTH_CONSUMER_SECRET", "test-consumer-secret")
 os.environ.setdefault("OAUTH_MWURI", "https://example.org/w/index.php")
 
-from src.app import svg_config  # load_dotenv()
+from src import svg_config  # load_dotenv()

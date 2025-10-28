@@ -6,10 +6,8 @@ import logging
 from typing import Any, Optional
 
 from ..config import settings
-from .. import svg_config
 from .db_class import Database
 
-db_data = svg_config.db_data
 _db: Database | None = None
 
 logger = logging.getLogger(__name__)

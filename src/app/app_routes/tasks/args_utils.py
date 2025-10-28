@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import logging
-from ...svg_config import DISABLE_UPLOADS
+from ...config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class Args:
 def parse_args(request_form) -> Args:
     upload = False
 
-    if DISABLE_UPLOADS != "1":
+    if settings.disable_uploads != "1":
         upload = bool(request_form.get("upload"))
 
     manual_main_title = request_form.get("manual_main_title", "").strip()

@@ -8,9 +8,10 @@ from typing import Any, Callable, Optional, TypeVar, cast
 
 from flask import g, redirect, request, session, url_for
 
+from .store import UserTokenRecord, get_user_token
 from ..config import settings
 from ..app_routes.auth.cookie import extract_user_id
-from .store import UserTokenRecord, get_user_token
+from ..users.admin_service import active_coordinators
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -71,6 +72,6 @@ def context_user() -> dict[str, Any]:
     return {
         "current_user": user,
         "is_authenticated": user is not None,
-        "is_admin": bool(user and user.username in settings.admins),
+        "is_admin": bool(user and user.username in active_coordinators()),
         "username": user.username if user else None,
     }

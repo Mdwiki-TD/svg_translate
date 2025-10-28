@@ -5,11 +5,9 @@ import logging
 import os
 
 from requests_oauthlib import OAuth1
-
+from ..config import settings
 
 logger = logging.getLogger(__name__)
-
-USER_AGENT = os.getenv("USER_AGENT", "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)")
 
 
 class InsufficientPermission(Exception):
@@ -53,7 +51,7 @@ class Site:
 
         self.api = f"https://{end_point}/w/api.php"
         self._session = requests.Session()
-        self._session.headers.update({"User-Agent": USER_AGENT})
+        self._session.headers.update({"User-Agent": settings.oauth.user_agent})
         self._session.auth = OAuth1(
             client_key=self.consumer_token,
             client_secret=self.consumer_secret,

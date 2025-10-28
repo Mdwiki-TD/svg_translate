@@ -12,7 +12,7 @@ import pytest
 from src.app.upload_tasks import start_upload, upload_task
 
 
-class TestStartUpload:
-    def _test_start_upload_success(self):
-        # TODO: Implement test
-        pass
+@pytest.mark.skip(reason="Pending write")
+def test_start_upload_success(self):
+    # TODO: Implement test
+    pass

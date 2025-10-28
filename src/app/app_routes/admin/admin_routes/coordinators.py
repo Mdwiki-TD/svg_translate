@@ -26,8 +26,6 @@ from ....users.current import current_user
 from ....users import admin_service
 from ..admin_required import admin_required
 
-bp_admin = Blueprint("admin", __name__, url_prefix="/admin")
-
 logger = logging.getLogger(__name__)
 
 

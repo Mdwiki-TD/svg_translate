@@ -12,12 +12,14 @@ from flask import (
     Blueprint,
     jsonify,
 )
+from flask.wrappers import Response
 from werkzeug.datastructures import MultiDict
 
 from ...config import settings
 from ...db.task_store_pymysql import TaskStorePyMysql
 from ...db import TaskAlreadyExistsError
 from ...users.current import current_user
+from ...users.admin_service import active_coordinators
 from ..tasks.args_utils import parse_args
 
 from ...threads.task_threads import launch_task_thread, get_cancel_event
@@ -40,7 +42,7 @@ def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator that redirects anonymous users to the index page."""
 
     @wraps(fn)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Response | Any:
         if not current_user():  # and not getattr(g, "is_authenticated", False)
             # return redirect(url_for("main.index", error="login-required"))
             return jsonify({"error": "login-required"})
@@ -71,7 +73,7 @@ def cancel(task_id: str):
 
     task_username = task.get("username", "")
 
-    if task_username != user.username and user.username not in settings.admins:
+    if task_username != user.username and user.username not in active_coordinators():
         logger.error(
             "Cancel requested for task %s by user %s, but task is owned by %s",
             task_id,

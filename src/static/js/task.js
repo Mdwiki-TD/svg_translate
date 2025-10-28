@@ -266,7 +266,7 @@ function result_html(r) {
                     throw new Error('Missing task id');
                 }
                 showmessage = false;
-                window.location.href = `/task2?task_id=${nextTaskId}`;
+                window.location.href = `/task1?task_id=${nextTaskId}`;
             } catch (error) {
                 console.error("error:", error);
                 message += ` (${error})`;
