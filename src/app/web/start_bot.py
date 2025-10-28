@@ -198,16 +198,27 @@ def translations_task(stages, main_title, output_dir_main):
     main_title_path = files1["path"]
     translations = extract(main_title_path, case_insensitive=True)
 
-    stages["status"] = "Failed" if not translations else "Completed"
-
     if not translations:
         logger.debug(f"Couldn't load translations from main file: {main_title}")
         stages["message"] = "Couldn't load translations from main file"
+        stages["status"] = "Failed"
         # ---
         return translations, stages
     # ---
+    new_translations = (translations.get("new") or {}) if isinstance(translations, dict) else {}
+
+    new_translations_count = len(new_translations)
+
+    if new_translations_count == 0:
+        logger.debug(f"No translations found in main file: {main_title}")
+        stages["status"] = "Failed"
+        stages["message"] = "No translations found in main file"
+        return {}, stages
+    # ---
+    stages["status"] = "Completed"
+    # ---
     json_save(output_dir_main.parent / "translations.json", translations)
     # ---
-    stages["message"] = f"Loaded {len(translations.get('new', {})):,} translations from main file"
+    stages["message"] = f"Loaded {new_translations_count:,} translations from main file"
     # ---
     return translations, stages
