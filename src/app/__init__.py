@@ -10,6 +10,7 @@ from .app_routes import (
     bp_auth,
     bp_main,
     bp_tasks,
+    bp_explorer,
     bp_tasks_managers,
     close_task_store,
 )
@@ -47,6 +48,7 @@ def create_app() -> Flask:
 
     app.register_blueprint(bp_main)
     app.register_blueprint(bp_tasks)
+    app.register_blueprint(bp_explorer)
     app.register_blueprint(bp_tasks_managers)
     app.register_blueprint(bp_admin)
     app.register_blueprint(bp_auth)
