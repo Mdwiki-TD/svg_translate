@@ -58,6 +58,8 @@ def get_languages(title: str, translations_data: dict|None=None) -> list:
     new = translations_data.get("new", {})
     # ---
     for x, v in new.items():
+        if "x" == "default_tspans_by_id":
+            continue
         if isinstance(v, dict):
             languages.extend(v.keys())
     # ---
