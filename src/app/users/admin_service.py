@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import List
 
 from ..config import settings
 from ..db import has_db_config
-from ..db.db_CoordinatorsDB import CoordinatorStore, CoordinatorRecord, CoordinatorsDB
+from ..db.db_CoordinatorsDB import CoordinatorRecord, CoordinatorsDB
 
 logger = logging.getLogger(__name__)
 
-_ADMINS_STORE: CoordinatorStore | None = None
+_ADMINS_STORE: CoordinatorsDB | None = None
 
 
-def get_admins_db() -> CoordinatorStore:
+def get_admins_db() -> CoordinatorsDB:
     global _ADMINS_STORE
 
     if _ADMINS_STORE is None:
@@ -32,12 +32,12 @@ def get_admins_db() -> CoordinatorStore:
     return _ADMINS_STORE
 
 
-def _refresh_settings(store: Optional[CoordinatorStore] = None) -> List[CoordinatorRecord]:
-    store = store or get_admins_db()
-    records = store.admins_list()
-    active = [record.username for record in records if record.is_active]
-    object.__setattr__(settings, "admins", active)
-    return records
+def active_coordinators() -> list:
+    """Return all coordinators while keeping settings.admins in sync."""
+
+    store = get_admins_db()
+
+    return [u.username for u in store.list() if u.is_active]
 
 
 def list_coordinators() -> List[CoordinatorRecord]:
@@ -45,7 +45,8 @@ def list_coordinators() -> List[CoordinatorRecord]:
 
     store = get_admins_db()
 
-    return store.admins_list()
+    coords = store.list()
+    return coords
 
 
 def add_coordinator(username: str) -> CoordinatorRecord:
@@ -53,7 +54,7 @@ def add_coordinator(username: str) -> CoordinatorRecord:
 
     store = get_admins_db()
     record = store.add(username)
-    _refresh_settings(store)
+
     return record
 
 
@@ -62,7 +63,7 @@ def set_coordinator_active(coordinator_id: int, is_active: bool) -> CoordinatorR
 
     store = get_admins_db()
     record = store.set_active(coordinator_id, is_active)
-    _refresh_settings(store)
+
     return record
 
 
@@ -71,27 +72,17 @@ def delete_coordinator(coordinator_id: int) -> CoordinatorRecord:
 
     store = get_admins_db()
     record = store.delete(coordinator_id)
-    _refresh_settings(store)
+
     return record
-
-
-def set_store_for_testing(store: CoordinatorStore | None) -> None:
-    """Override the coordinator store implementation (primarily for tests)."""
-
-    global _ADMINS_STORE
-    _ADMINS_STORE = store
-    if store is not None:
-        _refresh_settings(store)
 
 
 __all__ = [
     "get_admins_db",
+    "active_coordinators",
     "CoordinatorRecord",
-    "CoordinatorStore",
     "CoordinatorsDB",
     "list_coordinators",
     "add_coordinator",
     "set_coordinator_active",
     "delete_coordinator",
-    "set_store_for_testing",
 ]

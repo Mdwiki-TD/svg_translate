@@ -44,7 +44,6 @@ class OAuthConfig:
 
 @dataclass(frozen=True)
 class Settings:
-    admins: list | None
     db_data: Dict
     database_data: DbConfig
     STATE_SESSION_KEY: str
@@ -170,7 +169,6 @@ def get_settings() -> Settings:
         )
 
     return Settings(
-        admins=[],
         paths=_get_paths(),
         database_data=_load_db_data_new(),
         db_data=_load_db_data(),
