@@ -12,6 +12,7 @@ from ..web.start_bot import (
     translations_task,
     make_results_summary
 )
+from .fix_nested_tasks import fix_nested_task
 from .inject_tasks import inject_task
 from ..download_tasks import download_task
 from ..upload_tasks import upload_task
@@ -101,15 +102,21 @@ def make_stages():
             "status": "Pending",
             "message": "Downloading files"
         },
-        "inject": {
+        "nested": {
             "sub_name": "",
             "number": 6,
+            "status": "Pending",
+            "message": "Analyze nested files"
+        },
+        "inject": {
+            "sub_name": "",
+            "number": 7,
             "status": "Pending",
             "message": "Injecting translations"
         },
         "upload": {
             "sub_name": "",
-            "number": 7,
+            "number": 8,
             "status": "Pending",
             "message": "Uploading files"
         },
@@ -268,7 +275,17 @@ def run_task(
             return fail_task(store, task_id, stages_list, "No files downloaded")
 
         # ----------------------------------------------
-        # Stage 5: inject translations
+        # Stage 5: analyze nested files
+        nested_task_result, stages_list["nested"] = fix_nested_task(
+            stages_list["nested"],
+            files,
+        )
+        push_stage("nested")
+        if check_cancel("nested"):
+            return
+
+        # ----------------------------------------------
+        # Stage 6: inject translations
         injects_result, stages_list["inject"] = inject_task(
             stages_list["inject"],
             files,
@@ -280,13 +297,16 @@ def run_task(
         if check_cancel("inject"):
             return
 
-        if not injects_result or injects_result.get("saved_done", 0) == 0:
+        if not injects_result:
+            return fail_task(store, task_id, stages_list, "Injection result error")
+
+        if injects_result.get("success", 0) == 0 and injects_result.get("saved_done", 0) == 0:
             return fail_task(store, task_id, stages_list, "Injection saved 0 files")
 
         inject_files = {x: v for x, v in injects_result.get("files", {}).items() if x != main_title}
 
         # ----------------------------------------------
-        # Stage 6: upload results
+        # Stage 7: upload results
         files_to_upload = {x: v for x, v in inject_files.items() if v.get("file_path")}
 
         no_file_path = len(inject_files) - len(files_to_upload)
@@ -307,12 +327,13 @@ def run_task(
             return
 
         # ----------------------------------------------
-        # Stage 7: save stats and mark done
+        # Stage 8: save stats and mark done
         data = {
             "main_title": main_title,
             "translations": translations or {},
             "titles": titles,
             "files": files,
+            "nested_task_result": nested_task_result,
             "injects_result": injects_result,
         }
 

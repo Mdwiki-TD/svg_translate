@@ -30,7 +30,20 @@ def inject_task(
     # ---
     injects_result: dict[str, Any] = start_injects(files, translations, output_dir_translated, overwrite=overwrite)
     # ---
-    stages["message"] = f"inject ({len(files):,}) files: Done {injects_result['saved_done']:,}, Skipped {injects_result['no_save']:,}, No changes {injects_result.get('no_changes', 0):,}, Nested files: {injects_result['nested_files']:,}"
+    success = injects_result.get('success') or injects_result.get('saved_done', 0)
+    failed = injects_result.get('failed') or injects_result.get('no_save', 0)
+    # ---
+    # expose normalized keys for downstream consumers
+    injects_result.setdefault('success', success)
+    injects_result.setdefault('failed', failed)
+    # ---
+    stages["message"] = (
+        f"Files: ({len(files):,}): "
+        f"Success {success:,}, "
+        f"Failed {failed:,}, "
+        f"No changes {injects_result.get('no_changes', 0):,}, "
+        f"Nested files: {injects_result.get('nested_files', 0):,}"
+    )
     # ---
     stages["status"] = "Completed"
     # ---

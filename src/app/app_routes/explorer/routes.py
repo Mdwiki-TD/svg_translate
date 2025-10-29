@@ -88,11 +88,23 @@ def by_title(title: str):
 
 @bp_explorer.get("/")
 def main():
-    titles = [x.name for x in svg_data_path.iterdir() if x.is_dir()]
-
+    titles = [
+        x.name
+        for x in svg_data_path.iterdir()
+        if x.is_dir()
+    ]
+    data = {}
+    for title in titles:
+        downloaded, _ = get_files(title, "files")
+        translated, _ = get_files(title, "translated")
+        data[title] = {
+            "downloaded": len(downloaded),
+            "translated": len(translated),
+            "not_translated": len(set(downloaded).difference(translated)),
+        }
     return render_template(
         "explorer/index.html",
-        titles=titles
+        data=data
     )
 
 
