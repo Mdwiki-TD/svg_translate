@@ -10,6 +10,7 @@ from src.app.app_routes.auth import oauth as oauth_helpers
 class StubConsumerToken:
     def __init__(self, key, secret):
         self.key = key
+
         self.secret = secret
 
 
