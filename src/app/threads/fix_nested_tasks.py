@@ -77,7 +77,7 @@ def fix_nested_task(
         f"Files: ({len(files):,}): "
         f"Nested: {nested_files:,}, "
         f"Fixed: {fixed:,}, "
-        f"Not fixed: {not_fixed:,}, "
+        f"Not fixed: {not_fixed:,}."
     )
     # ---
     stages["status"] = "Completed"
