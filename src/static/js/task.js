@@ -26,13 +26,21 @@ function formatStageTimestamp(updatedAtRaw) {
     }
 
     try {
-        return date.toLocaleString(undefined, {
+        return date.toLocaleString('en-US', {
             dateStyle: 'medium',
             timeStyle: 'short',
+            hour12: true,
         });
     } catch (err) {
         // Fallback for browsers that don't support dateStyle/timeStyle options
-        return date.toLocaleString();
+        return date.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour12: true,
+        });
     }
 }
 
