@@ -26,13 +26,21 @@ function formatStageTimestamp(updatedAtRaw) {
     }
 
     try {
-        return date.toLocaleString(undefined, {
+        return date.toLocaleString('en-US', {
             dateStyle: 'medium',
             timeStyle: 'short',
+            hour12: true,
         });
     } catch (err) {
         // Fallback for browsers that don't support dateStyle/timeStyle options
-        return date.toLocaleString();
+        return date.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour12: true,
+        });
     }
 }
 
@@ -53,7 +61,9 @@ function stages_html_new(st, name) {
     return `
         <li class="list-group-item ${cls} border border-${color}">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="fw-bold">${name}${subname}</span>
+                <span class="fw-bold">
+                ${st.number}. ${name} ${subname}
+                </span>
                 <span class="badge text-bg-${color} border border-${color}">${st.status}</span>
             </div>
             ${infoSection}
@@ -188,7 +198,8 @@ function result_html(r) {
             }
 
             if (lastUpdate) {
-                lastUpdate.innerHTML = `Last updated: ${new Date().toLocaleTimeString()}`;
+                let time_now = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', hour12: true})
+                lastUpdate.innerHTML = `Last updated: ${time_now}`;
             }
 
         } catch (e) { /* ignore transient errors */ }
