@@ -12,4 +12,4 @@ requests
 tqdm
 uvicorn
 wikitextparser
-CopySvgTranslate==0.1.2
+CopySvgTranslate==0.1.4
