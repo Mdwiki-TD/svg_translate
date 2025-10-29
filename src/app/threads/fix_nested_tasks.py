@@ -70,7 +70,7 @@ def fix_nested_task(
         # ---
         not_fixed += 1
     # ---
-    logger.debug(f"analyze_nested_tags files: {len(files):,} nested: {nested_files:,} fixed {fixed:,}, not_fixed {not_fixed:,}")
+    logger.debug(f"fix_nested_task files: {len(files):,} nested: {nested_files:,} fixed {fixed:,}, not_fixed {not_fixed:,}")
     # ---
     data["status"]["len_nested_files"] = nested_files
     data["status"]["fixed"] = fixed
