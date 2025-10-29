@@ -33,6 +33,10 @@ def inject_task(
     success = injects_result.get('success') or injects_result.get('saved_done', 0)
     failed = injects_result.get('failed') or injects_result.get('no_save', 0)
     # ---
+    # expose normalized keys for downstream consumers
+    injects_result.setdefault('success', success)
+    injects_result.setdefault('failed', failed)
+    # ---
     stages["message"] = (
         f"Files: ({len(files):,}): "
         f"Success {success:,}, "

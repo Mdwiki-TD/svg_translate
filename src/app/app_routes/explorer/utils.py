@@ -118,6 +118,7 @@ def get_informations(title):
 
     languages = get_languages(title, data.get("translations"))
 
+    # not_translated = set(downloaded).difference(translated)
     not_translated = [x for x in downloaded if x not in set(translated)]
     downloaded_set = {f.lower() for f in downloaded}
     not_downloaded = [

@@ -100,7 +100,7 @@ def main():
         data[title] = {
             "downloaded": len(downloaded),
             "translated": len(translated),
-            "not_translated": len([x for x in downloaded if x not in set(translated)]),
+            "not_translated": len(set(downloaded).difference(translated)),
         }
     return render_template(
         "explorer/index.html",

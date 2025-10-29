@@ -49,7 +49,6 @@ def fix_nested_task(
             data["len_nested_tags_after"].setdefault(len_nested, 0)
             data["len_nested_tags_after"][len_nested] += 1
             # ---
-            data["nested_files_list"].append(file)
             not_fixed += 1
             continue
         # ---
@@ -72,6 +71,10 @@ def fix_nested_task(
         not_fixed += 1
     # ---
     logger.debug(f"analyze_nested_tags files: {len(files):,} nested: {nested_files:,} fixed {fixed:,}, not_fixed {not_fixed:,}")
+    # ---
+    data["status"]["len_nested_files"] = nested_files
+    data["status"]["fixed"] = fixed
+    data["status"]["not_fixed"] = not_fixed
     # ---
     stages["message"] = (
         f"Files: ({len(files):,}): "
