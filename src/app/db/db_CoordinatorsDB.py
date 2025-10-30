@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, List
 from . import Database
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 @dataclass

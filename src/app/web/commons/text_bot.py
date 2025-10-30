@@ -4,7 +4,7 @@ import logging
 
 from ...config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def get_wikitext(title, project="commons.wikimedia.org"):

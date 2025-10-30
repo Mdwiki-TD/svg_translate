@@ -26,7 +26,7 @@ from ....users.current import current_user
 from .... import template_service
 from ..admin_required import admin_required
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def _templates_dashboard():
@@ -72,8 +72,7 @@ def _add_template() -> ResponseReturnValue:
 
 def _update_template() -> ResponseReturnValue:
     """Update main_file for a template."""
-    template_id = request.form.get("id", 0).strip()
-    template_id = int(template_id)
+    template_id = request.form.get("id", default=0, type=int)
 
     if not template_id:
         flash("Template ID is required to update a template.", "danger")
@@ -81,7 +80,7 @@ def _update_template() -> ResponseReturnValue:
 
     title = request.form.get("title", "").strip()
     if not title:
-        flash("Title is required to add a template.", "danger")
+        flash("Title is required to update a template.", "danger")
         return redirect(url_for("admin.templates_dashboard"))
 
     main_file = request.form.get("main_file", "").strip()

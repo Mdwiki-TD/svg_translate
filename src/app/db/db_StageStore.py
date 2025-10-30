@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from re import I
 from typing import Any, Dict
 # from .utils import DbUtils
 from .db_class import Database
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 class StageStore:  # (DbUtils)

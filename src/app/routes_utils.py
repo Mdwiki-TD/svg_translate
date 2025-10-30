@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 from typing import Any, Dict, List
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def load_auth_payload(user: Any | None):

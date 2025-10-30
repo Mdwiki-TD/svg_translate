@@ -19,7 +19,7 @@ from ..upload_tasks import upload_task
 from ..config import settings
 from ..db.task_store_pymysql import TaskStorePyMysql
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def _compute_output_dir(title: str) -> Path:

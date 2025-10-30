@@ -125,6 +125,11 @@
                     id="restart-task-btn" data-task-id="{{ task_id }}">
                     Restart
                 </button>
+                {% if is_admin %}
+                <form action="{{ url_for('tasks.delete_task', task_id=task_id) }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+                {% endif %}
             </div>
         </div>
 

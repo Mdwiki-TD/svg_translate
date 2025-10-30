@@ -9,7 +9,7 @@ from typing import Any, Iterable, Sequence
 import pymysql
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 class MaxUserConnectionsError(Exception):

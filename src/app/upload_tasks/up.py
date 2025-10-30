@@ -14,7 +14,7 @@ from ..wiki_client import build_upload_site
 
 from ..db.task_store_pymysql import TaskStorePyMysql
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def _coerce_encrypted(value: object) -> bytes | None:

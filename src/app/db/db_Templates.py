@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any, List
 from . import Database
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 @dataclass
@@ -16,7 +16,7 @@ class TemplateRecord:
 
     id: int
     title: str
-    main_file: bool
+    main_file: str | None
     created_at: Any | None = None
     updated_at: Any | None = None
 

@@ -9,7 +9,7 @@ from .config import settings
 from .db import has_db_config
 from .db.db_Templates import TemplateRecord, TemplatesDB
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 _TEMPLATE_STORE: TemplatesDB | None = None
 
@@ -82,6 +82,7 @@ __all__ = [
     "TemplateRecord",
     "TemplatesDB",
     "list_templates",
+    "add_or_update_template",
     "add_template",
     "update_template",
     "delete_template",

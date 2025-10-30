@@ -4,7 +4,7 @@ import mwclient
 from pathlib import Path
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def upload_file(file_name, file_path, site=None, summary=None):

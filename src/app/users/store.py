@@ -11,7 +11,7 @@ from ..crypto import decrypt_value, encrypt_value
 
 from ..db import get_db, has_db_config
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def _current_ts() -> str:

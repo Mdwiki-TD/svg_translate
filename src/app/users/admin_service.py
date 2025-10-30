@@ -9,7 +9,7 @@ from ..config import settings
 from ..db import has_db_config
 from ..db.db_CoordinatorsDB import CoordinatorRecord, CoordinatorsDB
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 _ADMINS_STORE: CoordinatorsDB | None = None
 

@@ -18,7 +18,7 @@ from .utils import (
 )
 
 bp_explorer = Blueprint("explorer", __name__, url_prefix="/explorer")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 @bp_explorer.get("/<title_dir>/downloads")

@@ -26,7 +26,7 @@ from ....users.current import current_user
 from ....users import admin_service
 from ..admin_required import admin_required
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def _coordinators_dashboard():
@@ -57,10 +57,7 @@ def _add_coordinator() -> ResponseReturnValue:
 
     try:
         record = admin_service.add_coordinator(username)
-    except ValueError as exc:
-        logger.exception("Unable to Add coordinator.")
-        flash(str(exc), "warning")
-    except LookupError as exc:
+    except (LookupError, ValueError) as exc:
         logger.exception("Unable to Add coordinator.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard

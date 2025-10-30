@@ -4,7 +4,7 @@ import logging
 import urllib.parse
 from ...config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def get_category_members_api(category, project, limit=500):

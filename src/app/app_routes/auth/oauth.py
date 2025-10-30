@@ -8,7 +8,7 @@ from typing import Tuple
 from flask import url_for
 from ...config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 IDENTITY_ERROR_MESSAGE = "We couldn’t verify your MediaWiki identity. Please try again."
 
