@@ -23,7 +23,7 @@ from flask import (
 from flask.typing import ResponseReturnValue
 
 from ....users.current import current_user
-from ....app_routes.templates import template_service
+from .... import template_service
 from ..admin_required import admin_required
 
 logger = logging.getLogger(__name__)
@@ -35,15 +35,12 @@ def _templates_dashboard():
     user = current_user()
     templates = template_service.list_templates()
     total = len(templates)
-    active = sum(1 for coord in templates if coord.is_active)
 
     return render_template(
         "admins/templates.html",
         current_user=user,
         templates=templates,
         total_templates=total,
-        active_templates=active,
-        inactive_templates=total - active,
     )
 
 
@@ -55,11 +52,14 @@ def _add_template() -> ResponseReturnValue:
         flash("Title is required to add a template.", "danger")
         return redirect(url_for("admin.templates_dashboard"))
 
+    main_file = request.form.get("main_file", "").strip()
     try:
-        record = template_service.add_template(title)
+        record = template_service.add_template(title, main_file)
     except ValueError as exc:
+        logger.exception("Unable to add template.")
         flash(str(exc), "warning")
     except LookupError as exc:
+        logger.exception("Unable to add template.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
         logger.exception("Unable to add template.")
@@ -70,19 +70,32 @@ def _add_template() -> ResponseReturnValue:
     return redirect(url_for("admin.templates_dashboard"))
 
 
-def _update_template_active(template_id: int) -> ResponseReturnValue:
-    """Toggle the active flag for a template."""
+def _update_template() -> ResponseReturnValue:
+    """Update main_file for a template."""
+    template_id = request.form.get("id", 0).strip()
+    template_id = int(template_id)
 
-    desired = request.form.get("active", "0") == "1"
+    if not template_id:
+        flash("Template ID is required to update a template.", "danger")
+        return redirect(url_for("admin.templates_dashboard"))
+
+    title = request.form.get("title", "").strip()
+    if not title:
+        flash("Title is required to add a template.", "danger")
+        return redirect(url_for("admin.templates_dashboard"))
+
+    main_file = request.form.get("main_file", "").strip()
+
     try:
-        record = template_service.set_template_active(template_id, desired)
+        record = template_service.update_template(template_id, title, main_file)
     except LookupError as exc:
+        logger.exception("Unable to Update template.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
-        flash("Unable to update template status. Please try again.", "danger")
+        logger.exception("Unable to update template.")
+        flash("Unable to update template main file. Please try again.", "danger")
     else:
-        state = "activated" if record.is_active else "deactivated"
-        flash(f"Template '{record.title}' {state}.", "success")
+        flash(f"Template '{record.title}' main file: {main_file} updated.", "success")
 
     return redirect(url_for("admin.templates_dashboard"))
 
@@ -93,8 +106,10 @@ def _delete_template(template_id: int) -> ResponseReturnValue:
     try:
         record = template_service.delete_template(template_id)
     except LookupError as exc:
+        logger.exception("Unable to delete template.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
+        logger.exception("Unable to delete template.")
         flash("Unable to delete template. Please try again.", "danger")
     else:
         flash(f"Template '{record.title}' removed.", "success")
@@ -115,10 +130,10 @@ class Templates:
         def add_template() -> ResponseReturnValue:
             return _add_template()
 
-        @bp_admin.post("/templates/<int:template_id>/active")
+        @bp_admin.post("/templates/update")
         @admin_required
-        def update_template_active(template_id: int) -> ResponseReturnValue:
-            return _update_template_active(template_id)
+        def update_template() -> ResponseReturnValue:
+            return _update_template()
 
         @bp_admin.post("/templates/<int:template_id>/delete")
         @admin_required
