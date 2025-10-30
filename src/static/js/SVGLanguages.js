@@ -1,5 +1,6 @@
 
 const API_AGENT = "Copy SVG Translations/1.0 (https://copy-svg-langs.toolforge.org; tools.copy-svg-langs@toolforge.org)";
+
 class Api {
     async get(params) {
         // const end_point = 'https://commons.wikimedia.org/w/api.php';
@@ -12,7 +13,7 @@ class Api {
 
         const res = await fetch(url, {
             headers: {
-                'Api-User-Agent': API_USER_AGENT
+                'Api-User-Agent': API_AGENT
             }
         });
         if (!res.ok) {
@@ -72,7 +73,7 @@ async function getFileTranslations(fileName) {
 
     const translations = meta["translations"];
 
-    if (translations.length) {
+    if (translations && translations.length) {
         // [{"name":"ca","value":2},{"name":"hr","value":2},{"name":"es","value":2}]
         const langs_keys = translations.map(t => t.name);
         return { error: null, langs: langs_keys || ["en"] };

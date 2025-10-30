@@ -48,8 +48,10 @@ def get_category_members_api(category, project, limit=500):
                 params["cmcontinue"] = data["continue"]["cmcontinue"]
             else:
                 break
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logger.error(f"Error: get_category_members : {e}")
+    else:
+        logger.debug(f"Found {len(pages)} pages in category {category}")
 
     return pages
 

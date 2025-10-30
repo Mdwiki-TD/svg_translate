@@ -36,7 +36,7 @@ def temp_data(temp: str) -> dict:
     }
     # ---
     title_dir = Path(temp).name
-    title_dir = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(title_dir)).strip("._")
+    title_dir = re.sub(r'[^A-Za-z0-9._\- ]+', "_", str(title_dir)).strip("._") or "untitled"
     title_dir = title_dir.replace(" ", "_").lower()
     # ---
     out = Path(settings.paths.svg_data) / title_dir
