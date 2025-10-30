@@ -7,6 +7,7 @@
 <div class="container">
     <h1 class="mb-3">SVG Translate Bot</h1>
     <form method="post" action="{{ url_for('tasks.start') }}" class="row gy-2 gx-3 align-items-center mb-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="col-sm-12 col-md-4">
             <label for="title" class="form-label">Template Title</label>
             <input type="text" class="form-control" id="title" name="title"
