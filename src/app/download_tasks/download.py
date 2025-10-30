@@ -13,7 +13,7 @@ from tqdm import tqdm
 from ..db.task_store_pymysql import TaskStorePyMysql
 from ..config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def download_one_file(

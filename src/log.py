@@ -17,20 +17,18 @@ all_log_path = log_dir / "app.log"
 error_log_path = log_dir / "errors.log"
 
 # Create main logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 logger.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
 
 # Handler for all logs
-# all_handler = logging.FileHandler(all_log_path, encoding="utf-8", delay=False)
 all_handler = WatchedFileHandler(all_log_path, encoding="utf-8")
 
 all_handler.setLevel(logging.INFO)  # INFO, WARNING, etc.
 all_handler.setFormatter(formatter)
 
 # Handler for only ERROR and CRITICAL
-# error_handler = logging.FileHandler(error_log_path, encoding="utf-8", delay=False)
 error_handler = WatchedFileHandler(error_log_path, encoding="utf-8")
 
 error_handler.setLevel(logging.ERROR)

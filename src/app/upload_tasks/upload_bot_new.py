@@ -6,7 +6,7 @@ import logging
 
 from ..web.wiki_site import Site, FileExists, InsufficientPermission
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def upload_file(file_name, file_path, site: Site=None, summary=None):

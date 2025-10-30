@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from ...config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 # svg_data_path = Path("I:/SVG/svg_data")

@@ -14,7 +14,7 @@ from ...config import settings
 from ...template_service import get_templates_db, add_or_update_template
 
 bp_templates = Blueprint("templates", __name__, url_prefix="/templates")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def get_main_data(title):

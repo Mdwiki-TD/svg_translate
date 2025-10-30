@@ -7,7 +7,7 @@ import os
 from requests_oauthlib import OAuth1
 from ..config import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 class InsufficientPermission(Exception):

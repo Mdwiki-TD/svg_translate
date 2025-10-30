@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from lxml import etree
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def file_langs(file_path: Path):

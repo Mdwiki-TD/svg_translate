@@ -22,7 +22,7 @@ from .db import close_cached_db
 
 from .cookies import CookieHeaderClient
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def create_app() -> Flask:

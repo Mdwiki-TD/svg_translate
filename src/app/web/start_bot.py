@@ -7,7 +7,7 @@ from CopySvgTranslate import extract  # type: ignore
 from .commons import get_files, get_wikitext
 from ..download_tasks import download_one_file
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def json_save(path, data):

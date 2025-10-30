@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 # from .db_StageStore import StageStore
 from .db_class import Database
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 TERMINAL_STATUSES = ("Completed", "Failed", "Cancelled")
 TERMINAL_PLACEHOLDERS = ", ".join(["%s"] * len(TERMINAL_STATUSES))
 
@@ -62,7 +62,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
                 [task_id],
             )
         except Exception as e:
-            logger.error(f"Failed to delete task, Error: {e}")
+            logger.exception(f"Failed to delete task, Error: {e}")
             raise e
         else:
             logger.info(f"Task {task_id} deleted successfully")

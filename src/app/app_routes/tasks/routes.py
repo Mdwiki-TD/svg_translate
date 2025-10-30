@@ -31,7 +31,7 @@ TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
 
 bp_tasks = Blueprint("tasks", __name__)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def format_task_message(formatted):
@@ -144,7 +144,7 @@ def start():
                 logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
                 flash(f"Task for title '{title}' already exists: {existing_task['id']}.", "warning")
                 return redirect(
-                    url_for("tasks.task1", task_id=existing_task["id"], title=title)
+                    url_for("tasks.task", task_id=existing_task["id"], title=title)
                 )
 
         try:

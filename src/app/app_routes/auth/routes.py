@@ -33,7 +33,7 @@ from ...users.store import delete_user_token, upsert_user_token
 from ...users.current import CurrentUser
 
 from .rate_limit import callback_rate_limiter, login_rate_limiter
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 bp_auth = Blueprint("auth", __name__)
 
 oauth_state_nonce = settings.STATE_SESSION_KEY

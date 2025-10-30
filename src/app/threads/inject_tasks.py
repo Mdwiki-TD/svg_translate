@@ -3,7 +3,7 @@ import logging
 from typing import Any
 from CopySvgTranslate import start_injects  # type: ignore
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("svg_translate")
 
 
 def inject_task(
