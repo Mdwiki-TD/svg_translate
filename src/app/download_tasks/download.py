@@ -16,7 +16,13 @@ from ..config import settings
 logger = logging.getLogger(__name__)
 
 
-def download_one_file(title: str, out_dir: Path, i: int, session: requests.Session = None):
+def download_one_file(
+    title: str,
+    out_dir: Path,
+    i: int,
+    session: requests.Session = None,
+    overwrite: bool = False
+) -> Dict[str, str]:
     """Download a single Commons file, skipping already-downloaded copies.
 
     Parameters:
@@ -25,6 +31,7 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
         i (int): 1-based index used only for logging context.
         session (requests.Session | None): Optional shared session. A new session
             with an appropriate User-Agent is created when omitted.
+        overwrite (bool): Whether to overwrite existing files.
 
     Returns:
         dict: Outcome dictionary with keys ``result`` ("success", "existing", or
@@ -43,11 +50,12 @@ def download_one_file(title: str, out_dir: Path, i: int, session: requests.Sessi
     url = f"{base}{quote(title)}"
     out_path = out_dir / title
 
-    if out_path.exists():
+    if out_path.exists() and not overwrite:
         logger.debug(f"[{i}] Skipped existing: {title}")
         data["result"] = "existing"
         data["path"] = str(out_path)
         return data
+
     if not session:
         session = requests.Session()
         session.headers.update({

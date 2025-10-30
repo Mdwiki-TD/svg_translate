@@ -188,7 +188,8 @@ def translations_task(stages, main_title, output_dir_main):
     # ---
     stages["status"] = "Running"
     # ---
-    files1 = download_one_file(main_title, output_dir_main, 0)
+    files1 = download_one_file(title=main_title, out_dir=output_dir_main, i=0, overwrite=True)
+    # ---
     if not files1.get("path"):
         logger.error(f"when downloading main file: {main_title}")
         stages["message"] = "Error when downloading main file"
