@@ -24,45 +24,27 @@
         {% endif %}
         {% endwith %}
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h2 class="h6 text-uppercase text-muted">Total Templates</h2>
-                        <p class="display-6 mb-0">{{ total_templates }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h2 class="h6 text-uppercase text-muted">Active</h2>
-                        <p class="display-6 mb-0">{{ active_templates }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h2 class="h6 text-uppercase text-muted">Inactive</h2>
-                        <p class="display-6 mb-0">{{ inactive_templates }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4 shadow-sm">
+        <div class="card mb-2 shadow-sm">
             <div class="card-body">
                 <form method="post" action="{{ url_for('admin.add_template') }}" class="row g-2 align-items-end">
-                    <div class="col-sm-8 col-md-6 col-lg-4">
-                        <label class="form-label" for="new-template-title">Add template</label>
-                        <input type="text" name="title" class="form-control" id="new-template-title"
-                            placeholder="title" required>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-person-plus-fill"></i> Add
-                        </button>
+                    <div class="row">
+                        <div class="col-md-5 col-sm-12">
+                            <div class="input-group">
+                                <span class="input-group-text" id="title">Template name</span>
+                                <input type="text" class="form-control" id="title" name="title" required>
+                            </div>
+                        </div>
+                        <div class="col-md-5 col-sm-12">
+                            <div class="input-group">
+                                <span class="input-group-text" id="main_file">Main File</span>
+                                <input type="text" class="form-control" id="main_file" name="main_file">
+                            </div>
+                        </div>
+                        <div class="col-md-2 col-sm-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-person-plus-fill"></i> Add
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -74,7 +56,8 @@
                     <tr>
                         <th scope="col" style="width: 5%">ID</th>
                         <th scope="col">User</th>
-                        <th scope="col" class="text-center" style="width: 15%">Active</th>
+                        <th scope="col" class="text-center">Main File</th>
+                        <th scope="col" class="text-center" style="width: 10%">Save</th>
                         <th scope="col" class="text-center" style="width: 10%">Delete</th>
                     </tr>
                 </thead>
@@ -82,24 +65,25 @@
                     {% if templates %}
                     {% for template in templates %}
                     <tr>
-                        <td>{{ template.id }}</td>
-                        <td>{{ template.title }}</td>
-                        <td class="text-center">
-                            <form method="post"
-                                action="{{ url_for('admin.update_template_active', template_id=template.id) }}"
-                                class="d-inline">
-                                <div class="form-check form-switch d-inline-flex align-items-center">
-                                    <input type="hidden" name="active" id="template-active-value-{{ template.id }}"
-                                        value="{{ 1 if template.is_active else 0 }}">
-                                    <input class="form-check-input" type="checkbox" role="switch"
-                                        id="template-active-{{ template.id }}"
-                                        {% if template.is_active %}checked{% endif %}
-                                        onchange="document.getElementById('template-active-value-{{ template.id }}').value = this.checked ? '1' : '0'; this.form.submit();">
-                                    <label class="visually-hidden" for="template-active-{{ template.id }}">Toggle
-                                        template active state</label>
-                                </div>
-                            </form>
-                        </td>
+                        <form method="post" action="{{ url_for('admin.update_template') }}" class="d-inline">
+                            <td>
+                                {{ template.id }}
+                                <input type="hidden" name="id" id="id" value="{{ template.id }}">
+                            </td>
+                            <td>
+                                <input type="text" name="title" id="title" class="form-control"
+                                    value="{{ template.title }}">
+                            </td>
+                            <td>
+                                <input type="text" name="main_file" id="main_file" class="form-control"
+                                    value="{{ template.main_file }}">
+                            </td>
+                            <td>
+                                <button type="submit" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-save"></i> Save
+                                </button>
+                            </td>
+                        </form>
                         <td class="text-center">
                             <form method="post" action="{{ url_for('admin.delete_template', template_id=template.id) }}"
                                 class="d-inline"

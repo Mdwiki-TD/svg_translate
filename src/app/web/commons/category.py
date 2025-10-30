@@ -1,13 +1,13 @@
 
 import requests
 import logging
-
+import urllib.parse
 from ...config import settings
 
 logger = logging.getLogger(__name__)
 
 
-def get_category_members(category="Category:Pages using gadget owidslider", project="commons.wikimedia.org", limit=500):
+def get_category_members_api(category, project, limit=500):
     """
     Fetch all pages belonging to a given category from a Wikimedia project.
 
@@ -52,3 +52,55 @@ def get_category_members(category="Category:Pages using gadget owidslider", proj
         logger.error(f"Error: get_category_members : {e}")
 
     return pages
+
+
+def get_category_members_petscan(category, project, limit=500):
+    """
+    Fetch all pages belonging to a given category from a Wikimedia project using the Petscan API.
+    """
+    # Build PetScan URL for the given category
+    base_url = "https://petscan.wmflabs.org/"
+
+    if category.lower().startswith("category:"):
+        category = category[9:]
+
+    params = {
+        "language": "commons",
+        "project": "wikimedia",
+        "categories": f"{category}",
+        "format": "plain",
+        "depth": 0,
+        "ns[10]": 1,
+        "doit": "Do it!"
+    }
+    url = f"{base_url}?{urllib.parse.urlencode(params)}"
+
+    logger.debug(f"petscan url: {url}")
+
+    headers = {}
+    headers["User-Agent"] = settings.oauth.user_agent
+    text = ""
+    try:
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        text = resp.text
+    except Exception as e:
+        logger.error(f"get_petscan_category_pages: request/json error: {e}")
+        return []
+
+    if not text:
+        return []
+
+    result = [x.strip() for x in text.splitlines()]
+
+    return result
+
+
+def get_category_members(category="Category:Pages using gadget owidslider", project="commons.wikimedia.org", limit=500):
+    result = get_category_members_api(category, project, limit)
+
+    if not result:
+        result = get_category_members_petscan(category, project, limit)
+
+    logger.info(f"Found {len(result)} pages in category {category}")
+    return result

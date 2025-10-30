@@ -108,7 +108,7 @@ def start_upload(
         f"no changes: {no_changes:,}, "
         f"not uploaded: {not_done:,}"
     )
-    stages["status"] = "Failed" if not_done else "Completed"
+    stages["status"] = "Failed" if not_done >= 10 else "Completed"
 
     upload_result = {"done": done, "not_done": not_done, "no_changes": no_changes, "errors": errors}
 

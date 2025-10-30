@@ -1,7 +1,7 @@
-{% macro nav_link(endpoint, icon, text, url) %}
+{% macro nav_link(endpoint, icon, text, url, title="") %}
 {% set is_active = request and request.endpoint and request.endpoint.startswith(endpoint) %}
 <a class="nav-link {{ 'active fw-bold' if is_active }}" href="{{ url }}" {% if is_active %}aria-current="page"
-    {% endif %}>
+    {% endif %} title="{{ title }}">
     <i class="bi {{ icon }}"></i> {{ text }}
 </a>
 {% endmacro %}
@@ -27,7 +27,7 @@
                     {{ nav_link('admin.', 'bi-people-fill', 'Admins', url_for('admin.admin_dashboard')) }}
                 </li>
                 <li class="nav-item">
-                    {{ nav_link('templates.', 'bi-file-earmark-text', 'Templates', url_for('templates.main')) }}
+                    {{ nav_link('templates.', 'bi-file-earmark-text', 'Templates', url_for('templates.main'), 'OWIDSlider Templates') }}
                 </li>
                 <li class="nav-item">
                     {{ nav_link('explorer.', 'bi-folder2-open', 'Files', url_for('explorer.main')) }}

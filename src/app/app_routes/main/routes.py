@@ -8,6 +8,7 @@ import logging
 
 from flask import (
     Blueprint,
+    flash,
     render_template,
     request,
     send_from_directory,
@@ -23,12 +24,14 @@ logger = logging.getLogger(__name__)
 def index():
     current_user_obj = current_user()
     error_message = get_error_message(request.args.get("error"))
+    if error_message:
+        logger.warning(f"Error message: {error_message}")
+        flash(error_message, "warning")
 
     return render_template(
         "index.html",
         form={},
         current_user=current_user_obj,
-        error_message=error_message,
     )
 
 

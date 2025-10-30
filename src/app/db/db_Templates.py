@@ -50,6 +50,19 @@ class TemplatesDB:
             updated_at=row.get("updated_at"),
         )
 
+    def _fetch_by_id(self, template_id: int) -> TemplateRecord:
+        rows = self.db.fetch_query_safe(
+            """
+            SELECT id, title, main_file, created_at, updated_at
+            FROM templates
+            WHERE id = %s
+            """,
+            (template_id,),
+        )
+        if not rows:
+            raise LookupError(f"Template id {template_id} was not found")
+        return self._row_to_record(rows[0])
+
     def _fetch_by_title(self, title: str) -> TemplateRecord:
         rows = self.db.fetch_query_safe(
             """
@@ -79,9 +92,6 @@ class TemplatesDB:
         if not title:
             raise ValueError("Title is required")
 
-        if not main_file:
-            raise ValueError("Main file is required")
-
         try:
             # Use execute_query to allow exception to propagate
             self.db.execute_query(
@@ -99,11 +109,11 @@ class TemplatesDB:
 
         return self._fetch_by_title(title)
 
-    def add_main_file(self, template_id: int, main_file: str) -> TemplateRecord:
+    def update(self, template_id: int, title: str, main_file: str) -> TemplateRecord:
         _ = self._fetch_by_id(template_id)
         self.db.execute_query_safe(
-            "UPDATE templates SET main_file = %s WHERE id = %s",
-            (main_file, template_id),
+            "UPDATE templates SET title = %s, main_file = %s WHERE id = %s",
+            (title, main_file, template_id),
         )
         return self._fetch_by_id(template_id)
 
