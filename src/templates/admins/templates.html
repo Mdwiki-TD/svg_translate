@@ -13,6 +13,7 @@
         <div class="card mb-2 shadow-sm">
             <div class="card-body">
                 <form method="post" action="{{ url_for('admin.add_template') }}" class="row g-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row">
                         <div class="col-md-5 col-sm-12">
                             <div class="input-group">
@@ -52,6 +53,7 @@
                     {% for template in templates %}
                     <tr>
                         <form method="post" action="{{ url_for('admin.update_template') }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <td>
                                 {{ template.id }}
                                 <input type="hidden" name="id" id="id" value="{{ template.id }}">
@@ -74,6 +76,7 @@
                             <form method="post" action="{{ url_for('admin.delete_template', template_id=template.id) }}"
                                 class="d-inline"
                                 onsubmit="return confirm('Remove {{ template.title }} from templates?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-outline-danger btn-sm">
                                     <i class="bi bi-trash"></i> Delete
                                 </button>
