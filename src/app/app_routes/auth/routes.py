@@ -12,6 +12,7 @@ from typing import Any, Callable
 from urllib.parse import urlencode
 from flask import (
     Blueprint,
+    flash,
     Response,
     g,
     make_response,
@@ -64,6 +65,7 @@ def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not getattr(g, "is_authenticated", False):
+            flash("You must be logged in to view this page", "warning")
             return redirect(url_for("main.index", error="login-required"))
         return fn(*args, **kwargs)
 
