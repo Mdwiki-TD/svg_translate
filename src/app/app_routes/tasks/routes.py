@@ -240,7 +240,7 @@ def tasks(user: str | None = None):
     )
 
 
-@bp_tasks.get("/task/<task_id>/delete")
+@bp_tasks.post("/task/<task_id>/delete")
 @admin_required
 def delete_task(task_id: int):
     """Delete task."""

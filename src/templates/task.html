@@ -126,10 +126,9 @@
                     Restart
                 </button>
                 {% if is_admin %}
-                <a type="button" class="btn btn-outline-danger"
-                    href="{{ url_for('tasks.delete_task', task_id=task_id)}}">
-                    Delete
-                </a>
+                <form action="{{ url_for('tasks.delete_task', task_id=task_id) }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
                 {% endif %}
             </div>
         </div>
