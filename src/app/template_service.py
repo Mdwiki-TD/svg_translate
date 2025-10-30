@@ -42,7 +42,7 @@ def list_templates() -> List[TemplateRecord]:
 
 
 def add_template(title: str, main_file: str) -> TemplateRecord:
-    """Add a template and refresh the runtime admin list."""
+    """Add a template."""
 
     store = get_templates_db()
     record = store.add(title, main_file)
@@ -50,8 +50,17 @@ def add_template(title: str, main_file: str) -> TemplateRecord:
     return record
 
 
+def add_or_update_template(title: str, main_file: str) -> TemplateRecord:
+    """Add a template."""
+
+    store = get_templates_db()
+    record = store.add_or_update(title, main_file)
+
+    return record
+
+
 def update_template(template_id: int, title: str, main_file: str) -> TemplateRecord:
-    """Toggle template activity and refresh settings."""
+    """Update template."""
 
     store = get_templates_db()
     record = store.update(template_id, title, main_file)
@@ -60,7 +69,7 @@ def update_template(template_id: int, title: str, main_file: str) -> TemplateRec
 
 
 def delete_template(template_id: int) -> TemplateRecord:
-    """Delete a template and refresh settings."""
+    """Delete a template."""
 
     store = get_templates_db()
     record = store.delete(template_id)

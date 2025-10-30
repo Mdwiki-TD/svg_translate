@@ -97,9 +97,6 @@ class TemplatesDB:
             self.db.execute_query(
                 """
                 INSERT INTO templates (title, main_file) VALUES (%s, %s)
-                ON DUPLICATE KEY UPDATE
-                    title = VALUES(title),
-                    main_file = VALUES(main_file)
                 """,
                 (title, main_file),
             )
@@ -124,6 +121,24 @@ class TemplatesDB:
             (template_id,),
         )
         return record
+
+    def add_or_update(self, title: str, main_file: str) -> TemplateRecord:
+        title = title.strip()
+        main_file = main_file.strip()
+
+        if not title:
+            logger.error("Title is required for add_or_update")
+
+        self.db.execute_query_safe(
+            """
+            INSERT INTO templates (title, main_file) VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE
+                title = COALESCE(VALUES(title), title),
+                main_file = COALESCE(VALUES(main_file), main_file)
+            """,
+            (title, main_file),
+        )
+        return self._fetch_by_title(title)
 
 
 __all__ = [

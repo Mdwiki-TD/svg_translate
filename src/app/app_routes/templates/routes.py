@@ -11,7 +11,7 @@ from flask import (
 )
 from ...web.commons.category import get_category_members
 from ...config import settings
-from ...template_service import get_templates_db
+from ...template_service import get_templates_db, add_or_update_template
 
 bp_templates = Blueprint("templates", __name__, url_prefix="/templates")
 logger = logging.getLogger(__name__)
@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 def get_main_data(title):
     file_path = Path(settings.paths.svg_data) / title / "files_stats.json"
+    if not file_path.exists():
+        return {}
     try:
         data = json.loads(file_path.read_text(encoding="utf-8"))
         return data
@@ -64,9 +66,13 @@ def temps_main_files(data: dict) -> dict:
             main_data = get_main_data(title_dir) or {}
             main_file = main_data.get("main_title")
         # ---
+        value = ""
+        # ---
         if main_file:
             value = f"File:{main_file}" if not main_file.lower().startswith("file:") else main_file
             data[title]["main_file"] = value
+        # ---
+        add_or_update_template(title, value)
     # ---
     return data
 
