@@ -58,8 +58,10 @@ def _add_coordinator() -> ResponseReturnValue:
     try:
         record = admin_service.add_coordinator(username)
     except ValueError as exc:
+        logger.exception("Unable to Add coordinator.")
         flash(str(exc), "warning")
     except LookupError as exc:
+        logger.exception("Unable to Add coordinator.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
         logger.exception("Unable to add coordinator.")
@@ -77,8 +79,10 @@ def _update_coordinator_active(coordinator_id: int) -> ResponseReturnValue:
     try:
         record = admin_service.set_coordinator_active(coordinator_id, desired)
     except LookupError as exc:
+        logger.exception("Unable to update coordinator.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
+        logger.exception("Unable to update coordinator.")
         flash("Unable to update coordinator status. Please try again.", "danger")
     else:
         state = "activated" if record.is_active else "deactivated"
@@ -93,8 +97,10 @@ def _delete_coordinator(coordinator_id: int) -> ResponseReturnValue:
     try:
         record = admin_service.delete_coordinator(coordinator_id)
     except LookupError as exc:
+        logger.exception("Unable to delete coordinator.")
         flash(str(exc), "warning")
     except Exception:  # pragma: no cover - defensive guard
+        logger.exception("Unable to delete coordinator.")
         flash("Unable to delete coordinator. Please try again.", "danger")
     else:
         flash(f"Coordinator '{record.username}' removed.", "success")
