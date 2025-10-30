@@ -8,7 +8,7 @@ from typing import Callable
 
 from flask import abort, current_app, request, session
 
-SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
 
 class CSRFProtect:
@@ -19,6 +19,11 @@ class CSRFProtect:
             self.init_app(app)
 
     def init_app(self, app):  # pragma: no cover - exercised indirectly in tests
+        app.config.setdefault("WTF_CSRF_ENABLED", True)
+        app.config.setdefault(
+            "WTF_CSRF_METHODS", frozenset({"POST", "PUT", "PATCH", "DELETE"})
+        )
+
         app.before_request(self._check_csrf)
         app.context_processor(self._context_processor)
         app.jinja_env.globals.setdefault("csrf_token", self.generate_csrf)
@@ -37,6 +42,18 @@ class CSRFProtect:
         if request.method in SAFE_METHODS:
             # Ensure a token exists for subsequent unsafe requests.
             self.generate_csrf()
+            return
+
+        if not current_app.config.get("WTF_CSRF_ENABLED", True):
+            return
+
+        if current_app.testing and not current_app.config.get(
+            "WTF_CSRF_ENABLE_WHEN_TESTING", False
+        ):
+            return
+
+        protected_methods = current_app.config.get("WTF_CSRF_METHODS") or set()
+        if protected_methods and request.method.upper() not in protected_methods:
             return
 
         if not current_app.secret_key:
