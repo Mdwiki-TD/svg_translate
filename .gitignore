@@ -1,5 +1,6 @@
 /*.svg
 *.pyc
+*.egg-info/
 plan-ar.md
 plan.md
 /svg22

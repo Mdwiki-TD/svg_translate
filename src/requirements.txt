@@ -1,6 +1,7 @@
 asgiref
 cryptography
 Flask
+Flask-WTF
 flask-limiter
 gunicorn
 lxml

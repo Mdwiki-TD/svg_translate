@@ -39,6 +39,7 @@
     </div>
 
     <form method="post" action="{{ url_for('tasks.start') }}" class="row gy-2 gx-3 align-items-center mb-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row justify-content-between align-items-center">
             <div class="col-sm-12 col-md-3">
                 <label for="manual_main_title" class="form-label">Main File</label>
@@ -127,6 +128,7 @@
                 </button>
                 {% if is_admin %}
                 <form action="{{ url_for('tasks.delete_task', task_id=task_id) }}" method="post" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline-danger">Delete</button>
                 </form>
                 {% endif %}
