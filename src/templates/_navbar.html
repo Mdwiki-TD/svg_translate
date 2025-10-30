@@ -27,6 +27,9 @@
                     {{ nav_link('admin.', 'bi-people-fill', 'Admins', url_for('admin.admin_dashboard')) }}
                 </li>
                 <li class="nav-item">
+                    {{ nav_link('templates.', 'bi-file-earmark-text', 'Templates', url_for('templates.main')) }}
+                </li>
+                <li class="nav-item">
                     {{ nav_link('explorer.', 'bi-folder2-open', 'Files', url_for('explorer.main')) }}
                 </li>
                 {% endif %}

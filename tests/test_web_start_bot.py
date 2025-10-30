@@ -26,7 +26,12 @@ def test_translations_task_stops_on_failure(
     fake_svg_path = dummy_main_path / "Example.svg"
     fake_svg_path.write_text("<svg></svg>")
 
-    def fake_download_one_file(title, out_dir, index):
+    def fake_download_one_file(
+            title: str,
+            out_dir: Path,
+            i: int,
+            session=None,
+            overwrite: bool = False):
         return {"path": fake_svg_path}
 
     def fake_extract(path, case_insensitive):

@@ -1,7 +1,8 @@
 
 import requests
-
 import logging
+
+from ...config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ def get_wikitext(title, project="commons.wikimedia.org"):
     api_url = f"https://{project}/w/api.php"
     session = requests.Session()
     session.headers.update({
-        "User-Agent": "WikiMedBot/1.0 (https://commons.wikimedia.org/wiki/User:Mr.Ibrahem; mailto:example@example.org)"
+        "User-Agent": settings.oauth.user_agent
     })
 
     params = {
