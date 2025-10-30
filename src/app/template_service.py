@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 from typing import List
 
-from ...config import settings
-from ...db import has_db_config
-from ...db.db_Templates import TemplateRecord, TemplatesDB
+from .config import settings
+from .db import has_db_config
+from .db.db_Templates import TemplateRecord, TemplatesDB
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +32,6 @@ def get_templates_db() -> TemplatesDB:
     return _TEMPLATE_STORE
 
 
-def active_templates() -> list:
-    """Return all templates while keeping settings.admins in sync."""
-
-    store = get_templates_db()
-
-    return [u.username for u in store.list() if u.is_active]
-
-
 def list_templates() -> List[TemplateRecord]:
     """Return all templates while keeping settings.admins in sync."""
 
@@ -49,20 +41,20 @@ def list_templates() -> List[TemplateRecord]:
     return coords
 
 
-def add_template(username: str) -> TemplateRecord:
+def add_template(title: str, main_file: str) -> TemplateRecord:
     """Add a template and refresh the runtime admin list."""
 
     store = get_templates_db()
-    record = store.add(username)
+    record = store.add(title, main_file)
 
     return record
 
 
-def set_template_active(template_id: int, is_active: bool) -> TemplateRecord:
+def update_template(template_id: int, title: str, main_file: str) -> TemplateRecord:
     """Toggle template activity and refresh settings."""
 
     store = get_templates_db()
-    record = store.set_active(template_id, is_active)
+    record = store.update(template_id, title, main_file)
 
     return record
 
@@ -78,11 +70,10 @@ def delete_template(template_id: int) -> TemplateRecord:
 
 __all__ = [
     "get_templates_db",
-    "active_templates",
     "TemplateRecord",
     "TemplatesDB",
     "list_templates",
     "add_template",
-    "set_template_active",
+    "update_template",
     "delete_template",
 ]
