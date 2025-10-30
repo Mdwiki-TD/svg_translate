@@ -5,14 +5,15 @@ from typing import Any, Dict, Iterable, List, Optional
 
 # from .utils import DbUtils
 # from .db_StageStore import StageStore
+from .db_class import Database
 
 logger = logging.getLogger(__name__)
 
 
 class TasksListDB:  # (StageStore, DbUtils)
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, db : Database | None = None) -> None:
+        self.db = db
 
     def create_base_sql(self, order_column, statuses, status, username, direction, limit, offset):
 

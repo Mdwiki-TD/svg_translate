@@ -28,6 +28,8 @@ def _validate_path_under_base(title: str, sub_dir: str) -> Path:
 
 def get_main_data(title, filename="files_stats.json"):
     file_path = svg_data_path / title / (filename or "files_stats.json")
+    if not file_path.exists():
+        return {}
     try:
         data = json.loads(file_path.read_text(encoding="utf-8"))
         return data

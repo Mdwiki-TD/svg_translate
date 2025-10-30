@@ -1,8 +1,8 @@
 """Flask application factory."""
 
 from __future__ import annotations
-import os
-from flask import Flask, render_template
+import logging
+from flask import Flask, render_template, flash
 from typing import Tuple
 from .config import settings
 from .app_routes import (
@@ -21,6 +21,8 @@ from .users.store import ensure_user_token_table
 from .db import close_cached_db
 
 from .cookies import CookieHeaderClient
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> Flask:
@@ -70,11 +72,15 @@ def create_app() -> Flask:
     @app.errorhandler(404)
     def page_not_found(e: Exception) -> Tuple[str, int]:
         """Handle 404 errors"""
-        return render_template("error.html", title="Page Not Found", tt="invalid_url", error=str(e)), 404
+        logger.error("Page not found: %s", e)
+        flash("Page not found", "warning")
+        return render_template("error.html", title="Page Not Found", tt="invalid_url"), 404
 
     @app.errorhandler(500)
     def internal_server_error(e: Exception) -> Tuple[str, int]:
         """Handle 500 errors"""
-        return render_template("error.html", title="Internal Server Error", tt="unexpected_error", error=str(e)), 500
+        logger.error("Internal Server Error: %s", e)
+        flash("Internal Server Error", "danger")
+        return render_template("error.html", title="Internal Server Error", tt="unexpected_error"), 500
 
     return app

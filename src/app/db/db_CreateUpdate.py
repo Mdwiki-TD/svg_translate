@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 # from .utils import DbUtils
 # from .db_TasksListDB import TasksListDB
 # from .db_StageStore import StageStore
+from .db_class import Database
 
 logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = ("Completed", "Failed", "Cancelled")
@@ -39,8 +40,32 @@ class TaskAlreadyExistsError(Exception):
 class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
     """MySQL-backed task store using helper functions execute_query/fetch_query."""
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, db : Database | None = None) -> None:
+        self.db = db
+
+    def delete_task(self, task_id: str) -> None:
+        """
+        Delete a task row from the database.
+
+        Parameters:
+            task_id (str): Unique identifier for the task to be deleted.
+
+        Raises:
+            Exception: Propagates any underlying database or execution errors encountered during delete.
+        """
+        try:
+            self.db.execute_query(
+                """
+                DELETE FROM tasks
+                WHERE id = %s
+                """,
+                [task_id],
+            )
+        except Exception as e:
+            logger.error(f"Failed to delete task, Error: {e}")
+            raise e
+        else:
+            logger.info(f"Task {task_id} deleted successfully")
 
     def create_task(
         self,

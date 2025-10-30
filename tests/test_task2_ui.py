@@ -59,7 +59,7 @@ def test_task2_active_shows_cancel_button(app_factory):
     }
     app = app_factory(task)
     with app.test_client() as client:
-        response = client.get("/task1", query_string={"task_id": task["id"]})
+        response = client.get("/task", query_string={"task_id": task["id"]})
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
@@ -85,7 +85,7 @@ def test_task2_terminal_shows_restart_button(app_factory):
     }
     app = app_factory(task)
     with app.test_client() as client:
-        response = client.get("/task1", query_string={"task_id": task["id"]})
+        response = client.get("/task", query_string={"task_id": task["id"]})
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 
@@ -111,7 +111,7 @@ def test_stage_cancelled_renders_warning_badge(app_factory):
     }
     app = app_factory(task)
     with app.test_client() as client:
-        response = client.get("/task1", query_string={"task_id": task["id"]})
+        response = client.get("/task", query_string={"task_id": task["id"]})
     assert response.status_code == 200
     html = response.get_data(as_text=True)
 

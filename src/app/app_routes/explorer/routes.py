@@ -118,7 +118,7 @@ def serve_media(title_dir: str, subdir: str, filename: str):
     return send_from_directory(dir_path, filename)
 
 
-@bp_explorer.route('/media_thumb/<path:filename>')
+@bp_explorer.route('/media_thumb/<title_dir>/<subdir>/<path:filename>')
 def serve_thumb(title_dir: str, subdir: str, filename: str):
     # ---
     dir_path = svg_data_path / title_dir / subdir

@@ -12,6 +12,7 @@ from typing import Any, Callable
 from urllib.parse import urlencode
 from flask import (
     Blueprint,
+    flash,
     Response,
     g,
     make_response,
@@ -64,6 +65,7 @@ def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not getattr(g, "is_authenticated", False):
+            flash("You must be logged in to view this page", "warning")
             return redirect(url_for("main.index", error="login-required"))
         return fn(*args, **kwargs)
 
@@ -73,11 +75,13 @@ def login_required(fn: Callable[..., Any]) -> Callable[..., Any]:
 @bp_auth.get("/login")
 def login() -> Response:
     if not settings.use_mw_oauth:
+        flash("OAuth login is disabled", "warning")
         return redirect(url_for("main.index", error="oauth-disabled"))
 
     if not login_rate_limiter.allow(_client_key()):
         time_left = login_rate_limiter.try_after(_client_key()).total_seconds()
         time_left = str(time_left).split(".")[0]
+        flash(f"Too many login attempts. Please try again after {time_left}s.", "warning")
         return redirect(url_for("main.index", error=f"Too many login attempts. Please try again after {time_left}s."))
 
     state_nonce = secrets.token_urlsafe(32)
@@ -89,6 +93,7 @@ def login() -> Response:
         redirect_url, request_token = start_login(sign_state_token(state_nonce))
     except Exception:
         logger.exception("Failed to start OAuth login")
+        flash("Failed to initiate OAuth login", "danger")
         return redirect(url_for("main.index", error="Failed to initiate OAuth login"))
 
     # ------------------
@@ -102,11 +107,13 @@ def callback() -> Response:
     # ------------------
     # use oauth
     if not settings.use_mw_oauth:
+        flash("OAuth login is disabled", "warning")
         return redirect(url_for("main.index", error="oauth-disabled"))
 
     # ------------------
     # callback rate limiter
     if not callback_rate_limiter.allow(_client_key()):
+        flash("Too many login attempts", "warning")
         return redirect(url_for("main.index", error="Too many login attempts"))
 
     # ------------------
@@ -114,10 +121,12 @@ def callback() -> Response:
     expected_state = session.pop(oauth_state_nonce, None)
     returned_state = request.args.get("state")
     if not expected_state or not returned_state:
+        flash("Invalid OAuth state", "danger")
         return redirect(url_for("main.index", error="Invalid OAuth state"))
 
     verified_state = verify_state_token(returned_state)
     if verified_state != expected_state:
+        flash("OAuth state mismatch", "danger")
         return redirect(url_for("main.index", error="oauth-state-mismatch"))
 
     # ------------------
@@ -125,6 +134,7 @@ def callback() -> Response:
     raw_request_token = session.pop(request_token_key, None)
     oauth_verifier = request.args.get("oauth_verifier")
     if not raw_request_token or not oauth_verifier:
+        flash("Invalid OAuth verifier", "danger")
         return redirect(url_for("main.index", error="Invalid OAuth verifier"))
 
     # ------------------
@@ -133,6 +143,7 @@ def callback() -> Response:
         request_token = _load_request_token(raw_request_token)
     except ValueError:
         logger.exception("Invalid OAuth request token")
+        flash("Invalid OAuth request token", "danger")
         return redirect(url_for("main.index", error="Invalid request token"))
 
     # ------------------
@@ -142,6 +153,7 @@ def callback() -> Response:
         access_token, identity = complete_login(request_token, query_string)
     except OAuthIdentityError:
         logger.exception("OAuth identity verification failed")
+        flash("Failed to verify OAuth identity", "danger")
         return redirect(url_for("main.index", error="Failed to verify OAuth identity"))
 
     # ------------------
@@ -155,6 +167,7 @@ def callback() -> Response:
 
     if not (token_key and token_secret):
         logger.error("OAuth access token missing key/secret")
+        flash("Missing OAuth credentials", "danger")
         return redirect(url_for("main.index", error="Missing credentials"))
 
     # ------------------
@@ -166,16 +179,19 @@ def callback() -> Response:
         or identity.get("user_id")
     )
     if not user_identifier:
+        flash("Missing user id", "danger")
         return redirect(url_for("main.index", error="Missing id"))
 
     try:
         user_id = int(user_identifier)
     except (TypeError, ValueError):
         logger.exception("Invalid user identifier")
+        flash("Invalid user identifier", "danger")
         return redirect(url_for("main.index", error="Invalid user identifier"))
 
     username = identity.get("username") or identity.get("name")
     if not username:
+        flash("Missing username", "danger")
         return redirect(url_for("main.index", error="Missing username"))
 
     # ------------------
@@ -227,14 +243,24 @@ def logout() -> Response:
     session.pop(oauth_state_nonce, None)
     session.pop("username", None)
 
+    # extract user_id from signed cookie if needed
     if user_id is None:
         signed = request.cookies.get(settings.cookie.name)
         if signed:
             user_id = extract_user_id(signed)
 
+    # delete user token if possible
     if isinstance(user_id, int):
-        delete_user_token(user_id)
+        try:
+            delete_user_token(user_id)
+            flash("You have been logged out successfully.", "info")
+        except Exception:
+            logger.exception("Failed to delete user token during logout")
+            flash("Error while clearing OAuth credentials.", "danger")
+    else:
+        flash("Session cleared.", "info")
 
+    flash("Logout successful.", "success")
     response = make_response(redirect(url_for("main.index")))
     response.delete_cookie(settings.cookie.name, path="/")
 

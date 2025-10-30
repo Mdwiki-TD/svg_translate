@@ -26,6 +26,21 @@
 <body>
     {% include "_navbar.html" %}
 
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+    <div class="container">
+        <div class="alert-stack mb-4">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
     <div class="py-1">
         {% block content %}{% endblock %}
     </div>
@@ -50,6 +65,7 @@
             $('.DataTable').DataTable({
                 responsive: true,
                 pageLength: 100,
+                order: [[]],
             });
         });
     </script>

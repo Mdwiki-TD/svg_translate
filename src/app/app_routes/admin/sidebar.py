@@ -29,7 +29,7 @@ def create_side(ty):
         "Users": [
             {"id": "last", "admin": 0, "href": "recent", "title": "Recent", "icon": "bi-clock-history"},
             {"id": "admins", "admin": 1, "href": "coordinators", "title": "Coordinators", "icon": "bi-person-gear"},
-            {"id": "Emails", "admin": 1, "href": "Emails", "title": "Emails", "icon": "bi-envelope"},
+            {"id": "templates", "admin": 1, "href": "templates", "title": "Templates", "icon": "bi-list-columns"},
             {"id": "full_tr", "admin": 1, "href": "full_translators", "title": "Full translators", "icon": "bi-person-check"},
             {"id": "user_inp", "admin": 1, "href": "users_no_inprocess", "title": "Not in process", "icon": "bi-hourglass"},
         ]

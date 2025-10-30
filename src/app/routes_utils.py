@@ -113,5 +113,6 @@ def format_task(task: dict) -> dict:
         "updated_at_display": updated_display,
         "updated_at_sort": updated_sort,
         "username": task.get("username", ""),
-        "stages": stages
+        "results": results,
+        "stages": stages,
     }

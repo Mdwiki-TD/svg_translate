@@ -50,7 +50,7 @@ def list_coordinators() -> List[CoordinatorRecord]:
 
 
 def add_coordinator(username: str) -> CoordinatorRecord:
-    """Add a coordinator and refresh the runtime admin list."""
+    """Add a coordinator."""
 
     store = get_admins_db()
     record = store.add(username)

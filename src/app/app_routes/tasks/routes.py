@@ -8,6 +8,7 @@ import logging
 from flask import (
     Blueprint,
     jsonify,
+    flash,
     redirect,
     render_template,
     request,
@@ -18,11 +19,13 @@ from ...config import settings
 from ...db import TaskAlreadyExistsError
 from ...db.task_store_pymysql import TaskStorePyMysql
 from ...users.current import current_user, oauth_required
+from ...app_routes.admin.admin_required import admin_required
 
 from ...routes_utils import load_auth_payload, get_error_message, format_task, order_stages
-from .args_utils import parse_args
 
 from ...threads.task_threads import launch_task_thread
+
+from .args_utils import parse_args
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
@@ -55,9 +58,12 @@ def close_task_store() -> None:
 
 @bp_tasks.get("/task1")
 @bp_tasks.get("/task1/<task_id>")
-def task1(task_id: str | None = None):
+@bp_tasks.get("/task")
+@bp_tasks.get("/task/<task_id>")
+def task(task_id: str | None = None):
     if not task_id:
-        return redirect(url_for("main.index", error="no-task-id"))
+        flash("No task id provided", "warning")
+        return redirect(url_for("main.index"))
 
     task = _task_store().get_task(task_id)
 
@@ -68,15 +74,17 @@ def task1(task_id: str | None = None):
     title = request.args.get("title")
     error_message = get_error_message(request.args.get("error"))
 
+    if error_message:
+        flash(error_message, "warning")
+
     current_user_obj = current_user()
     return render_template(
-        "task1.html",
+        "task.html",
         task_id=task_id,
         current_user=current_user_obj,
         title=title or task.get("title", "") if isinstance(task, dict) else "",
         task=task,
         form=task.get("form", {}),
-        error_message=error_message,
     )
 
 
@@ -85,7 +93,8 @@ def task2():
     task_id = request.args.get("task_id")
 
     if not task_id:
-        return redirect(url_for("main.index", error="no-task-id"))
+        flash("No task id provided", "warning")
+        return redirect(url_for("main.index"))
 
     task = _task_store().get_task(task_id)
 
@@ -95,6 +104,9 @@ def task2():
 
     title = request.args.get("title")
     error_message = get_error_message(request.args.get("error"))
+
+    if error_message:
+        flash(error_message, "warning")
 
     stages = order_stages(task.get("stages") if isinstance(task, dict) else None)
 
@@ -107,7 +119,6 @@ def task2():
         task=task,
         stages=stages,
         form=task.get("form", {}),
-        error_message=error_message,
     )
 
 
@@ -131,8 +142,9 @@ def start():
             existing_task = store.get_active_task_by_title(title)
             if existing_task:
                 logger.debug(f"Task for title '{title}' already exists: {existing_task['id']}.")
+                flash(f"Task for title '{title}' already exists: {existing_task['id']}.", "warning")
                 return redirect(
-                    url_for("tasks.task1", task_id=existing_task["id"], title=title, error="task-active")
+                    url_for("tasks.task1", task_id=existing_task["id"], title=title)
                 )
 
         try:
@@ -145,16 +157,18 @@ def start():
         except TaskAlreadyExistsError as exc:
             existing = exc.task
             logger.debug("Task creation for %s blocked by existing task %s", task_id, existing.get("id"))
-            return redirect(url_for("tasks.task1", task_id=existing["id"], title=title, error="task-active"))
+            flash(f"Task for title '{title}' already exists: {existing['id']}.", "warning")
+            return redirect(url_for("tasks.task", task_id=existing["id"], title=title))
         except Exception:
             logger.exception("Failed to create task")
-            return redirect(url_for("main.index", title=title, error="task-create-failed"))
+            flash("Failed to create task.", "danger")
+            return redirect(url_for("main.index", title=title))
 
     auth_payload = load_auth_payload(user)
 
     launch_task_thread(task_id, title, args, auth_payload)
 
-    return redirect(url_for("tasks.task1", title=title, task_id=task_id))
+    return redirect(url_for("tasks.task", title=title, task_id=task_id))
 
 
 @bp_tasks.get("/status/<task_id>")
@@ -224,3 +238,21 @@ def tasks(user: str | None = None):
         is_own_tasks=is_own_tasks,
         user_specific=True,
     )
+
+
+@bp_tasks.get("/task/<task_id>/delete")
+@admin_required
+def delete_task(task_id: int):
+    """Delete task."""
+    try:
+        _task_store().delete_task(task_id)
+    except LookupError as exc:
+        logger.exception("Unable to delete task.")
+        flash(str(exc), "warning")
+    except Exception:  # pragma: no cover - defensive guard
+        logger.exception("Unable to delete task.")
+        flash("Unable to delete task. Please try again.", "danger")
+    else:
+        flash(f"Task '{task_id}' removed.", "success")
+
+    return redirect(url_for("tasks.tasks"))

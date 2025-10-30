@@ -13,7 +13,7 @@ from .db_CreateUpdate import CreateUpdateTask
 logger = logging.getLogger(__name__)
 
 
-class TaskStorePyMysql(StageStore, TasksListDB, CreateUpdateTask, DbUtils):
+class TaskStorePyMysql(CreateUpdateTask, StageStore, TasksListDB, DbUtils):
     """MySQL-backed task store using helper functions execute_query/fetch_query."""
 
     def __init__(self, db_data: Dict[str, str]) -> None:
@@ -26,6 +26,7 @@ class TaskStorePyMysql(StageStore, TasksListDB, CreateUpdateTask, DbUtils):
         """
         self.db = Database(db_data)
         self._init_schema()
+        super().__init__(self.db)
 
     def close(self) -> None:
         """Close the underlying database connection."""

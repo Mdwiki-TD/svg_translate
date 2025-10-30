@@ -9,6 +9,7 @@ from functools import wraps
 from typing import Any, Dict, Callable
 
 from flask import (
+    flash,
     Blueprint,
     jsonify,
 )
@@ -44,7 +45,7 @@ def login_required_json(fn: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(fn)
     def wrapper(*args, **kwargs) -> Response | Any:
         if not current_user():  # and not getattr(g, "is_authenticated", False)
-            # return redirect(url_for("main.index", error="login-required"))
+            flash("You must be logged in to view this page", "warning")
             return jsonify({"error": "login-required"})
         return fn(*args, **kwargs)
 
