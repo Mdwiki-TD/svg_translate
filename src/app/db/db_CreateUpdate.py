@@ -63,7 +63,7 @@ class CreateUpdateTask:  # (StageStore, TasksListDB, DbUtils):
             )
         except Exception as e:
             logger.error(f"Failed to delete task, Error: {e}")
-            raise
+            raise e
         else:
             logger.info(f"Task {task_id} deleted successfully")
 

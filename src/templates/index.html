@@ -6,18 +6,6 @@
 
 <div class="container">
     <h1 class="mb-3">SVG Translate Bot</h1>
-    {% with messages = get_flashed_messages(with_categories=True) %}
-    {% if messages %}
-    <div class="alert-stack mb-4">
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-    {% endwith %}
     <form method="post" action="{{ url_for('tasks.start') }}" class="row gy-2 gx-3 align-items-center mb-4">
         <div class="col-sm-12 col-md-4">
             <label for="title" class="form-label">Template Title</label>

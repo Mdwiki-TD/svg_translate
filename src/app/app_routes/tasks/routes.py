@@ -19,11 +19,13 @@ from ...config import settings
 from ...db import TaskAlreadyExistsError
 from ...db.task_store_pymysql import TaskStorePyMysql
 from ...users.current import current_user, oauth_required
+from ...app_routes.admin.admin_required import admin_required
 
 from ...routes_utils import load_auth_payload, get_error_message, format_task, order_stages
-from .args_utils import parse_args
 
 from ...threads.task_threads import launch_task_thread
+
+from .args_utils import parse_args
 
 TASK_STORE: TaskStorePyMysql | None = None
 TASKS_LOCK = threading.Lock()
@@ -118,22 +120,6 @@ def task2():
         stages=stages,
         form=task.get("form", {}),
     )
-
-
-def delete_task(task_id: int):
-    """Delete task."""
-    try:
-        record = _task_store().delete_task(task_id)
-    except LookupError as exc:
-        logger.exception("Unable to delete coordinator.")
-        flash(str(exc), "warning")
-    except Exception:  # pragma: no cover - defensive guard
-        logger.exception("Unable to delete coordinator.")
-        flash("Unable to delete coordinator. Please try again.", "danger")
-    else:
-        flash(f"Coordinator '{record.username}' removed.", "success")
-
-    return redirect(url_for("admin.coordinators_dashboard"))
 
 
 @bp_tasks.post("/")
@@ -252,3 +238,21 @@ def tasks(user: str | None = None):
         is_own_tasks=is_own_tasks,
         user_specific=True,
     )
+
+
+@bp_tasks.get("/task/<task_id>/delete")
+@admin_required
+def delete_task(task_id: int):
+    """Delete task."""
+    try:
+        _task_store().delete_task(task_id)
+    except LookupError as exc:
+        logger.exception("Unable to delete task.")
+        flash(str(exc), "warning")
+    except Exception:  # pragma: no cover - defensive guard
+        logger.exception("Unable to delete task.")
+        flash("Unable to delete task. Please try again.", "danger")
+    else:
+        flash(f"Task '{task_id}' removed.", "success")
+
+    return redirect(url_for("tasks.tasks"))
