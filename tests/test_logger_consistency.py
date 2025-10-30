@@ -45,7 +45,7 @@ import pytest
     ("src.app.web.wiki_site", "wiki_site"),
     ("src.log", "log"),
 ])
-def test_module_logger_name(module_path, _module_name):
+def test_module_logger_name(module_path, module_name):
     """Test that module uses 'svg_translate' as logger name."""
     import importlib
     
